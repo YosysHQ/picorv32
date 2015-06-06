@@ -4,9 +4,16 @@ TEST_OBJS=$(addsuffix .o,$(basename $(wildcard tests/*.S)))
 test: testbench.exe firmware/firmware.hex
 	vvp -N testbench.exe
 
+test_axi: testbench_axi.exe firmware/firmware.hex
+	vvp -N testbench_axi.exe
+
 testbench.exe: testbench.v picorv32.v
 	iverilog -o testbench.exe testbench.v picorv32.v
 	chmod -x testbench.exe
+
+testbench_axi.exe: testbench.v picorv32.v
+	iverilog -o testbench_axi.exe -DAXI_TEST testbench.v picorv32.v
+	chmod -x testbench_axi.exe
 
 firmware/firmware.hex: firmware/firmware.bin firmware/makehex.py
 	python3 firmware/makehex.py $< > $@

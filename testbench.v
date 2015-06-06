@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 // `define VERBOSE
-// `define RANDOM_AXI_DELAYS
+// `define AXI_TEST
 
 module testbench;
 
@@ -75,12 +75,13 @@ module testbench;
 	endtask
 
 	reg [2:0] fast_axi_transaction = ~0;
+	reg [4:0] async_axi_transaction = ~0;
 	reg [4:0] delay_axi_transaction = 0;
 
-`ifdef RANDOM_AXI_DELAYS
+`ifdef AXI_TEST
 	always @(posedge clk) begin
 		xorshift64_next;
-		{fast_axi_transaction, delay_axi_transaction} <= xorshift64_state;
+		{fast_axi_transaction, async_axi_transaction, delay_axi_transaction} <= xorshift64_state;
 	end
 `endif
 
@@ -97,6 +98,80 @@ module testbench;
 	reg [31:0] latched_wdata;
 	reg [ 3:0] latched_wstrb;
 	reg        latched_rinsn;
+
+	task handle_axi_arvalid; begin
+		mem_axi_arready <= 1;
+		latched_raddr = mem_axi_araddr;
+		latched_rinsn = mem_axi_arprot[2];
+		latched_raddr_en = 1;
+		fast_raddr <= 1;
+	end endtask
+
+	task handle_axi_awvalid; begin
+		mem_axi_awready <= 1;
+		latched_waddr = mem_axi_awaddr;
+		latched_waddr_en = 1;
+		fast_waddr <= 1;
+	end endtask
+
+	task handle_axi_wvalid; begin
+		mem_axi_wready <= 1;
+		latched_wdata = mem_axi_wdata;
+		latched_wstrb = mem_axi_wstrb;
+		latched_wdata_en = 1;
+		fast_wdata <= 1;
+	end endtask
+
+	task handle_axi_rvalid; begin
+`ifdef VERBOSE
+		$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
+`endif
+		if (latched_raddr < 64*1024) begin
+			mem_axi_rdata <= memory[latched_raddr >> 2];
+			mem_axi_rvalid <= 1;
+			latched_raddr_en = 0;
+		end else begin
+			$display("OUT-OF-BOUNDS MEMORY READ FROM %08x", latched_raddr);
+			$finish;
+		end
+	end endtask
+
+	task handle_axi_bvalid; begin
+`ifdef VERBOSE
+		$display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
+`endif
+		if (latched_waddr < 64*1024) begin
+			if (latched_wstrb[0]) memory[latched_waddr >> 2][ 7: 0] <= latched_wdata[ 7: 0];
+			if (latched_wstrb[1]) memory[latched_waddr >> 2][15: 8] <= latched_wdata[15: 8];
+			if (latched_wstrb[2]) memory[latched_waddr >> 2][23:16] <= latched_wdata[23:16];
+			if (latched_wstrb[3]) memory[latched_waddr >> 2][31:24] <= latched_wdata[31:24];
+		end else
+		if (latched_waddr == 32'h1000_0000) begin
+`ifdef VERBOSE
+			if (32 <= latched_wdata && latched_wdata < 128)
+				$display("OUT: '%c'", latched_wdata);
+			else
+				$display("OUT: %3d", latched_wdata);
+`else
+			$write("%c", latched_wdata);
+			$fflush();
+`endif
+		end else begin
+			$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
+			$finish;
+		end
+		mem_axi_bvalid <= 1;
+		latched_waddr_en = 0;
+		latched_wdata_en = 0;
+	end endtask
+
+	always @(negedge clk) begin
+		if (mem_axi_arvalid && !(latched_raddr_en || fast_raddr) && async_axi_transaction[0]) handle_axi_arvalid;
+		if (mem_axi_awvalid && !(latched_waddr_en || fast_waddr) && async_axi_transaction[1]) handle_axi_awvalid;
+		if (mem_axi_wvalid  && !(latched_wdata_en || fast_wdata) && async_axi_transaction[2]) handle_axi_wvalid;
+		if (!mem_axi_rvalid && latched_raddr_en && async_axi_transaction[3]) handle_axi_rvalid;
+		if (!mem_axi_bvalid && latched_waddr_en && latched_wdata_en && async_axi_transaction[4]) handle_axi_bvalid;
+	end
 
 	always @(posedge clk) begin
 		mem_axi_arready <= 0;
@@ -132,77 +207,12 @@ module testbench;
 			latched_wdata_en = 1;
 		end
 
-		if (mem_axi_arvalid && !(latched_raddr_en || fast_raddr) && !delay_axi_transaction[0]) begin
-			mem_axi_arready <= 1;
-			if (fast_axi_transaction[0]) begin
-				fast_raddr <= 1;
-				latched_raddr = mem_axi_araddr;
-				latched_rinsn = mem_axi_arprot[2];
-				latched_raddr_en = 1;
-			end
-		end
+		if (mem_axi_arvalid && !(latched_raddr_en || fast_raddr) && !delay_axi_transaction[0]) handle_axi_arvalid;
+		if (mem_axi_awvalid && !(latched_waddr_en || fast_waddr) && !delay_axi_transaction[1]) handle_axi_awvalid;
+		if (mem_axi_wvalid  && !(latched_wdata_en || fast_wdata) && !delay_axi_transaction[2]) handle_axi_wvalid;
 
-		if (mem_axi_awvalid && !(latched_waddr_en || fast_waddr) && !delay_axi_transaction[1]) begin
-			mem_axi_awready <= 1;
-			if (fast_axi_transaction[1]) begin
-				fast_waddr <= 1;
-				latched_waddr = mem_axi_awaddr;
-				latched_waddr_en = 1;
-			end
-		end
-
-		if (mem_axi_wvalid && !(latched_wdata_en || fast_wdata) && !delay_axi_transaction[2]) begin
-			mem_axi_wready <= 1;
-			if (fast_axi_transaction[2]) begin
-				fast_wdata <= 1;
-				latched_wdata = mem_axi_wdata;
-				latched_wstrb = mem_axi_wstrb;
-				latched_wdata_en = 1;
-			end
-		end
-
-		if (!mem_axi_rvalid && latched_raddr_en && !delay_axi_transaction[3]) begin
-`ifdef VERBOSE
-			$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
-`endif
-			if (latched_raddr < 64*1024) begin
-				mem_axi_rdata <= memory[latched_raddr >> 2];
-				mem_axi_rvalid <= 1;
-				latched_raddr_en = 0;
-			end else begin
-				$display("OUT-OF-BOUNDS MEMORY READ FROM %08x", latched_raddr);
-				$finish;
-			end
-		end
-
-		if (!mem_axi_bvalid && latched_waddr_en && latched_wdata_en && !delay_axi_transaction[4]) begin
-`ifdef VERBOSE
-			$display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
-`endif
-			if (latched_waddr < 64*1024) begin
-				if (latched_wstrb[0]) memory[latched_waddr >> 2][ 7: 0] <= latched_wdata[ 7: 0];
-				if (latched_wstrb[1]) memory[latched_waddr >> 2][15: 8] <= latched_wdata[15: 8];
-				if (latched_wstrb[2]) memory[latched_waddr >> 2][23:16] <= latched_wdata[23:16];
-				if (latched_wstrb[3]) memory[latched_waddr >> 2][31:24] <= latched_wdata[31:24];
-			end else
-			if (latched_waddr == 32'h1000_0000) begin
-`ifdef VERBOSE
-				if (32 <= latched_wdata && latched_wdata < 128)
-					$display("OUT: '%c'", latched_wdata);
-				else
-					$display("OUT: %3d", latched_wdata);
-`else
-				$write("%c", latched_wdata);
-				$fflush();
-`endif
-			end else begin
-				$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
-				$finish;
-			end
-			mem_axi_bvalid <= 1;
-			latched_waddr_en = 0;
-			latched_wdata_en = 0;
-		end
+		if (!mem_axi_rvalid && latched_raddr_en && !delay_axi_transaction[3]) handle_axi_rvalid;
+		if (!mem_axi_bvalid && latched_waddr_en && latched_wdata_en && !delay_axi_transaction[4]) handle_axi_bvalid;
 	end
 
 	initial begin
