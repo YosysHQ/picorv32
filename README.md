@@ -13,7 +13,7 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 Features and Typical Applications:
 ----------------------------------
 
-- Small (about 1000 LUTs in a 7-Series Xilinx FGPA)
+- Small (~1000 LUTs in a 7-Series Xilinx FGPA)
 - High fMAX (>250 MHz on 7-Series Xilinx FGPAs)
 - Selectable native memory interface or AXI4-Lite master
 
@@ -46,12 +46,22 @@ interface, and communicating with the outside world via AXI4.
 Performance:
 ------------
 
-The average Cycles per Instruction (CPI) is 6 to 8, depending on the
-application code. (Most instructions, including unconditional branches and
-not-taken conditional branches execute in 5 cycles. Memory load/store, taken
-conditional branches, JALR, and shift operations may take more than 5 cycles.)
+The average Cycles per Instruction (CPI) is 5 to 7, depending on the
+mix of instructions in the code. The CPI for the individual instructions is:
 
-Dhrystone benchmark results: 0.124 DMIPS/MHz (219 Dhrystones/Second/MHz)
+| Instruction         | CPI |
+| ------------------- | ---:|
+| ALU reg + immediate |   4 |
+| ALU reg + reg       |   5 |
+| memory load         |   7 |
+| memory store        |   8 |
+| branch, taken       |   8 |
+| branch, not taken   |   5 |
+| shift operations    |  5+ |
+
+Dhrystone benchmark results: 0.146 DMIPS/MHz (258 Dhrystones/Second/MHz)
+
+For the Dryhstone benchmark the average CPI is 6.181.
 
 *This numbers apply for setups with memory that can accomodate requests within
 one clock cycle. Slower memory will degrade the performance of the processor.*
