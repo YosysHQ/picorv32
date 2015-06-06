@@ -32,13 +32,10 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 	riscv64-unknown-elf-gcc -m32 -march=RV32I -c -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
-synth_vivado:
-	vivado -nojournal -log synth_vivado.log -mode batch -source synth_vivado.tcl
-
 clean:
 	rm -vrf $(TEST_OBJS) firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex \
 		firmware/firmware.map testbench.exe testbench.vcd .Xil fsm_encoding.os \
 		synth_vivado.log synth_vivado_*.backup.log synth_vivado.v
 
-.PHONY: test synth_vivado clean
+.PHONY: test test_axi clean
 
