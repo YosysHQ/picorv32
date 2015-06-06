@@ -39,7 +39,11 @@ module picorv32 #(
 	output reg [31:0] mem_addr,
 	output reg [31:0] mem_wdata,
 	output reg [ 3:0] mem_wstrb,
-	input      [31:0] mem_rdata
+	input      [31:0] mem_rdata,
+
+	// look-ahead interface
+	output            mem_la_read,
+	output     [31:0] mem_la_addr
 );
 	localparam integer regfile_size = ENABLE_REGS_16_31 ? 32 : 16;
 	localparam integer regindex_bits = ENABLE_REGS_16_31 ? 5 : 4;
@@ -65,6 +69,9 @@ module picorv32 #(
 
 	wire mem_busy = |{mem_do_prefetch, mem_do_rinst, mem_do_rdata, mem_do_wdata};
 
+	assign mem_la_read = resetn && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata);
+	assign mem_la_addr = mem_do_prefetch ? reg_pc + 4 : mem_do_rinst ? reg_pc : {reg_op1[31:2], 2'b00};
+
 	always @(posedge clk) begin
 		mem_done <= 0;
 		if (!resetn) begin
@@ -72,17 +79,10 @@ module picorv32 #(
 			mem_valid <= 0;
 		end else case (mem_state)
 			0: begin
-				if (mem_do_rinst || mem_do_prefetch) begin
+				mem_addr <= mem_la_addr;
+				if (mem_do_rinst || mem_do_prefetch || mem_do_rdata) begin
 					mem_valid <= 1;
-					mem_addr <= mem_do_prefetch ? reg_pc + 4 : reg_pc;
-					mem_instr <= 1;
-					mem_wstrb <= 0;
-					mem_state <= 1;
-				end
-				if (mem_do_rdata) begin
-					mem_valid <= 1;
-					mem_addr <= {reg_op1[31:2], 2'b00};
-					mem_instr <= 0;
+					mem_instr <= mem_do_rinst || mem_do_rdata;
 					mem_wstrb <= 0;
 					mem_state <= 1;
 				end
@@ -195,7 +195,7 @@ module picorv32 #(
 		is_lbu_lhu_lw <= |{instr_lbu, instr_lhu, instr_lw};
 	end
 
-	assign instr_trap = ~|{instr_lui, instr_auipc, instr_jal, instr_jalr,
+	assign instr_trap = !{instr_lui, instr_auipc, instr_jal, instr_jalr,
 			instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu,
 			instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu, instr_sb, instr_sh, instr_sw,
 			instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi, instr_slli, instr_srli, instr_srai,
@@ -810,7 +810,7 @@ module picorv32_axi_adapter (
 	assign mem_axi_awaddr = mem_addr;
 	assign mem_axi_awprot = 0;
 
-	assign mem_axi_arvalid = mem_valid && ~|mem_wstrb && !ack_arvalid;
+	assign mem_axi_arvalid = mem_valid && !mem_wstrb && !ack_arvalid;
 	assign mem_axi_araddr = mem_addr;
 	assign mem_axi_arprot = mem_instr ? 3'b100 : 3'b000;
 

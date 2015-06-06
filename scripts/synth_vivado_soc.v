@@ -19,7 +19,9 @@ module test_soc (
 	wire [31:0] mem_addr;
 	wire [31:0] mem_wdata;
 	wire [3:0] mem_wstrb;
-	wire [31:0] mem_rdata;
+	reg [31:0] mem_rdata;
+	wire mem_la_read;
+	wire [31:0] mem_la_addr;
 
 	picorv32 uut (
 		.clk      (clk      ),
@@ -31,7 +33,9 @@ module test_soc (
 		.mem_addr (mem_addr ),
 		.mem_wdata(mem_wdata),
 		.mem_wstrb(mem_wstrb),
-		.mem_rdata(mem_rdata)
+		.mem_rdata(mem_rdata),
+		.mem_la_read(mem_la_read),
+		.mem_la_addr(mem_la_addr)
 	);
 
 	assign monitor_valid = mem_valid;
@@ -42,12 +46,12 @@ module test_soc (
 	initial $readmemh("../firmware/firmware.hex", memory);
 
 	assign mem_ready = 1;
-	assign mem_rdata = memory[mem_addr >> 2];
 
 	assign out_byte = mem_wdata[7:0];
 	assign out_byte_en = mem_addr == 32'h1000_0000;
 
 	always @(posedge clk) begin
+		mem_rdata <= memory[mem_la_addr >> 2];
 		if (mem_valid && (mem_addr >> 2) < MEM_SIZE) begin
 			if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
 			if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];

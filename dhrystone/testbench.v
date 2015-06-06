@@ -18,28 +18,32 @@ module testbench;
 	wire [31:0] mem_addr;
 	wire [31:0] mem_wdata;
 	wire [3:0] mem_wstrb;
-	wire [31:0] mem_rdata;
+	reg  [31:0] mem_rdata;
+	wire mem_la_read;
+	wire [31:0] mem_la_addr;
 
 	picorv32 uut (
-		.clk      (clk      ),
-		.resetn   (resetn   ),
-		.trap     (trap     ),
-		.mem_valid(mem_valid),
-		.mem_instr(mem_instr),
-		.mem_ready(mem_ready),
-		.mem_addr (mem_addr ),
-		.mem_wdata(mem_wdata),
-		.mem_wstrb(mem_wstrb),
-		.mem_rdata(mem_rdata)
+		.clk        (clk        ),
+		.resetn     (resetn     ),
+		.trap       (trap       ),
+		.mem_valid  (mem_valid  ),
+		.mem_instr  (mem_instr  ),
+		.mem_ready  (mem_ready  ),
+		.mem_addr   (mem_addr   ),
+		.mem_wdata  (mem_wdata  ),
+		.mem_wstrb  (mem_wstrb  ),
+		.mem_rdata  (mem_rdata  ),
+		.mem_la_read(mem_la_read),
+		.mem_la_addr(mem_la_addr)
 	);
 
 	reg [31:0] memory [0:64*1024/4-1];
 	initial $readmemh("dhry.hex", memory);
 
 	assign mem_ready = 1;
-	assign mem_rdata = memory[mem_addr >> 2];
 
 	always @(posedge clk) begin
+		mem_rdata <= memory[mem_la_addr >> 2];
 		if (mem_valid) begin
 			case (mem_addr)
 				32'h1000_0000: begin
