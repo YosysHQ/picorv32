@@ -6,6 +6,9 @@ PicoRV32 is a CPU core that implements the [RISC-V RV32I Instruction Set](http:/
 
 Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](http://riscv.org/download.html#tab_tools).
 
+PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wikipedia.org/wiki/ISC_license)
+(a license that is similar in terms to the MIT license or the 2-clause BSD license).
+
 
 Features and Typical Applications:
 ----------------------------------
