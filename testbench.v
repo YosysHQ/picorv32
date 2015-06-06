@@ -74,59 +74,134 @@ module testbench;
 		end
 	endtask
 
-	reg delay_axi_transaction = 0;
+	reg [2:0] fast_axi_transaction = ~0;
+	reg [4:0] delay_axi_transaction = 0;
 
 `ifdef RANDOM_AXI_DELAYS
 	always @(posedge clk) begin
 		xorshift64_next;
-		delay_axi_transaction <= xorshift64_state[0];
+		{fast_axi_transaction, delay_axi_transaction} <= xorshift64_state;
 	end
 `endif
 
+	reg latched_raddr_en = 0;
+	reg latched_waddr_en = 0;
+	reg latched_wdata_en = 0;
+
+	reg fast_raddr = 0;
+	reg fast_waddr = 0;
+	reg fast_wdata = 0;
+
+	reg [31:0] latched_raddr;
+	reg [31:0] latched_waddr;
+	reg [31:0] latched_wdata;
+	reg [ 3:0] latched_wstrb;
+	reg        latched_rinsn;
+
 	always @(posedge clk) begin
+		mem_axi_arready <= 0;
 		mem_axi_awready <= 0;
 		mem_axi_wready <= 0;
-		mem_axi_arready <= 0;
 
-		if (!mem_axi_bvalid || mem_axi_bready) begin
+		fast_raddr <= 0;
+		fast_waddr <= 0;
+		fast_wdata <= 0;
+
+		if (mem_axi_rvalid && mem_axi_rready) begin
+			mem_axi_rvalid <= 0;
+		end
+
+		if (mem_axi_bvalid && mem_axi_bready) begin
 			mem_axi_bvalid <= 0;
-			if (mem_axi_awvalid && mem_axi_wvalid && !mem_axi_awready && !mem_axi_wready && !delay_axi_transaction) begin
-`ifdef VERBOSE
-				$display("WR: ADDR=%08x DATA=%08x STRB=%04b", mem_axi_awaddr, mem_axi_wdata, mem_axi_wstrb);
-`endif
-				if (mem_axi_awaddr < 64*1024) begin
-					if (mem_axi_wstrb[0]) memory[mem_axi_awaddr >> 2][ 7: 0] <= mem_axi_wdata[ 7: 0];
-					if (mem_axi_wstrb[1]) memory[mem_axi_awaddr >> 2][15: 8] <= mem_axi_wdata[15: 8];
-					if (mem_axi_wstrb[2]) memory[mem_axi_awaddr >> 2][23:16] <= mem_axi_wdata[23:16];
-					if (mem_axi_wstrb[3]) memory[mem_axi_awaddr >> 2][31:24] <= mem_axi_wdata[31:24];
-				end
-				if (mem_axi_awaddr == 32'h1000_0000) begin
-`ifdef VERBOSE
-					if (32 <= mem_axi_wdata && mem_axi_wdata < 128)
-						$display("OUT: '%c'", mem_axi_wdata);
-					else
-						$display("OUT: %3d", mem_axi_wdata);
-`else
-					$write("%c", mem_axi_wdata);
-					$fflush();
-`endif
-				end
-				mem_axi_awready <= 1;
-				mem_axi_wready <= 1;
-				mem_axi_bvalid <= 1;
+		end
+
+		if (mem_axi_arvalid && mem_axi_arready && !fast_raddr) begin
+			latched_raddr = mem_axi_araddr;
+			latched_rinsn = mem_axi_arprot[2];
+			latched_raddr_en = 1;
+		end
+
+		if (mem_axi_awvalid && mem_axi_awready && !fast_waddr) begin
+			latched_waddr = mem_axi_awaddr;
+			latched_waddr_en = 1;
+		end
+
+		if (mem_axi_wvalid && mem_axi_wready && !fast_wdata) begin
+			latched_wdata = mem_axi_wdata;
+			latched_wstrb = mem_axi_wstrb;
+			latched_wdata_en = 1;
+		end
+
+		if (mem_axi_arvalid && !(latched_raddr_en || fast_raddr) && !delay_axi_transaction[0]) begin
+			mem_axi_arready <= 1;
+			if (fast_axi_transaction[0]) begin
+				fast_raddr <= 1;
+				latched_raddr = mem_axi_araddr;
+				latched_rinsn = mem_axi_arprot[2];
+				latched_raddr_en = 1;
 			end
 		end
 
-		if (!mem_axi_rvalid || mem_axi_rready) begin
-			mem_axi_rvalid <= 0;
-			if (mem_axi_arvalid && !mem_axi_arready && !delay_axi_transaction) begin
-`ifdef VERBOSE
-				$display("RD: ADDR=%08x DATA=%08x", mem_axi_araddr, memory[mem_axi_araddr >> 2]);
-`endif
-				mem_axi_arready <= 1;
-				mem_axi_rdata <= memory[mem_axi_araddr >> 2];
-				mem_axi_rvalid <= 1;
+		if (mem_axi_awvalid && !(latched_waddr_en || fast_waddr) && !delay_axi_transaction[1]) begin
+			mem_axi_awready <= 1;
+			if (fast_axi_transaction[1]) begin
+				fast_waddr <= 1;
+				latched_waddr = mem_axi_awaddr;
+				latched_waddr_en = 1;
 			end
+		end
+
+		if (mem_axi_wvalid && !(latched_wdata_en || fast_wdata) && !delay_axi_transaction[2]) begin
+			mem_axi_wready <= 1;
+			if (fast_axi_transaction[2]) begin
+				fast_wdata <= 1;
+				latched_wdata = mem_axi_wdata;
+				latched_wstrb = mem_axi_wstrb;
+				latched_wdata_en = 1;
+			end
+		end
+
+		if (!mem_axi_rvalid && latched_raddr_en && !delay_axi_transaction[3]) begin
+`ifdef VERBOSE
+			$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
+`endif
+			if (latched_raddr < 64*1024) begin
+				mem_axi_rdata <= memory[latched_raddr >> 2];
+				mem_axi_rvalid <= 1;
+				latched_raddr_en = 0;
+			end else begin
+				$display("OUT-OF-BOUNDS MEMORY READ FROM %08x", latched_raddr);
+				$finish;
+			end
+		end
+
+		if (!mem_axi_bvalid && latched_waddr_en && latched_wdata_en && !delay_axi_transaction[4]) begin
+`ifdef VERBOSE
+			$display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
+`endif
+			if (latched_waddr < 64*1024) begin
+				if (latched_wstrb[0]) memory[latched_waddr >> 2][ 7: 0] <= latched_wdata[ 7: 0];
+				if (latched_wstrb[1]) memory[latched_waddr >> 2][15: 8] <= latched_wdata[15: 8];
+				if (latched_wstrb[2]) memory[latched_waddr >> 2][23:16] <= latched_wdata[23:16];
+				if (latched_wstrb[3]) memory[latched_waddr >> 2][31:24] <= latched_wdata[31:24];
+			end else
+			if (latched_waddr == 32'h1000_0000) begin
+`ifdef VERBOSE
+				if (32 <= latched_wdata && latched_wdata < 128)
+					$display("OUT: '%c'", latched_wdata);
+				else
+					$display("OUT: %3d", latched_wdata);
+`else
+				$write("%c", latched_wdata);
+				$fflush();
+`endif
+			end else begin
+				$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
+				$finish;
+			end
+			mem_axi_bvalid <= 1;
+			latched_waddr_en = 0;
+			latched_wdata_en = 0;
 		end
 	end
 

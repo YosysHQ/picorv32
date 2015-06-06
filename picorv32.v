@@ -819,8 +819,8 @@ module picorv32_axi_adapter (
 	assign mem_axi_wstrb = mem_wstrb;
 
 	assign mem_ready = mem_axi_bvalid || mem_axi_rvalid;
-	assign mem_axi_bready = mem_valid;
-	assign mem_axi_rready = mem_valid;
+	assign mem_axi_bready = mem_valid && |mem_wstrb;
+	assign mem_axi_rready = mem_valid && !mem_wstrb;
 	assign mem_rdata = mem_axi_rdata;
 
 	always @(posedge clk) begin
