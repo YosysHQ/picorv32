@@ -49,15 +49,17 @@ Performance:
 The average Cycles per Instruction (CPI) is 5 to 7, depending on the
 mix of instructions in the code. The CPI for the individual instructions is:
 
-| Instruction         | CPI |
-| ------------------- | ---:|
-| ALU reg + immediate |   4 |
-| ALU reg + reg       |   5 |
-| memory load         |   7 |
-| memory store        |   8 |
-| branch, taken       |   8 |
-| branch, not taken   |   5 |
-| shift operations    |  5+ |
+| Instruction          | CPI |
+| ---------------------| ---:|
+| direct jump (jal)    |   4 |
+| ALU reg + immediate  |   4 |
+| ALU reg + reg        |   5 |
+| branch (not taken)   |   5 |
+| memory load          |   7 |
+| memory store         |   8 |
+| branch (taken)       |   8 |
+| indirect jump (jalr) |   8 |
+| shift operations     |  5+ |
 
 Dhrystone benchmark results: 0.146 DMIPS/MHz (258 Dhrystones/Second/MHz)
 
