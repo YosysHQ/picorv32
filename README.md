@@ -26,9 +26,13 @@ For even smaller size it is possible disable support for registers `x16`..`x31` 
 well as `RDCYCLE[H]`, `RDTIME[H]`, and `RDINSTRET[H]` instructions, turning the
 processor into an RV32E core.
 
+Furthermore it is possible to choose between a single-port and a dual-port
+register file implementation. The former provides better performance while
+the latter results in a smaller core.
+
 *Note: In architectures that implement the register file in dedicated memory
-resources, such as many FPGAs, disabling the 16 upper registers may not further
-reduce the core size.*
+resources, such as many FPGAs, disabling the 16 upper registers and/or
+disabling the dual-port register file may not further reduce the core size.*
 
 The core exists in two variations: `picorv32` and `picorv32_axi`. The former
 provides a simple native memory interface, that is easy to use in simple
