@@ -43,7 +43,10 @@ module picorv32 #(
 
 	// look-ahead interface
 	output            mem_la_read,
-	output     [31:0] mem_la_addr
+	output            mem_la_write,
+	output     [31:0] mem_la_addr,
+	output reg [31:0] mem_la_wdata,
+	output reg [ 3:0] mem_la_wstrb
 );
 	localparam integer regfile_size = ENABLE_REGS_16_31 ? 32 : 16;
 	localparam integer regindex_bits = ENABLE_REGS_16_31 ? 5 : 4;
@@ -69,22 +72,29 @@ module picorv32 #(
 
 	wire mem_done = mem_ready && ((mem_state[0] && (mem_do_rinst || mem_do_rdata)) || mem_state == 2);
 
+	assign mem_la_write = resetn && !mem_state && mem_do_wdata;
 	assign mem_la_read = resetn && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata);
-	assign mem_la_addr = mem_do_prefetch || mem_do_rinst ? next_pc : {reg_op1[31:2], 2'b00};
+	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? next_pc : {reg_op1[31:2], 2'b00};
 
 	always @* begin
 		(* full_case *)
 		case (mem_wordsize)
 			0: begin
+				mem_la_wdata = reg_op2;
+				mem_la_wstrb = 4'b1111;
 				mem_buffer = mem_rdata;
 			end
 			1: begin
+				mem_la_wdata = {2{reg_op2[15:0]}};
+				mem_la_wstrb = reg_op1[1] ? 4'b1100 : 4'b0011;
 				case (reg_op1[1])
 					1'b0: mem_buffer = mem_rdata[15: 0];
 					1'b1: mem_buffer = mem_rdata[31:16];
 				endcase
 			end
 			2: begin
+				mem_la_wdata = {4{reg_op2[7:0]}};
+				mem_la_wstrb = 4'b0001 << reg_op1[1:0];
 				case (reg_op1[1:0])
 					2'b00: mem_buffer = mem_rdata[ 7: 0];
 					2'b01: mem_buffer = mem_rdata[15: 8];
@@ -102,6 +112,8 @@ module picorv32 #(
 		end else case (mem_state)
 			0: begin
 				mem_addr <= mem_la_addr;
+				mem_wdata <= mem_la_wdata;
+				mem_wstrb <= mem_la_wstrb;
 				if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
 					mem_valid <= 1;
 					mem_instr <= mem_do_prefetch || mem_do_rinst;
@@ -110,23 +122,7 @@ module picorv32 #(
 				end
 				if (mem_do_wdata) begin
 					mem_valid <= 1;
-					mem_addr <= {reg_op1[31:2], 2'b00};
 					mem_instr <= 0;
-					(* full_case *)
-					case (mem_wordsize)
-						0: begin
-							mem_wdata <= reg_op2;
-							mem_wstrb <= 4'b1111;
-						end
-						1: begin
-							mem_wdata <= {2{reg_op2[15:0]}};
-							mem_wstrb <= reg_op1[1] ? 4'b1100 : 4'b0011;
-						end
-						2: begin
-							mem_wdata <= {4{reg_op2[7:0]}};
-							mem_wstrb <= 4'b0001 << reg_op1[1:0];
-						end
-					endcase
 					mem_state <= 2;
 				end
 			end
