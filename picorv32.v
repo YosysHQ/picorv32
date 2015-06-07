@@ -160,6 +160,7 @@ module picorv32 #(
 	reg [regindex_bits-1:0] decoded_rd, decoded_rs1, decoded_rs2;
 	reg [31:0] decoded_imm;
 	reg decoder_trigger;
+	reg decoder_pseudo_trigger;
 
 	wire [31:0] decoded_imm_uj;
 	assign { decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } = $signed({mem_rdata[31:12], 1'b0});
@@ -250,8 +251,6 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		decoder_trigger <= 0;
-
 		if (mem_do_rinst && mem_done) begin
 			instr_lui   <= mem_rdata[6:0] == 7'b0110111;
 			instr_auipc <= mem_rdata[6:0] == 7'b0010111;
@@ -308,11 +307,9 @@ module picorv32 #(
 			decoded_rd <= mem_rdata[11:7];
 			decoded_rs1 <= mem_rdata[19:15];
 			decoded_rs2 <= mem_rdata[24:20];
-
-			decoder_trigger <= 1;
 		end
 
-		if (decoder_trigger) begin
+		if (decoder_trigger && !decoder_pseudo_trigger) begin
 			(* parallel_case *)
 			case (1'b1)
 				|{instr_lui, instr_auipc}:
@@ -351,8 +348,6 @@ module picorv32 #(
 	reg set_mem_do_rinst;
 	reg set_mem_do_rdata;
 	reg set_mem_do_wdata;
-	reg mask_decoder_trigger;
-	reg force_decoder_trigger;
 
 	reg latched_store;
 	reg latched_stalu;
@@ -411,13 +406,14 @@ module picorv32 #(
 		set_mem_do_rinst = 0;
 		set_mem_do_rdata = 0;
 		set_mem_do_wdata = 0;
-		mask_decoder_trigger <= 0;
-		force_decoder_trigger <= 0;
 
 		reg_alu_out <= alu_out;
 
 		if (ENABLE_COUNTERS)
 			count_cycle <= resetn ? count_cycle + 1 : 0;
+
+		decoder_trigger <= mem_do_rinst && mem_done;
+		decoder_pseudo_trigger <= 0;
 
 		if (!resetn) begin
 			reg_pc <= 0;
@@ -440,7 +436,7 @@ module picorv32 #(
 				trap <= 1;
 			end
 			cpu_state_fetch: begin
-				mem_do_rinst <= (!decoder_trigger || mask_decoder_trigger) && !force_decoder_trigger;
+				mem_do_rinst <= !decoder_trigger;
 				mem_wordsize <= 0;
 
 				current_pc = reg_next_pc;
@@ -470,7 +466,7 @@ module picorv32 #(
 				latched_is_lb <= 0;
 				latched_rd <= decoded_rd;
 
-				if ((decoder_trigger && !mask_decoder_trigger) || force_decoder_trigger) begin
+				if (decoder_trigger) begin
 `ifdef DEBUG
 					$display("DECODE: 0x%08x %-s", current_pc, instruction);
 `endif
@@ -560,7 +556,7 @@ module picorv32 #(
 					if (alu_out_0) begin
 						latched_store <= 1;
 						latched_branch <= 1;
-						mask_decoder_trigger <= 1;
+						decoder_trigger <= 0;
 						set_mem_do_rinst = 1;
 					end
 				end else begin
@@ -608,7 +604,7 @@ module picorv32 #(
 					end
 					if (!mem_do_prefetch && mem_done) begin
 						cpu_state <= cpu_state_fetch;
-						force_decoder_trigger <= 1;
+						decoder_trigger <= 1;
 					end
 				end
 			end
@@ -635,7 +631,8 @@ module picorv32 #(
 							latched_is_lh: reg_out <= $signed(mem_buffer[15:0]);
 							latched_is_lb: reg_out <= $signed(mem_buffer[7:0]);
 						endcase
-						force_decoder_trigger <= 1;
+						decoder_trigger <= 1;
+						decoder_pseudo_trigger <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
 				end
