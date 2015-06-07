@@ -43,30 +43,65 @@ memory-mapped peripherals, communicating with each other using the native
 interface, and communicating with the outside world via AXI4.
 
 
+Parameters:
+-----------
+
+The following Verilog module parameters can be used to configure the PicoRV32
+core.
+
+### ENABLE_COUNTERS (default = 1)
+
+This parameter enables support for the `RDCYCLE[H]`, `RDTIME[H]`, and
+`RDINSTRET[H]` instructions. This instructions will cause a hardware
+trap (like any other unsupported instruction) if `ENABLE_COUNTERS` is set to zero.
+
+*Note: Strictly speaking the `RDCYCLE[H]`, `RDTIME[H]`, and `RDINSTRET[H]`
+instructions are not optional for an RV32I core. But chances are they are not
+going to be missed after the application code has been debugged and profiled.
+This instructions are optional for an RV32E core.*
+
+### ENABLE_REGS_16_31 (default = 1)
+
+This parameter enables support for registers the `x16`..`x31`. The RV32E ISA
+excludes this registers. However, the RV32E ISA spec requires a hardware trap
+for when code tries to access this registers. This is not implemented in PicoRV32.
+
+### ENABLE_REGS_DUALPORT (default = 1)
+
+The register file can be implemented with two or one read ports. A dual ported
+register file improves performance a bit, but can also increase the size of
+the core.
+
+
 Performance:
 ------------
 
-The average Cycles per Instruction (CPI) is 4 to 6, depending on the mix of
-instructions in the code. The CPI numbers for the individual instructions are:
+*A short reminder: This core is optimized for size, not performance.*
 
-| Instruction          |  CPI |
-| ---------------------| ----:|
-| direct jump (jal)    |    3 |
-| ALU reg + immediate  |    3 |
-| ALU reg + reg        |    4 |
-| branch (not taken)   |    4 |
-| memory load          |    5 |
-| memory store         |    6 |
-| branch (taken)       |    6 |
-| indirect jump (jalr) |    6 |
-| shift operations     | 4-15 |
+Unless stated otherwise, the following numbers apply to a PicoRV32 with
+ENABLE_REGS_DUALPORT active and connected to a memory that can accomodate
+requests within one clock cycle.
 
-Dhrystone benchmark results: 0.280 DMIPS/MHz (493 Dhrystones/Second/MHz)
+The average Cycles per Instruction (CPI) is 4 to 5, depending on the mix of
+instructions in the code. The CPI numbers for the individual instructions
+can be found in the following table. (The column "CPI (SP)" contains the
+CPI numbers for a core built without ENABLE_REGS_DUALPORT.)
 
-For the Dryhstone benchmark the average CPI is 4.606.
+| Instruction          |  CPI | CPI (SP) |
+| ---------------------| ----:| --------:|
+| direct jump (jal)    |    3 |        3 |
+| ALU reg + immediate  |    3 |        3 |
+| ALU reg + reg        |    3 |        4 |
+| branch (not taken)   |    3 |        4 |
+| memory load          |    5 |        5 |
+| memory store         |    5 |        6 |
+| branch (taken)       |    5 |        6 |
+| indirect jump (jalr) |    6 |        6 |
+| shift operations     | 4-14 |     4-15 |
 
-*This numbers apply to systems with memory that can accomodate requests within
-one clock cycle. Slower memory will degrade the performance of the processor.*
+Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
+
+For the Dryhstone benchmark the average CPI is 4.167.
 
 
 Todos:

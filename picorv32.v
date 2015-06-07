@@ -27,7 +27,8 @@
 
 module picorv32 #(
 	parameter ENABLE_COUNTERS = 1,
-	parameter ENABLE_REGS_16_31 = 1
+	parameter ENABLE_REGS_16_31 = 1,
+	parameter ENABLE_REGS_DUALPORT = 1
 ) (
 	input clk, resetn,
 	output reg trap,
@@ -529,6 +530,21 @@ module picorv32 #(
 						reg_op2 <= decoded_imm;
 						mem_do_rinst <= mem_do_prefetch;
 						cpu_state <= cpu_state_exec;
+					end else if (ENABLE_REGS_DUALPORT) begin
+`ifdef DEBUG
+						$display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);
+`endif
+						reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+						if (is_sb_sh_sw) begin
+							cpu_state <= cpu_state_stmem;
+							mem_do_rinst <= 1;
+						end else if (is_sll_srl_sra) begin
+							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+							cpu_state <= cpu_state_shift;
+						end else begin
+							mem_do_rinst <= mem_do_prefetch;
+							cpu_state <= cpu_state_exec;
+						end
 					end else
 						cpu_state <= cpu_state_ld_rs2;
 				end
@@ -689,7 +705,8 @@ endmodule
 
 module picorv32_axi #(
 	parameter ENABLE_COUNTERS = 1,
-	parameter ENABLE_REGS_16_31 = 1
+	parameter ENABLE_REGS_16_31 = 1,
+	parameter ENABLE_REGS_DUALPORT = 1
 ) (
 	input clk, resetn,
 	output trap,
@@ -756,8 +773,9 @@ module picorv32_axi #(
 	);
 
 	picorv32 #(
-		.ENABLE_COUNTERS  (ENABLE_COUNTERS  ),
-		.ENABLE_REGS_16_31(ENABLE_REGS_16_31)
+		.ENABLE_COUNTERS     (ENABLE_COUNTERS     ),
+		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
+		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT)
 	) picorv32_core (
 		.clk      (clk      ),
 		.resetn   (resetn   ),
