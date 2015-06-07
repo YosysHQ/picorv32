@@ -1,6 +1,6 @@
 
 OBJS = start.o dhry_1.o dhry_2.o stdlib.o
-CFLAGS = -MD -O3 -m32 -march=RV32I -ffreestanding -nostdlib -DTIME
+CFLAGS = -MD -O3 -m32 -march=RV32I -ffreestanding -nostdlib -DTIME -DRISCV
 
 test: testbench.exe dhry.hex
 	vvp -N testbench.exe

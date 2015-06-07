@@ -52,9 +52,6 @@ extern  int     times ();
 #endif
 #ifdef TIME
 extern long     time();
-#ifdef RISCV
-extern long     insn();
-#endif
                 /* see library function "time"  */
 #define Too_Small_Time 2
                 /* Measurements should last at least 2 seconds */
@@ -63,11 +60,6 @@ extern long     insn();
 long            Begin_Time,
                 End_Time,
                 User_Time;
-#ifdef RISCV
-long            Begin_Insn,
-                End_Insn,
-                User_Insn;
-#endif
 float           Microseconds,
                 Dhrystones_Per_Second;
 
@@ -142,9 +134,6 @@ main ()
 #endif
 #ifdef TIME
   Begin_Time = time ( (long *) 0);
-#ifdef RISCV
-  Begin_Insn = insn ( (long *) 0);
-#endif
 #endif
 
   for (Run_Index = 1; Run_Index <= Number_Of_Runs; ++Run_Index)
@@ -203,9 +192,6 @@ main ()
 #endif
 #ifdef TIME
   End_Time = time ( (long *) 0);
-#ifdef RISCV
-  End_Insn = insn ( (long *) 0);
-#endif
 #endif
 
   printf ("Execution ends\n");
@@ -263,27 +249,6 @@ main ()
 
   User_Time = End_Time - Begin_Time;
 
-#ifdef RISCV
-  User_Insn = End_Insn - Begin_Insn;
-
-  printf("Number_Of_Runs: %d\n", Number_Of_Runs);
-  printf("User_Time: %d cycles, %d insn\n", User_Time, User_Insn);
-
-  int Cycles_Per_Instruction_x1000 = (1000 * User_Time) / User_Insn;
-  printf("Cycles_Per_Instruction: %d.%d%d%d\n", Cycles_Per_Instruction_x1000 / 1000,
-		(Cycles_Per_Instruction_x1000 / 100) % 10,
-		(Cycles_Per_Instruction_x1000 / 10) % 10,
-		(Cycles_Per_Instruction_x1000 / 1) % 10);
-
-  int Dhrystones_Per_Second_Per_MHz = (Number_Of_Runs * 1000000) / User_Time;
-  printf("Dhrystones_Per_Second_Per_MHz: %d\n", Dhrystones_Per_Second_Per_MHz);
-
-  int DMIPS_Per_MHz_x1000 = (1000 * Dhrystones_Per_Second_Per_MHz) / 1757;
-  printf("DMIPS_Per_MHz: %d.%d%d%d\n", DMIPS_Per_MHz_x1000 / 1000,
-		(DMIPS_Per_MHz_x1000 / 100) % 10,
-		(DMIPS_Per_MHz_x1000 / 10) % 10,
-		(DMIPS_Per_MHz_x1000 / 1) % 10);
-#else
   if (User_Time < Too_Small_Time)
   {
     printf ("Measured time too small to obtain meaningful results\n");
@@ -308,7 +273,6 @@ main ()
     printf ("%6.1f \n", Dhrystones_Per_Second);
     printf ("\n");
   }
-#endif
   
 }
 

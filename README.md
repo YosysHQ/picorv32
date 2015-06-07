@@ -61,9 +61,9 @@ mix of instructions in the code. The CPI for the individual instructions is:
 | indirect jump (jalr) |   8 |
 | shift operations     |  5+ |
 
-Dhrystone benchmark results: 0.146 DMIPS/MHz (258 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.215 DMIPS/MHz (379 Dhrystones/Second/MHz)
 
-For the Dryhstone benchmark the average CPI is 6.181.
+For the Dryhstone benchmark the average CPI is 5.983.
 
 *This numbers apply for setups with memory that can accomodate requests within
 one clock cycle. Slower memory will degrade the performance of the processor.*
