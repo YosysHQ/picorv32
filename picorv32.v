@@ -49,12 +49,11 @@ module picorv32 #(
 	localparam integer regindex_bits = ENABLE_REGS_16_31 ? 5 : 4;
 
 	reg [63:0] count_cycle, count_instr;
-	reg [31:0] reg_pc, reg_op1, reg_op2, reg_out;
+	reg [31:0] reg_pc, reg_next_pc, reg_op1, reg_op2, reg_out, reg_alu_out;
 	reg [31:0] cpuregs [0:regfile_size-1];
 	reg [4:0] reg_sh;
 
-	wire reg_out_0 = reg_out[0];
-
+	wire [31:0] next_pc;
 
 	// Memory Interface
 
@@ -65,24 +64,47 @@ module picorv32 #(
 	reg mem_do_rinst;
 	reg mem_do_rdata;
 	reg mem_do_wdata;
-	reg mem_done;
 
 	wire mem_busy = |{mem_do_prefetch, mem_do_rinst, mem_do_rdata, mem_do_wdata};
 
+	wire mem_done = mem_ready && ((mem_state[0] && (mem_do_rinst || mem_do_rdata)) || mem_state == 2);
+
 	assign mem_la_read = resetn && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata);
-	assign mem_la_addr = mem_do_prefetch ? reg_pc + 4 : mem_do_rinst ? reg_pc : {reg_op1[31:2], 2'b00};
+	assign mem_la_addr = mem_do_prefetch || mem_do_rinst ? next_pc : {reg_op1[31:2], 2'b00};
+
+	always @* begin
+		(* full_case *)
+		case (mem_wordsize)
+			0: begin
+				mem_buffer = mem_rdata;
+			end
+			1: begin
+				case (reg_op1[1])
+					1'b0: mem_buffer = mem_rdata[15: 0];
+					1'b1: mem_buffer = mem_rdata[31:16];
+				endcase
+			end
+			2: begin
+				case (reg_op1[1:0])
+					2'b00: mem_buffer = mem_rdata[ 7: 0];
+					2'b01: mem_buffer = mem_rdata[15: 8];
+					2'b10: mem_buffer = mem_rdata[23:16];
+					2'b11: mem_buffer = mem_rdata[31:24];
+				endcase
+			end
+		endcase
+	end
 
 	always @(posedge clk) begin
-		mem_done <= 0;
 		if (!resetn) begin
 			mem_state <= 0;
 			mem_valid <= 0;
 		end else case (mem_state)
 			0: begin
 				mem_addr <= mem_la_addr;
-				if (mem_do_rinst || mem_do_prefetch || mem_do_rdata) begin
+				if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
 					mem_valid <= 1;
-					mem_instr <= mem_do_rinst || mem_do_rdata;
+					mem_instr <= mem_do_prefetch || mem_do_rinst;
 					mem_wstrb <= 0;
 					mem_state <= 1;
 				end
@@ -110,43 +132,20 @@ module picorv32 #(
 			end
 			1: begin
 				if (mem_ready) begin
-					(* full_case *)
-					case (mem_wordsize)
-						0: begin
-							mem_buffer <= mem_rdata;
-						end
-						1: begin
-							case (reg_op1[1])
-								1'b0: mem_buffer <= mem_rdata[15: 0];
-								1'b1: mem_buffer <= mem_rdata[31:16];
-							endcase
-						end
-						2: begin
-							case (reg_op1[1:0])
-								2'b00: mem_buffer <= mem_rdata[ 7: 0];
-								2'b01: mem_buffer <= mem_rdata[15: 8];
-								2'b10: mem_buffer <= mem_rdata[23:16];
-								2'b11: mem_buffer <= mem_rdata[31:24];
-							endcase
-						end
-					endcase
 					mem_valid <= 0;
-					mem_state <= 3;
-					mem_done <= mem_do_rinst || mem_do_rdata;
+					mem_state <= mem_do_rinst || mem_do_rdata ? 0 : 3;
 				end
 			end
 			2: begin
 				if (mem_ready) begin
 					mem_valid <= 0;
-					mem_state <= 3;
-					mem_done <= 1;
+					mem_state <= 0;
 				end
 			end
 			3: begin
-				if (mem_done)
+				if (mem_do_rinst) begin
 					mem_state <= 0;
-				else if (mem_do_rinst || mem_do_rdata)
-					mem_done <= 1;
+				end
 			end
 		endcase
 	end
@@ -159,7 +158,7 @@ module picorv32 #(
 	reg instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu, instr_sb, instr_sh, instr_sw;
 	reg instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi, instr_slli, instr_srli, instr_srai;
 	reg instr_add, instr_sub, instr_sll, instr_slt, instr_sltu, instr_xor, instr_srl, instr_sra, instr_or, instr_and;
-	reg instr_fence, instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh;
+	reg instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh;
 	wire instr_trap;
 
 	reg [regindex_bits-1:0] decoded_rd, decoded_rs1, decoded_rs2;
@@ -167,7 +166,7 @@ module picorv32 #(
 	reg decoder_trigger;
 
 	wire [31:0] decoded_imm_uj;
-	assign { decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } = $signed({mem_buffer[31:12], 1'b0});
+	assign { decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } = $signed({mem_rdata[31:12], 1'b0});
 
 	reg is_lui_auipc_jal;
 	reg is_lb_lh_lw_lbu_lhu;
@@ -200,7 +199,7 @@ module picorv32 #(
 			instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu, instr_sb, instr_sh, instr_sw,
 			instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi, instr_slli, instr_srli, instr_srai,
 			instr_add, instr_sub, instr_sll, instr_slt, instr_sltu, instr_xor, instr_srl, instr_sra, instr_or, instr_and,
-			instr_fence, instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh};
+			instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh};
 	
 	reg [63:0] instruction;
 
@@ -248,7 +247,6 @@ module picorv32 #(
 		if (instr_or)       instruction = "or";
 		if (instr_and)      instruction = "and";
 
-		if (instr_fence)    instruction = "fence";
 		if (instr_rdcycle)  instruction = "rdcycle";
 		if (instr_rdcycleh) instruction = "rdcycleh";
 		if (instr_rdinstr)  instruction = "rdinstr";
@@ -259,64 +257,61 @@ module picorv32 #(
 		decoder_trigger <= 0;
 
 		if (mem_do_rinst && mem_done) begin
-			instr_lui   <= mem_buffer[6:0] == 7'b0110111;
-			instr_auipc <= mem_buffer[6:0] == 7'b0010111;
+			instr_lui   <= mem_rdata[6:0] == 7'b0110111;
+			instr_auipc <= mem_rdata[6:0] == 7'b0010111;
 
-			instr_jal   <= mem_buffer[6:0] == 7'b1101111;
-			instr_jalr  <= mem_buffer[6:0] == 7'b1100111;
+			instr_jal   <= mem_rdata[6:0] == 7'b1101111;
+			instr_jalr  <= mem_rdata[6:0] == 7'b1100111;
 
-			instr_beq   <= mem_buffer[6:0] == 7'b1100011 && mem_buffer[14:12] == 3'b000;
-			instr_bne   <= mem_buffer[6:0] == 7'b1100011 && mem_buffer[14:12] == 3'b001;
-			instr_blt   <= mem_buffer[6:0] == 7'b1100011 && mem_buffer[14:12] == 3'b100;
-			instr_bge   <= mem_buffer[6:0] == 7'b1100011 && mem_buffer[14:12] == 3'b101;
-			instr_bltu  <= mem_buffer[6:0] == 7'b1100011 && mem_buffer[14:12] == 3'b110;
-			instr_bgeu  <= mem_buffer[6:0] == 7'b1100011 && mem_buffer[14:12] == 3'b111;
+			instr_beq   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b000;
+			instr_bne   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b001;
+			instr_blt   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b100;
+			instr_bge   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b101;
+			instr_bltu  <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b110;
+			instr_bgeu  <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b111;
 
-			instr_lb    <= mem_buffer[6:0] == 7'b0000011 && mem_buffer[14:12] == 3'b000;
-			instr_lh    <= mem_buffer[6:0] == 7'b0000011 && mem_buffer[14:12] == 3'b001;
-			instr_lw    <= mem_buffer[6:0] == 7'b0000011 && mem_buffer[14:12] == 3'b010;
-			instr_lbu   <= mem_buffer[6:0] == 7'b0000011 && mem_buffer[14:12] == 3'b100;
-			instr_lhu   <= mem_buffer[6:0] == 7'b0000011 && mem_buffer[14:12] == 3'b101;
+			instr_lb    <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b000;
+			instr_lh    <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b001;
+			instr_lw    <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b010;
+			instr_lbu   <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b100;
+			instr_lhu   <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b101;
 
-			instr_sb    <= mem_buffer[6:0] == 7'b0100011 && mem_buffer[14:12] == 3'b000;
-			instr_sh    <= mem_buffer[6:0] == 7'b0100011 && mem_buffer[14:12] == 3'b001;
-			instr_sw    <= mem_buffer[6:0] == 7'b0100011 && mem_buffer[14:12] == 3'b010;
+			instr_sb    <= mem_rdata[6:0] == 7'b0100011 && mem_rdata[14:12] == 3'b000;
+			instr_sh    <= mem_rdata[6:0] == 7'b0100011 && mem_rdata[14:12] == 3'b001;
+			instr_sw    <= mem_rdata[6:0] == 7'b0100011 && mem_rdata[14:12] == 3'b010;
 
-			instr_addi  <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b000;
-			instr_slti  <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b010;
-			instr_sltiu <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b011;
-			instr_xori  <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b100;
-			instr_ori   <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b110;
-			instr_andi  <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b111;
+			instr_addi  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b000;
+			instr_slti  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b010;
+			instr_sltiu <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b011;
+			instr_xori  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b100;
+			instr_ori   <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b110;
+			instr_andi  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b111;
 
-			instr_slli  <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b001 && mem_buffer[31:25] == 7'b0000000;
-			instr_srli  <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b101 && mem_buffer[31:25] == 7'b0000000;
-			instr_srai  <= mem_buffer[6:0] == 7'b0010011 && mem_buffer[14:12] == 3'b101 && mem_buffer[31:25] == 7'b0100000;
+			instr_slli  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b001 && mem_rdata[31:25] == 7'b0000000;
+			instr_srli  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0000000;
+			instr_srai  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0100000;
 
-			instr_add   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b000 && mem_buffer[31:25] == 7'b0000000;
-			instr_sub   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b000 && mem_buffer[31:25] == 7'b0100000;
-			instr_sll   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b001 && mem_buffer[31:25] == 7'b0000000;
-			instr_slt   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b010 && mem_buffer[31:25] == 7'b0000000;
-			instr_sltu  <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b011 && mem_buffer[31:25] == 7'b0000000;
-			instr_xor   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b100 && mem_buffer[31:25] == 7'b0000000;
-			instr_srl   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b101 && mem_buffer[31:25] == 7'b0000000;
-			instr_sra   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b101 && mem_buffer[31:25] == 7'b0100000;
-			instr_or    <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b110 && mem_buffer[31:25] == 7'b0000000;
-			instr_and   <= mem_buffer[6:0] == 7'b0110011 && mem_buffer[14:12] == 3'b111 && mem_buffer[31:25] == 7'b0000000;
+			instr_add   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b000 && mem_rdata[31:25] == 7'b0000000;
+			instr_sub   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b000 && mem_rdata[31:25] == 7'b0100000;
+			instr_sll   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b001 && mem_rdata[31:25] == 7'b0000000;
+			instr_slt   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b010 && mem_rdata[31:25] == 7'b0000000;
+			instr_sltu  <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b011 && mem_rdata[31:25] == 7'b0000000;
+			instr_xor   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b100 && mem_rdata[31:25] == 7'b0000000;
+			instr_srl   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0000000;
+			instr_sra   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0100000;
+			instr_or    <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b110 && mem_rdata[31:25] == 7'b0000000;
+			instr_and   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b111 && mem_rdata[31:25] == 7'b0000000;
 
-			instr_fence <= (mem_buffer[6:0] == 7'b0001111 && mem_buffer[19:12] == 0 && mem_buffer[31:28] == 4'b0000) ||
-			               (mem_buffer[6:0] == 7'b0001111 && mem_buffer[31:12] == 1);
+			instr_rdcycle  <= ((mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11000000000000000010) ||
+			                   (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11000000000100000010)) && ENABLE_COUNTERS;
+			instr_rdcycleh <= ((mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000000000000010) ||
+			                   (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS;
+			instr_rdinstr  <= (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
+			instr_rdinstrh <= (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS;
 
-			instr_rdcycle  <= ((mem_buffer[6:0] == 7'b1110011 && mem_buffer[31:12] == 'b11000000000000000010) ||
-			                   (mem_buffer[6:0] == 7'b1110011 && mem_buffer[31:12] == 'b11000000000100000010)) && ENABLE_COUNTERS;
-			instr_rdcycleh <= ((mem_buffer[6:0] == 7'b1110011 && mem_buffer[31:12] == 'b11001000000000000010) ||
-			                   (mem_buffer[6:0] == 7'b1110011 && mem_buffer[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS;
-			instr_rdinstr  <= (mem_buffer[6:0] == 7'b1110011 && mem_buffer[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
-			instr_rdinstrh <= (mem_buffer[6:0] == 7'b1110011 && mem_buffer[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS;
-
-			decoded_rd <= mem_buffer[11:7];
-			decoded_rs1 <= mem_buffer[19:15];
-			decoded_rs2 <= mem_buffer[24:20];
+			decoded_rd <= mem_rdata[11:7];
+			decoded_rs1 <= mem_rdata[19:15];
+			decoded_rs2 <= mem_rdata[24:20];
 
 			decoder_trigger <= 1;
 		end
@@ -325,19 +320,19 @@ module picorv32 #(
 			(* parallel_case *)
 			case (1'b1)
 				|{instr_lui, instr_auipc}:
-					decoded_imm <= mem_buffer[31:12] << 12;
+					decoded_imm <= mem_rdata[31:12] << 12;
 				instr_jal:
 					decoded_imm <= decoded_imm_uj;
 				instr_jalr:
-					decoded_imm <= $signed(mem_buffer[31:20]);
+					decoded_imm <= $signed(mem_rdata[31:20]);
 				|{instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu}:
-					decoded_imm <= $signed({mem_buffer[31], mem_buffer[7], mem_buffer[30:25], mem_buffer[11:8], 1'b0});
+					decoded_imm <= $signed({mem_rdata[31], mem_rdata[7], mem_rdata[30:25], mem_rdata[11:8], 1'b0});
 				|{instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu}:
-					decoded_imm <= $signed(mem_buffer[31:20]);
+					decoded_imm <= $signed(mem_rdata[31:20]);
 				|{instr_sb, instr_sh, instr_sw}:
-					decoded_imm <= $signed({mem_buffer[31:25], mem_buffer[11:7]});
+					decoded_imm <= $signed({mem_rdata[31:25], mem_rdata[11:7]});
 				|{instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi}:
-					decoded_imm <= $signed(mem_buffer[31:20]);
+					decoded_imm <= $signed(mem_rdata[31:20]);
 				default:
 					decoded_imm <= 1'bx;
 			endcase
@@ -347,46 +342,97 @@ module picorv32 #(
 
 	// Main State Machine
 
-	localparam cpu_state_fetch  = 0;
-	localparam cpu_state_ld_rs1 = 1;
-	localparam cpu_state_ld_rs2 = 2;
-	localparam cpu_state_exec   = 3;
-	localparam cpu_state_shift  = 4;
-	localparam cpu_state_store  = 5;
+	localparam cpu_state_trap   = 0;
+	localparam cpu_state_fetch  = 1;
+	localparam cpu_state_ld_rs1 = 2;
+	localparam cpu_state_ld_rs2 = 3;
+	localparam cpu_state_exec   = 4;
+	localparam cpu_state_shift  = 5;
 	localparam cpu_state_stmem  = 6;
 	localparam cpu_state_ldmem  = 7;
 	reg [2:0] cpu_state;
 
-	reg force_mem_do_rinst;
-	reg force_mem_do_rdata;
-	reg force_mem_do_wdata;
+	reg set_mem_do_rinst;
+	reg set_mem_do_rdata;
+	reg set_mem_do_wdata;
 	reg mask_decoder_trigger;
 	reg force_decoder_trigger;
 
+	reg latched_store;
+	reg latched_stalu;
+	reg latched_branch;
 	reg latched_is_lu;
 	reg latched_is_lh;
 	reg latched_is_lb;
 	reg [regindex_bits-1:0] latched_rd;
 
+	reg [31:0] current_pc;
+	assign next_pc = latched_store && latched_branch ? reg_out : reg_next_pc;
+
+	reg [31:0] alu_out;
+	reg alu_out_0;
+
+	always @* begin
+		alu_out_0 = 'bx;
+		(* parallel_case, full_case *)
+		case (1'b1)
+			instr_beq:
+				alu_out_0 = reg_op1 == reg_op2;
+			instr_bne:
+				alu_out_0 = reg_op1 != reg_op2;
+			instr_bge:
+				alu_out_0 = $signed(reg_op1) >= $signed(reg_op2);
+			instr_bgeu:
+				alu_out_0 = reg_op1 >= reg_op2;
+			is_slti_blt_slt:
+				alu_out_0 = $signed(reg_op1) < $signed(reg_op2);
+			is_sltiu_bltu_sltu:
+				alu_out_0 = reg_op1 < reg_op2;
+		endcase
+
+		alu_out = 'bx;
+		(* parallel_case, full_case *)
+		case (1'b1)
+			is_lui_auipc_jal_jalr_addi_add:
+				alu_out = reg_op1 + reg_op2;
+			instr_sub:
+				alu_out = reg_op1 - reg_op2;
+			|{instr_beq, instr_bne, instr_bge, instr_bgeu, is_slti_blt_slt, is_sltiu_bltu_sltu}:
+				alu_out = alu_out_0;
+			instr_xori || instr_xor:
+				alu_out = reg_op1 ^ reg_op2;
+			instr_ori || instr_or:
+				alu_out = reg_op1 | reg_op2;
+			instr_andi || instr_and:
+				alu_out = reg_op1 & reg_op2;
+		endcase
+	end
+
 	always @(posedge clk) begin
+		trap <= 0;
 		reg_sh <= 'bx;
 		reg_out <= 'bx;
-		force_mem_do_rinst = 0;
-		force_mem_do_rdata = 0;
-		force_mem_do_wdata = 0;
+		set_mem_do_rinst = 0;
+		set_mem_do_rdata = 0;
+		set_mem_do_wdata = 0;
 		mask_decoder_trigger <= 0;
 		force_decoder_trigger <= 0;
+
+		reg_alu_out <= alu_out;
 
 		if (ENABLE_COUNTERS)
 			count_cycle <= resetn ? count_cycle + 1 : 0;
 
 		if (!resetn) begin
-			trap <= 0;
 			reg_pc <= 0;
+			reg_next_pc <= 0;
 			reg_op1 <= 'bx;
 			reg_op2 <= 'bx;
 			if (ENABLE_COUNTERS)
 				count_instr <= 0;
+			latched_store <= 0;
+			latched_stalu <= 0;
+			latched_branch <= 0;
 			latched_is_lu <= 0;
 			latched_is_lh <= 0;
 			latched_is_lb <= 0;
@@ -394,41 +440,58 @@ module picorv32 #(
 		end else
 		(* parallel_case, full_case *)
 		case (cpu_state)
+			cpu_state_trap: begin
+				trap <= 1;
+			end
 			cpu_state_fetch: begin
-				mem_do_rinst <= (!decoder_trigger || mask_decoder_trigger) && !trap && !force_decoder_trigger;
-				mem_do_prefetch <= 0;
+				mem_do_rinst <= (!decoder_trigger || mask_decoder_trigger) && !force_decoder_trigger;
 				mem_wordsize <= 0;
 
-				if (latched_is_lu || latched_is_lh || latched_is_lb) begin
+				current_pc = reg_next_pc;
+
+				if (latched_branch) begin
+					current_pc = latched_store ? (latched_stalu ? reg_alu_out : reg_out) : reg_next_pc;
+`ifdef DEBUG
+					$display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + 4, current_pc);
+`endif
+					cpuregs[latched_rd] <= reg_pc + 4;
+				end else
+				if (latched_store) begin
 `ifdef DEBUG
 					$display("ST_RD:  %2d 0x%08x", latched_rd, reg_out);
 `endif
-					cpuregs[latched_rd] <= reg_out;
+					cpuregs[latched_rd] <= latched_stalu ? reg_alu_out : reg_out;
 				end
 
+				reg_pc <= current_pc;
+				reg_next_pc <= current_pc;
+
+				latched_store <= 0;
+				latched_stalu <= 0;
+				latched_branch <= 0;
 				latched_is_lu <= 0;
 				latched_is_lh <= 0;
 				latched_is_lb <= 0;
+				latched_rd <= decoded_rd;
 
 				if ((decoder_trigger && !mask_decoder_trigger) || force_decoder_trigger) begin
 `ifdef DEBUG
-					$display("DECODE: 0x%08x %-s", reg_pc, instruction);
+					$display("DECODE: 0x%08x %-s", current_pc, instruction);
 `endif
+					reg_next_pc <= current_pc + 4;
+
 					if (instr_trap) begin
-						trap <= 1;
-					end else if (instr_fence) begin
-						mem_do_rinst <= 1;
-						reg_pc <= reg_pc + 4;
-						cpu_state <= cpu_state_fetch;
+`ifdef DEBUG
+						$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", current_pc);
+`endif
+						cpu_state <= cpu_state_trap;
 					end else if (instr_jal) begin
 						mem_do_rinst <= 1;
-						reg_out <= reg_pc + 4;
 						if (latched_is_lu || latched_is_lh || latched_is_lb)
-							reg_pc <= reg_pc + decoded_imm;
+							reg_next_pc <= current_pc + decoded_imm;
 						else
-							reg_pc <= reg_pc + decoded_imm_uj;
-						latched_rd <= decoded_rd;
-						cpu_state <= cpu_state_store;
+							reg_next_pc <= current_pc + decoded_imm_uj;
+						latched_branch <= 1;
 					end else if (|{instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh}) begin
 						(* parallel_case, full_case *)
 						case (1'b1)
@@ -441,9 +504,9 @@ module picorv32 #(
 							instr_rdinstrh:
 								reg_out <= count_instr[63:32];
 						endcase
-						latched_rd <= decoded_rd;
-						cpu_state <= cpu_state_store;
+						latched_store <= 1;
 					end else begin
+						mem_do_rinst <= 0;
 						mem_do_prefetch <= !instr_jalr;
 						cpu_state <= cpu_state_ld_rs1;
 					end
@@ -493,40 +556,30 @@ module picorv32 #(
 				end
 			end
 			cpu_state_exec: begin
-				(* parallel_case, full_case *)
-				case (1'b1)
-					is_lui_auipc_jal_jalr_addi_add:
-						reg_out <= reg_op1 + reg_op2;
-					instr_sub:
-						reg_out <= reg_op1 - reg_op2;
-					instr_beq:
-						reg_out <= {31'bx, reg_op1 == reg_op2};
-					instr_bne:
-						reg_out <= {31'bx, reg_op1 != reg_op2};
-					instr_bge:
-						reg_out <= {31'bx, $signed(reg_op1) >= $signed(reg_op2)};
-					instr_bgeu:
-						reg_out <= {31'bx, reg_op1 >= reg_op2};
-					is_slti_blt_slt:
-						reg_out <= $signed(reg_op1) < $signed(reg_op2);
-					is_sltiu_bltu_sltu:
-						reg_out <= reg_op1 < reg_op2;
-					instr_xori || instr_xor:
-						reg_out <= reg_op1 ^ reg_op2;
-					instr_ori || instr_or:
-						reg_out <= reg_op1 | reg_op2;
-					instr_andi || instr_and:
-						reg_out <= reg_op1 & reg_op2;
-				endcase
-				latched_rd <= decoded_rd;
-				cpu_state <= cpu_state_store;
+				reg_out <= reg_pc + decoded_imm;
+				if (is_beq_bne_blt_bge_bltu_bgeu) begin
+					latched_rd <= 0;
+					if (mem_done)
+						cpu_state <= cpu_state_fetch;
+					if (alu_out_0) begin
+						latched_store <= 1;
+						latched_branch <= 1;
+						mask_decoder_trigger <= 1;
+						set_mem_do_rinst = 1;
+					end
+				end else begin
+					latched_branch <= instr_jalr;
+					latched_store <= 1;
+					latched_stalu <= 1;
+					cpu_state <= cpu_state_fetch;
+				end
 			end
 			cpu_state_shift: begin
 				if (reg_sh == 0) begin
 					reg_out <= reg_op1;
 					mem_do_rinst <= mem_do_prefetch;
-					latched_rd <= decoded_rd;
-					cpu_state <= cpu_state_store;
+					latched_store <= 1;
+					cpu_state <= cpu_state_fetch;
 				end else if (reg_sh >= 4) begin
 					(* parallel_case, full_case *)
 					case (1'b1)
@@ -545,41 +598,6 @@ module picorv32 #(
 					reg_sh <= reg_sh - 1;
 				end
 			end
-			cpu_state_store: begin
-				mem_do_rinst <= mem_do_prefetch || mem_do_rinst;
-				cpu_state <= cpu_state_fetch;
-				if (instr_jal) begin
-`ifdef DEBUG
-					$display("ST_RD:  %2d 0x%08x", latched_rd, reg_out);
-`endif
-					cpuregs[latched_rd] <= reg_out;
-				end else if (instr_jalr) begin
-`ifdef DEBUG
-					$display("ST_RD:  %2d 0x%08x", latched_rd, reg_pc + 4);
-`endif
-					cpuregs[latched_rd] <= reg_pc + 4;
-					reg_pc <= reg_out;
-				end else if (is_beq_bne_blt_bge_bltu_bgeu) begin
-					if (reg_out_0) begin
-						if (mem_done) begin
-							force_mem_do_rinst = 1;
-							mask_decoder_trigger <= 1;
-							reg_pc <= reg_pc + decoded_imm;
-						end else begin
-							/* waiting for mem_done */
-							cpu_state <= cpu_state_store;
-							reg_out[0] <= reg_out_0;
-						end
-					end else
-						reg_pc <= reg_pc + 4;
-				end else begin
-`ifdef DEBUG
-					$display("ST_RD:  %2d 0x%08x", latched_rd, reg_out);
-`endif
-					cpuregs[latched_rd] <= reg_out;
-					reg_pc <= reg_pc + 4;
-				end
-			end
 			cpu_state_stmem: begin
 				if (!mem_do_prefetch || mem_done) begin
 					if (!mem_do_wdata) begin
@@ -590,10 +608,9 @@ module picorv32 #(
 							instr_sw: mem_wordsize <= 0;
 						endcase
 						reg_op1 <= reg_op1 + decoded_imm;
-						force_mem_do_wdata = 1;
+						set_mem_do_wdata = 1;
 					end
 					if (!mem_do_prefetch && mem_done) begin
-						reg_pc <= reg_pc + 4;
 						cpu_state <= cpu_state_fetch;
 						force_decoder_trigger <= 1;
 					end
@@ -608,12 +625,12 @@ module picorv32 #(
 							instr_lh || instr_lhu: mem_wordsize <= 1;
 							instr_lw: mem_wordsize <= 0;
 						endcase
+						latched_store <= 1;
 						latched_is_lu <= is_lbu_lhu_lw;
 						latched_is_lh <= instr_lh;
 						latched_is_lb <= instr_lb;
-						latched_rd <= decoded_rd;
 						reg_op1 <= reg_op1 + decoded_imm;
-						force_mem_do_rdata = 1;
+						set_mem_do_rdata = 1;
 					end
 					if (!mem_do_prefetch && mem_done) begin
 						(* parallel_case, full_case *)
@@ -622,7 +639,6 @@ module picorv32 #(
 							latched_is_lh: reg_out <= $signed(mem_buffer[15:0]);
 							latched_is_lb: reg_out <= $signed(mem_buffer[7:0]);
 						endcase
-						reg_pc <= reg_pc + 4;
 						force_decoder_trigger <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
@@ -635,20 +651,20 @@ module picorv32 #(
 `ifdef DEBUG
 				$display("MISALIGNED WORD: 0x%08x", reg_op1);
 `endif
-				trap <= 1;
+				cpu_state <= cpu_state_trap;
 			end
 			if (mem_wordsize == 1 && reg_op1[0] != 0) begin
 `ifdef DEBUG
 				$display("MISALIGNED HALFWORD: 0x%08x", reg_op1);
 `endif
-				trap <= 1;
+				cpu_state <= cpu_state_trap;
 			end
 		end
 		if (resetn && mem_do_rinst && reg_pc[1:0] != 0) begin
 `ifdef DEBUG
 			$display("MISALIGNED INSTRUCTION: 0x%08x", reg_pc);
 `endif
-			trap <= 1;
+			cpu_state <= cpu_state_trap;
 		end
 
 		if (!resetn || mem_done) begin
@@ -658,15 +674,16 @@ module picorv32 #(
 			mem_do_wdata <= 0;
 		end
 
-		if (force_mem_do_rinst)
+		if (set_mem_do_rinst)
 			mem_do_rinst <= 1;
-		if (force_mem_do_rdata)
+		if (set_mem_do_rdata)
 			mem_do_rdata <= 1;
-		if (force_mem_do_wdata)
+		if (set_mem_do_wdata)
 			mem_do_wdata <= 1;
 
-		// optimize for 32bit instr alignment
 		reg_pc[1:0] <= 0;
+		reg_next_pc[1:0] <= 0;
+		current_pc = 'bx;
 	end
 endmodule
 

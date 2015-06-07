@@ -46,26 +46,26 @@ interface, and communicating with the outside world via AXI4.
 Performance:
 ------------
 
-The average Cycles per Instruction (CPI) is 5 to 7, depending on the
-mix of instructions in the code. The CPI for the individual instructions is:
+The average Cycles per Instruction (CPI) is 4 to 6, depending on the mix of
+instructions in the code. The CPI numbers for the individual instructions are:
 
-| Instruction          | CPI |
-| ---------------------| ---:|
-| direct jump (jal)    |   4 |
-| ALU reg + immediate  |   4 |
-| ALU reg + reg        |   5 |
-| branch (not taken)   |   5 |
-| memory load          |   7 |
-| memory store         |   8 |
-| branch (taken)       |   8 |
-| indirect jump (jalr) |   8 |
-| shift operations     |  5+ |
+| Instruction          |  CPI |
+| ---------------------| ----:|
+| direct jump (jal)    |    3 |
+| ALU reg + immediate  |    3 |
+| ALU reg + reg        |    4 |
+| branch (not taken)   |    4 |
+| memory load          |    5 |
+| memory store         |    6 |
+| branch (taken)       |    6 |
+| indirect jump (jalr) |    6 |
+| shift operations     | 4-15 |
 
-Dhrystone benchmark results: 0.215 DMIPS/MHz (379 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.280 DMIPS/MHz (493 Dhrystones/Second/MHz)
 
-For the Dryhstone benchmark the average CPI is 5.983.
+For the Dryhstone benchmark the average CPI is 4.606.
 
-*This numbers apply for setups with memory that can accomodate requests within
+*This numbers apply to systems with memory that can accomodate requests within
 one clock cycle. Slower memory will degrade the performance of the processor.*
 
 

@@ -43,11 +43,12 @@ module testbench;
 	assign mem_ready = 1;
 
 	always @(posedge clk) begin
-		mem_rdata <= mem_la_read ? memory[mem_la_addr >> 2] : 'bx;
+		if (mem_la_read)
+			mem_rdata <= memory[mem_la_addr >> 2];
 		if (mem_valid) begin
 			case (mem_addr)
 				32'h1000_0000: begin
-`ifndef INSN_TIMING
+`ifndef TIMING
 					$write("%c", mem_wdata);
 					$fflush();
 `endif
@@ -75,14 +76,12 @@ module testbench;
 		end
 	end
 
-`ifdef INSN_TIMING
+`ifdef TIMING
 	initial begin
 		repeat (100000) @(posedge clk);
 		$finish;
 	end
 	always @(uut.count_instr[0]) begin
-		//  iverilog -DINSN_TIMING testbench.v ../picorv32.v && ./a.out > x
-		//  sed 's,.*## ,,' x | gawk 'x != "" {print x,$2-y;} {x=$1;y=$2;}' | sort | uniq -c | sort -k3 -n
 		$display("## %-s %d", uut.instruction, uut.count_cycle);
 	end
 `endif

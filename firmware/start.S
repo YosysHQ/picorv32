@@ -50,7 +50,6 @@ start:
 	TEST(or)
 	TEST(and)
 
-	TEST(fence_i)
 	TEST(simple)
 
 	/* set stack pointer */
