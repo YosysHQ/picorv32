@@ -159,12 +159,9 @@ module picorv32 #(
 	wire instr_trap;
 
 	reg [regindex_bits-1:0] decoded_rd, decoded_rs1, decoded_rs2;
-	reg [31:0] decoded_imm;
+	reg [31:0] decoded_imm, decoded_imm_uj;
 	reg decoder_trigger;
 	reg decoder_pseudo_trigger;
-
-	wire [31:0] decoded_imm_uj;
-	assign { decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } = $signed({mem_rdata[31:12], 1'b0});
 
 	reg is_lui_auipc_jal;
 	reg is_lb_lh_lw_lbu_lhu;
@@ -306,6 +303,8 @@ module picorv32 #(
 			                   (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS;
 			instr_rdinstr  <= (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
 			instr_rdinstrh <= (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS;
+
+			{ decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } <= $signed({mem_rdata[31:12], 1'b0});
 
 			decoded_rd <= mem_rdata[11:7];
 			decoded_rs1 <= mem_rdata[19:15];
