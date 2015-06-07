@@ -176,6 +176,7 @@ module picorv32 #(
 	reg is_sltiu_bltu_sltu;
 	reg is_beq_bne_blt_bge_bltu_bgeu;
 	reg is_lbu_lhu_lw;
+	reg is_compare;
 
 	always @(posedge clk) begin
 		is_lui_auipc_jal <= |{instr_lui, instr_auipc, instr_jal};
@@ -189,6 +190,7 @@ module picorv32 #(
 		is_sltiu_bltu_sltu <= |{instr_sltiu, instr_bltu, instr_sltu};
 		is_beq_bne_blt_bge_bltu_bgeu <= |{instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu};
 		is_lbu_lhu_lw <= |{instr_lbu, instr_lhu, instr_lw};
+		is_compare <= |{instr_beq, instr_bne, instr_bge, instr_bgeu, is_slti_blt_slt, is_sltiu_bltu_sltu};
 	end
 
 	assign instr_trap = !{instr_lui, instr_auipc, instr_jal, instr_jalr,
@@ -388,7 +390,7 @@ module picorv32 #(
 				alu_out = reg_op1 + reg_op2;
 			instr_sub:
 				alu_out = reg_op1 - reg_op2;
-			|{instr_beq, instr_bne, instr_bge, instr_bgeu, is_slti_blt_slt, is_sltiu_bltu_sltu}:
+			is_compare:
 				alu_out = alu_out_0;
 			instr_xori || instr_xor:
 				alu_out = reg_op1 ^ reg_op2;
@@ -548,14 +550,14 @@ module picorv32 #(
 				end
 			end
 			cpu_state_exec: begin
+				latched_store <= alu_out_0;
+				latched_branch <= alu_out_0;
 				reg_out <= reg_pc + decoded_imm;
 				if (is_beq_bne_blt_bge_bltu_bgeu) begin
 					latched_rd <= 0;
 					if (mem_done)
 						cpu_state <= cpu_state_fetch;
 					if (alu_out_0) begin
-						latched_store <= 1;
-						latched_branch <= 1;
 						decoder_trigger <= 0;
 						set_mem_do_rinst = 1;
 					end
@@ -567,10 +569,10 @@ module picorv32 #(
 				end
 			end
 			cpu_state_shift: begin
+				latched_store <= 1;
 				if (reg_sh == 0) begin
 					reg_out <= reg_op1;
 					mem_do_rinst <= mem_do_prefetch;
-					latched_store <= 1;
 					cpu_state <= cpu_state_fetch;
 				end else if (reg_sh >= 4) begin
 					(* parallel_case, full_case *)
@@ -609,6 +611,7 @@ module picorv32 #(
 				end
 			end
 			cpu_state_ldmem: begin
+				latched_store <= 1;
 				if (!mem_do_prefetch || mem_done) begin
 					if (!mem_do_rdata) begin
 						(* parallel_case, full_case *)
@@ -617,7 +620,6 @@ module picorv32 #(
 							instr_lh || instr_lhu: mem_wordsize <= 1;
 							instr_lw: mem_wordsize <= 0;
 						endcase
-						latched_store <= 1;
 						latched_is_lu <= is_lbu_lhu_lw;
 						latched_is_lh <= instr_lh;
 						latched_is_lb <= instr_lb;
