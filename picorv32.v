@@ -28,7 +28,8 @@
 module picorv32 #(
 	parameter ENABLE_COUNTERS = 1,
 	parameter ENABLE_REGS_16_31 = 1,
-	parameter ENABLE_REGS_DUALPORT = 1
+	parameter ENABLE_REGS_DUALPORT = 1,
+	parameter LATCHED_MEM_RDATA = 0
 ) (
 	input clk, resetn,
 	output reg trap,
@@ -63,7 +64,8 @@ module picorv32 #(
 
 	reg [1:0] mem_state;
 	reg [1:0] mem_wordsize;
-	reg [31:0] mem_buffer;
+	reg [31:0] mem_rdata_word;
+	reg [31:0] mem_rdata_q;
 	reg mem_do_prefetch;
 	reg mem_do_rinst;
 	reg mem_do_rdata;
@@ -77,33 +79,41 @@ module picorv32 #(
 	assign mem_la_read = resetn && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata);
 	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? next_pc : {reg_op1[31:2], 2'b00};
 
+	wire [31:0] mem_rdata_latched;
+	assign mem_rdata_latched = ((mem_valid && mem_ready) || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
+
 	always @* begin
 		(* full_case *)
 		case (mem_wordsize)
 			0: begin
 				mem_la_wdata = reg_op2;
 				mem_la_wstrb = 4'b1111;
-				mem_buffer = mem_rdata;
+				mem_rdata_word = mem_rdata;
 			end
 			1: begin
 				mem_la_wdata = {2{reg_op2[15:0]}};
 				mem_la_wstrb = reg_op1[1] ? 4'b1100 : 4'b0011;
 				case (reg_op1[1])
-					1'b0: mem_buffer = mem_rdata[15: 0];
-					1'b1: mem_buffer = mem_rdata[31:16];
+					1'b0: mem_rdata_word = mem_rdata[15: 0];
+					1'b1: mem_rdata_word = mem_rdata[31:16];
 				endcase
 			end
 			2: begin
 				mem_la_wdata = {4{reg_op2[7:0]}};
 				mem_la_wstrb = 4'b0001 << reg_op1[1:0];
 				case (reg_op1[1:0])
-					2'b00: mem_buffer = mem_rdata[ 7: 0];
-					2'b01: mem_buffer = mem_rdata[15: 8];
-					2'b10: mem_buffer = mem_rdata[23:16];
-					2'b11: mem_buffer = mem_rdata[31:24];
+					2'b00: mem_rdata_word = mem_rdata[ 7: 0];
+					2'b01: mem_rdata_word = mem_rdata[15: 8];
+					2'b10: mem_rdata_word = mem_rdata[23:16];
+					2'b11: mem_rdata_word = mem_rdata[31:24];
 				endcase
 			end
 		endcase
+	end
+
+	always @(posedge clk) begin
+		if (mem_valid && mem_ready)
+			mem_rdata_q <= mem_rdata_latched;
 	end
 
 	always @(posedge clk) begin
@@ -174,22 +184,9 @@ module picorv32 #(
 	reg is_sltiu_bltu_sltu;
 	reg is_beq_bne_blt_bge_bltu_bgeu;
 	reg is_lbu_lhu_lw;
+	reg is_alu_reg_imm;
+	reg is_alu_reg_reg;
 	reg is_compare;
-
-	always @(posedge clk) begin
-		is_lui_auipc_jal <= |{instr_lui, instr_auipc, instr_jal};
-		is_lb_lh_lw_lbu_lhu <= |{instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu};
-		is_slli_srli_srai <= |{instr_slli, instr_srli, instr_srai};
-		is_jalr_addi_slti_sltiu_xori_ori_andi <= |{instr_jalr, instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi};
-		is_sb_sh_sw <= |{instr_sb, instr_sh, instr_sw};
-		is_sll_srl_sra <= |{instr_sll, instr_srl, instr_sra};
-		is_lui_auipc_jal_jalr_addi_add <= |{instr_lui, instr_auipc, instr_jal, instr_jalr, instr_addi, instr_add};
-		is_slti_blt_slt <= |{instr_slti, instr_blt, instr_slt};
-		is_sltiu_bltu_sltu <= |{instr_sltiu, instr_bltu, instr_sltu};
-		is_beq_bne_blt_bge_bltu_bgeu <= |{instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu};
-		is_lbu_lhu_lw <= |{instr_lbu, instr_lhu, instr_lw};
-		is_compare <= |{instr_beq, instr_bne, instr_bge, instr_bgeu, is_slti_blt_slt, is_sltiu_bltu_sltu};
-	end
 
 	assign instr_trap = !{instr_lui, instr_auipc, instr_jal, instr_jalr,
 			instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu,
@@ -198,136 +195,173 @@ module picorv32 #(
 			instr_add, instr_sub, instr_sll, instr_slt, instr_sltu, instr_xor, instr_srl, instr_sra, instr_or, instr_and,
 			instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh};
 	
+	wire is_rdcycle_rdcycleh_rdinstr_rdinstrh;
+	assign is_rdcycle_rdcycleh_rdinstr_rdinstrh = |{instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh};
+
+	reg [63:0] new_instruction;
 	reg [63:0] instruction;
 
 	always @* begin
-		instruction = 'bx;
-		if (instr_lui)      instruction = "lui";
-		if (instr_auipc)    instruction = "auipc";
-		if (instr_jal)      instruction = "jal";
-		if (instr_jalr)     instruction = "jalr";
+		new_instruction = "";
+		if (instr_lui)      new_instruction = "lui";
+		if (instr_auipc)    new_instruction = "auipc";
+		if (instr_jal)      new_instruction = "jal";
+		if (instr_jalr)     new_instruction = "jalr";
 
-		if (instr_beq)      instruction = "beq";
-		if (instr_bne)      instruction = "bne";
-		if (instr_blt)      instruction = "blt";
-		if (instr_bge)      instruction = "bge";
-		if (instr_bltu)     instruction = "bltu";
-		if (instr_bgeu)     instruction = "bgeu";
+		if (instr_beq)      new_instruction = "beq";
+		if (instr_bne)      new_instruction = "bne";
+		if (instr_blt)      new_instruction = "blt";
+		if (instr_bge)      new_instruction = "bge";
+		if (instr_bltu)     new_instruction = "bltu";
+		if (instr_bgeu)     new_instruction = "bgeu";
 
-		if (instr_lb)       instruction = "lb";
-		if (instr_lh)       instruction = "lh";
-		if (instr_lw)       instruction = "lw";
-		if (instr_lbu)      instruction = "lbu";
-		if (instr_lhu)      instruction = "lhu";
-		if (instr_sb)       instruction = "sb";
-		if (instr_sh)       instruction = "sh";
-		if (instr_sw)       instruction = "sw";
+		if (instr_lb)       new_instruction = "lb";
+		if (instr_lh)       new_instruction = "lh";
+		if (instr_lw)       new_instruction = "lw";
+		if (instr_lbu)      new_instruction = "lbu";
+		if (instr_lhu)      new_instruction = "lhu";
+		if (instr_sb)       new_instruction = "sb";
+		if (instr_sh)       new_instruction = "sh";
+		if (instr_sw)       new_instruction = "sw";
 
-		if (instr_addi)     instruction = "addi";
-		if (instr_slti)     instruction = "slti";
-		if (instr_sltiu)    instruction = "sltiu";
-		if (instr_xori)     instruction = "xori";
-		if (instr_ori)      instruction = "ori";
-		if (instr_andi)     instruction = "andi";
-		if (instr_slli)     instruction = "slli";
-		if (instr_srli)     instruction = "srli";
-		if (instr_srai)     instruction = "srai";
+		if (instr_addi)     new_instruction = "addi";
+		if (instr_slti)     new_instruction = "slti";
+		if (instr_sltiu)    new_instruction = "sltiu";
+		if (instr_xori)     new_instruction = "xori";
+		if (instr_ori)      new_instruction = "ori";
+		if (instr_andi)     new_instruction = "andi";
+		if (instr_slli)     new_instruction = "slli";
+		if (instr_srli)     new_instruction = "srli";
+		if (instr_srai)     new_instruction = "srai";
 
-		if (instr_add)      instruction = "add";
-		if (instr_sub)      instruction = "sub";
-		if (instr_sll)      instruction = "sll";
-		if (instr_slt)      instruction = "slt";
-		if (instr_sltu)     instruction = "sltu";
-		if (instr_xor)      instruction = "xor";
-		if (instr_srl)      instruction = "srl";
-		if (instr_sra)      instruction = "sra";
-		if (instr_or)       instruction = "or";
-		if (instr_and)      instruction = "and";
+		if (instr_add)      new_instruction = "add";
+		if (instr_sub)      new_instruction = "sub";
+		if (instr_sll)      new_instruction = "sll";
+		if (instr_slt)      new_instruction = "slt";
+		if (instr_sltu)     new_instruction = "sltu";
+		if (instr_xor)      new_instruction = "xor";
+		if (instr_srl)      new_instruction = "srl";
+		if (instr_sra)      new_instruction = "sra";
+		if (instr_or)       new_instruction = "or";
+		if (instr_and)      new_instruction = "and";
 
-		if (instr_rdcycle)  instruction = "rdcycle";
-		if (instr_rdcycleh) instruction = "rdcycleh";
-		if (instr_rdinstr)  instruction = "rdinstr";
-		if (instr_rdinstrh) instruction = "rdinstrh";
+		if (instr_rdcycle)  new_instruction = "rdcycle";
+		if (instr_rdcycleh) new_instruction = "rdcycleh";
+		if (instr_rdinstr)  new_instruction = "rdinstr";
+		if (instr_rdinstrh) new_instruction = "rdinstrh";
+
+		if (new_instruction)
+			instruction = new_instruction;
 	end
 
 	always @(posedge clk) begin
+		is_lui_auipc_jal <= |{instr_lui, instr_auipc, instr_jal};
+		is_lui_auipc_jal_jalr_addi_add <= |{instr_lui, instr_auipc, instr_jal, instr_jalr, instr_addi, instr_add};
+		is_slti_blt_slt <= |{instr_slti, instr_blt, instr_slt};
+		is_sltiu_bltu_sltu <= |{instr_sltiu, instr_bltu, instr_sltu};
+		is_lbu_lhu_lw <= |{instr_lbu, instr_lhu, instr_lw};
+		is_compare <= |{is_beq_bne_blt_bge_bltu_bgeu, instr_slti, instr_slt, instr_sltiu, instr_sltu};
+
 		if (mem_do_rinst && mem_done) begin
-			instr_lui   <= mem_rdata[6:0] == 7'b0110111;
-			instr_auipc <= mem_rdata[6:0] == 7'b0010111;
+			instr_lui   <= mem_rdata_latched[6:0] == 7'b0110111;
+			instr_auipc <= mem_rdata_latched[6:0] == 7'b0010111;
 
-			instr_jal   <= mem_rdata[6:0] == 7'b1101111;
-			instr_jalr  <= mem_rdata[6:0] == 7'b1100111;
+			instr_jal   <= mem_rdata_latched[6:0] == 7'b1101111;
+			instr_jalr  <= mem_rdata_latched[6:0] == 7'b1100111;
 
-			instr_beq   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b000;
-			instr_bne   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b001;
-			instr_blt   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b100;
-			instr_bge   <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b101;
-			instr_bltu  <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b110;
-			instr_bgeu  <= mem_rdata[6:0] == 7'b1100011 && mem_rdata[14:12] == 3'b111;
+			is_beq_bne_blt_bge_bltu_bgeu <= mem_rdata_latched[6:0] == 7'b1100011;
+			is_lb_lh_lw_lbu_lhu          <= mem_rdata_latched[6:0] == 7'b0000011;
+			is_sb_sh_sw                  <= mem_rdata_latched[6:0] == 7'b0100011;
+			is_alu_reg_imm               <= mem_rdata_latched[6:0] == 7'b0010011;
+			is_alu_reg_reg               <= mem_rdata_latched[6:0] == 7'b0110011;
 
-			instr_lb    <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b000;
-			instr_lh    <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b001;
-			instr_lw    <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b010;
-			instr_lbu   <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b100;
-			instr_lhu   <= mem_rdata[6:0] == 7'b0000011 && mem_rdata[14:12] == 3'b101;
+			{ decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } <= $signed({mem_rdata_latched[31:12], 1'b0});
 
-			instr_sb    <= mem_rdata[6:0] == 7'b0100011 && mem_rdata[14:12] == 3'b000;
-			instr_sh    <= mem_rdata[6:0] == 7'b0100011 && mem_rdata[14:12] == 3'b001;
-			instr_sw    <= mem_rdata[6:0] == 7'b0100011 && mem_rdata[14:12] == 3'b010;
-
-			instr_addi  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b000;
-			instr_slti  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b010;
-			instr_sltiu <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b011;
-			instr_xori  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b100;
-			instr_ori   <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b110;
-			instr_andi  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b111;
-
-			instr_slli  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b001 && mem_rdata[31:25] == 7'b0000000;
-			instr_srli  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0000000;
-			instr_srai  <= mem_rdata[6:0] == 7'b0010011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0100000;
-
-			instr_add   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b000 && mem_rdata[31:25] == 7'b0000000;
-			instr_sub   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b000 && mem_rdata[31:25] == 7'b0100000;
-			instr_sll   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b001 && mem_rdata[31:25] == 7'b0000000;
-			instr_slt   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b010 && mem_rdata[31:25] == 7'b0000000;
-			instr_sltu  <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b011 && mem_rdata[31:25] == 7'b0000000;
-			instr_xor   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b100 && mem_rdata[31:25] == 7'b0000000;
-			instr_srl   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0000000;
-			instr_sra   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b101 && mem_rdata[31:25] == 7'b0100000;
-			instr_or    <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b110 && mem_rdata[31:25] == 7'b0000000;
-			instr_and   <= mem_rdata[6:0] == 7'b0110011 && mem_rdata[14:12] == 3'b111 && mem_rdata[31:25] == 7'b0000000;
-
-			instr_rdcycle  <= ((mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11000000000000000010) ||
-			                   (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11000000000100000010)) && ENABLE_COUNTERS;
-			instr_rdcycleh <= ((mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000000000000010) ||
-			                   (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS;
-			instr_rdinstr  <= (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
-			instr_rdinstrh <= (mem_rdata[6:0] == 7'b1110011 && mem_rdata[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS;
-
-			{ decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } <= $signed({mem_rdata[31:12], 1'b0});
-
-			decoded_rd <= mem_rdata[11:7];
-			decoded_rs1 <= mem_rdata[19:15];
-			decoded_rs2 <= mem_rdata[24:20];
+			decoded_rd <= mem_rdata_latched[11:7];
+			decoded_rs1 <= mem_rdata_latched[19:15];
+			decoded_rs2 <= mem_rdata_latched[24:20];
 		end
 
 		if (decoder_trigger && !decoder_pseudo_trigger) begin
+			instr_beq   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b000;
+			instr_bne   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b001;
+			instr_blt   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b100;
+			instr_bge   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b101;
+			instr_bltu  <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b110;
+			instr_bgeu  <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b111;
+
+			instr_lb    <= is_lb_lh_lw_lbu_lhu && mem_rdata_q[14:12] == 3'b000;
+			instr_lh    <= is_lb_lh_lw_lbu_lhu && mem_rdata_q[14:12] == 3'b001;
+			instr_lw    <= is_lb_lh_lw_lbu_lhu && mem_rdata_q[14:12] == 3'b010;
+			instr_lbu   <= is_lb_lh_lw_lbu_lhu && mem_rdata_q[14:12] == 3'b100;
+			instr_lhu   <= is_lb_lh_lw_lbu_lhu && mem_rdata_q[14:12] == 3'b101;
+
+			instr_sb    <= is_sb_sh_sw && mem_rdata_q[14:12] == 3'b000;
+			instr_sh    <= is_sb_sh_sw && mem_rdata_q[14:12] == 3'b001;
+			instr_sw    <= is_sb_sh_sw && mem_rdata_q[14:12] == 3'b010;
+
+			instr_addi  <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b000;
+			instr_slti  <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b010;
+			instr_sltiu <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b011;
+			instr_xori  <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b100;
+			instr_ori   <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b110;
+			instr_andi  <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b111;
+
+			instr_slli  <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b001 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_srli  <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_srai  <= is_alu_reg_imm && mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0100000;
+
+			instr_add   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_sub   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[31:25] == 7'b0100000;
+			instr_sll   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b001 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_slt   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b010 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_sltu  <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b011 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_xor   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b100 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_srl   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_sra   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0100000;
+			instr_or    <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b110 && mem_rdata_q[31:25] == 7'b0000000;
+			instr_and   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b111 && mem_rdata_q[31:25] == 7'b0000000;
+
+			instr_rdcycle  <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000000000010) ||
+			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000100000010)) && ENABLE_COUNTERS;
+			instr_rdcycleh <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000000000000010) ||
+			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS;
+			instr_rdinstr  <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
+			instr_rdinstrh <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS;
+
+			is_slli_srli_srai <= is_alu_reg_imm && |{
+				mem_rdata_q[14:12] == 3'b001 && mem_rdata_q[31:25] == 7'b0000000,
+				mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0000000,
+				mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0100000
+			};
+
+			is_jalr_addi_slti_sltiu_xori_ori_andi <= instr_jalr || is_alu_reg_imm && |{
+				mem_rdata_q[14:12] == 3'b000,
+				mem_rdata_q[14:12] == 3'b010,
+				mem_rdata_q[14:12] == 3'b011,
+				mem_rdata_q[14:12] == 3'b100,
+				mem_rdata_q[14:12] == 3'b110,
+				mem_rdata_q[14:12] == 3'b111
+			};
+
+			is_sll_srl_sra <= is_alu_reg_reg && |{
+				mem_rdata_q[14:12] == 3'b001 && mem_rdata_q[31:25] == 7'b0000000,
+				mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0000000,
+				mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0100000
+			};
+
 			(* parallel_case *)
 			case (1'b1)
-				|{instr_lui, instr_auipc}:
-					decoded_imm <= mem_rdata[31:12] << 12;
 				instr_jal:
 					decoded_imm <= decoded_imm_uj;
-				instr_jalr:
-					decoded_imm <= $signed(mem_rdata[31:20]);
-				|{instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu}:
-					decoded_imm <= $signed({mem_rdata[31], mem_rdata[7], mem_rdata[30:25], mem_rdata[11:8], 1'b0});
-				|{instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu}:
-					decoded_imm <= $signed(mem_rdata[31:20]);
-				|{instr_sb, instr_sh, instr_sw}:
-					decoded_imm <= $signed({mem_rdata[31:25], mem_rdata[11:7]});
-				|{instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi}:
-					decoded_imm <= $signed(mem_rdata[31:20]);
+				|{instr_lui, instr_auipc}:
+					decoded_imm <= mem_rdata_q[31:12] << 12;
+				|{instr_jalr, is_lb_lh_lw_lbu_lhu, is_alu_reg_imm}:
+					decoded_imm <= $signed(mem_rdata_q[31:20]);
+				is_beq_bne_blt_bge_bltu_bgeu:
+					decoded_imm <= $signed({mem_rdata_q[31], mem_rdata_q[7], mem_rdata_q[30:25], mem_rdata_q[11:8], 1'b0});
+				is_sb_sh_sw:
+					decoded_imm <= $signed({mem_rdata_q[31:25], mem_rdata_q[11:7]});
 				default:
 					decoded_imm <= 1'bx;
 			endcase
@@ -420,8 +454,6 @@ module picorv32 #(
 		if (!resetn) begin
 			reg_pc <= 0;
 			reg_next_pc <= 0;
-			reg_op1 <= 'bx;
-			reg_op2 <= 'bx;
 			if (ENABLE_COUNTERS)
 				count_instr <= 0;
 			latched_store <= 0;
@@ -452,7 +484,7 @@ module picorv32 #(
 				end else
 				if (latched_store) begin
 `ifdef DEBUG
-					$display("ST_RD:  %2d 0x%08x", latched_rd, reg_out);
+					$display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? reg_alu_out : reg_out);
 `endif
 					cpuregs[latched_rd] <= latched_stalu ? reg_alu_out : reg_out;
 				end
@@ -470,45 +502,55 @@ module picorv32 #(
 
 				if (decoder_trigger) begin
 `ifdef DEBUG
-					$display("DECODE: 0x%08x %-s", current_pc, instruction);
+					$display("-- %-0t", $time);
 `endif
 					reg_next_pc <= current_pc + 4;
-
-					if (instr_trap) begin
+					if (ENABLE_COUNTERS)
+						count_instr <= count_instr + 1;
+					if (instr_jal) begin
 `ifdef DEBUG
-						$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", current_pc);
+						$display("DECODE: 0x%08x jal", current_pc);
 `endif
-						cpu_state <= cpu_state_trap;
-					end else if (instr_jal) begin
 						mem_do_rinst <= 1;
 						if (latched_is_lu || latched_is_lh || latched_is_lb)
 							reg_next_pc <= current_pc + decoded_imm;
 						else
 							reg_next_pc <= current_pc + decoded_imm_uj;
 						latched_branch <= 1;
-					end else if (|{instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh}) begin
-						(* parallel_case, full_case *)
-						case (1'b1)
-							instr_rdcycle:
-								reg_out <= count_cycle[31:0];
-							instr_rdcycleh:
-								reg_out <= count_cycle[63:32];
-							instr_rdinstr:
-								reg_out <= count_instr[31:0];
-							instr_rdinstrh:
-								reg_out <= count_instr[63:32];
-						endcase
-						latched_store <= 1;
 					end else begin
 						mem_do_rinst <= 0;
 						mem_do_prefetch <= !instr_jalr;
 						cpu_state <= cpu_state_ld_rs1;
 					end
-					if (ENABLE_COUNTERS)
-						count_instr <= count_instr + 1;
 				end
 			end
 			cpu_state_ld_rs1: begin
+				reg_op1 <= 'bx;
+				reg_op2 <= 'bx;
+`ifdef DEBUG
+				$display("DECODE: 0x%08x %-0s", reg_pc, instruction);
+`endif
+				if (instr_trap) begin
+`ifdef DEBUG
+					$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
+`endif
+					cpu_state <= cpu_state_trap;
+				end else
+				if (is_rdcycle_rdcycleh_rdinstr_rdinstrh) begin
+					(* parallel_case, full_case *)
+					case (1'b1)
+						instr_rdcycle:
+							reg_out <= count_cycle[31:0];
+						instr_rdcycleh:
+							reg_out <= count_cycle[63:32];
+						instr_rdinstr:
+							reg_out <= count_instr[31:0];
+						instr_rdinstrh:
+							reg_out <= count_instr[63:32];
+					endcase
+					latched_store <= 1;
+					cpu_state <= cpu_state_fetch;
+				end else
 				if (is_lui_auipc_jal) begin
 					reg_op1 <= instr_lui ? 0 : reg_pc;
 					reg_op2 <= decoded_imm;
@@ -533,12 +575,12 @@ module picorv32 #(
 `ifdef DEBUG
 						$display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);
 `endif
+						reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 						reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 						if (is_sb_sh_sw) begin
 							cpu_state <= cpu_state_stmem;
 							mem_do_rinst <= 1;
 						end else if (is_sll_srl_sra) begin
-							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 							cpu_state <= cpu_state_shift;
 						end else begin
 							mem_do_rinst <= mem_do_prefetch;
@@ -552,12 +594,12 @@ module picorv32 #(
 `ifdef DEBUG
 				$display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);
 `endif
+				reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 				reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 				if (is_sb_sh_sw) begin
 					cpu_state <= cpu_state_stmem;
 					mem_do_rinst <= 1;
 				end else if (is_sll_srl_sra) begin
-					reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 					cpu_state <= cpu_state_shift;
 				end else begin
 					mem_do_rinst <= mem_do_prefetch;
@@ -622,6 +664,7 @@ module picorv32 #(
 					if (!mem_do_prefetch && mem_done) begin
 						cpu_state <= cpu_state_fetch;
 						decoder_trigger <= 1;
+						decoder_pseudo_trigger <= 1;
 					end
 				end
 			end
@@ -644,9 +687,9 @@ module picorv32 #(
 					if (!mem_do_prefetch && mem_done) begin
 						(* parallel_case, full_case *)
 						case (1'b1)
-							latched_is_lu: reg_out <= mem_buffer;
-							latched_is_lh: reg_out <= $signed(mem_buffer[15:0]);
-							latched_is_lb: reg_out <= $signed(mem_buffer[7:0]);
+							latched_is_lu: reg_out <= mem_rdata_word;
+							latched_is_lh: reg_out <= $signed(mem_rdata_word[15:0]);
+							latched_is_lb: reg_out <= $signed(mem_rdata_word[7:0]);
 						endcase
 						decoder_trigger <= 1;
 						decoder_pseudo_trigger <= 1;

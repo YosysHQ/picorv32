@@ -50,8 +50,7 @@ module testbench;
 	assign mem_ready = 1;
 
 	always @(posedge clk) begin
-		if (mem_la_read)
-			mem_rdata <= memory[mem_la_addr >> 2];
+		mem_rdata <= mem_la_read ? memory[mem_la_addr >> 2] : 'bx;
 		if (mem_la_write) begin
 			case (mem_la_addr)
 				32'h1000_0000: begin

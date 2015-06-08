@@ -76,6 +76,13 @@ The register file can be implemented with two or one read ports. A dual ported
 register file improves performance a bit, but can also increase the size of
 the core.
 
+### LATCHED_MEM_RDATA (default = 0)
+
+Set this to 1 if the `mem_rdata` is kept stable by the external circuit after a
+transaction. In the default configuration the PicoRV32 core only expects the
+`mem_rdata` input to be valid in the cycle with `mem_valid && mem_ready` and
+latches the value internally.
+
 
 Performance:
 ------------
@@ -88,8 +95,8 @@ requests within one clock cycle.
 
 The average Cycles per Instruction (CPI) is 4 to 5, depending on the mix of
 instructions in the code. The CPI numbers for the individual instructions
-can be found in the following table. (The column "CPI (SP)" contains the
-CPI numbers for a core built without ENABLE_REGS_DUALPORT.)
+can be found in the table below. The column "CPI (SP)" contains the
+CPI numbers for a core built without ENABLE_REGS_DUALPORT.
 
 | Instruction          |  CPI | CPI (SP) |
 | ---------------------| ----:| --------:|
@@ -105,7 +112,7 @@ CPI numbers for a core built without ENABLE_REGS_DUALPORT.)
 
 Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
 
-For the Dryhstone benchmark the average CPI is 4.167.
+For the Dhrystone benchmark the average CPI is 4.167.
 
 
 Todos:
