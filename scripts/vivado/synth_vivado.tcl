@@ -2,7 +2,7 @@
 # vivado -nojournal -log synth_vivado.log -mode batch -source synth_vivado.tcl
 
 read_verilog synth_vivado_soc.v
-read_verilog ../picorv32.v
+read_verilog ../../picorv32.v
 read_xdc synth_vivado.xdc
 
 synth_design -part xc7a15t-csg324 -top picorv32_axi
