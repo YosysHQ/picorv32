@@ -11,7 +11,8 @@ module test_soc (
 	output [31:0] monitor_addr,
 	output [31:0] monitor_data
 );
-	parameter MEM_SIZE = 64*1024/4;
+	// 4096 32bit words = 16kB memory
+	parameter MEM_SIZE = 4096;
 
 	wire mem_valid;
 	wire mem_instr;
@@ -50,16 +51,14 @@ module test_soc (
 	assign monitor_data = mem_wstrb ? mem_wdata : mem_rdata;
 
 	reg [31:0] memory [0:MEM_SIZE-1];
-	initial $readmemh("../firmware/firmware.hex", memory);
+	initial $readmemh("firmware.hex", memory);
 
 	assign mem_ready = 1;
 	assign out_byte = mem_wdata[7:0];
 
 	always @(posedge clk) begin
 		out_byte_en <= 0;
-		if (mem_la_read)
-			mem_rdata <= memory[mem_la_addr >> 2];
-		else
+		mem_rdata <= memory[mem_la_addr >> 2];
 		if (mem_la_write && (mem_la_addr >> 2) < MEM_SIZE) begin
 			if (mem_la_wstrb[0]) memory[mem_la_addr >> 2][ 7: 0] <= mem_la_wdata[ 7: 0];
 			if (mem_la_wstrb[1]) memory[mem_la_addr >> 2][15: 8] <= mem_la_wdata[15: 8];
