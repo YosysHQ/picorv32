@@ -1,4 +1,2 @@
-fsm_encoding.os
-synth_vivado.log
-synth_vivado_*.backup.log
-synth_vivado_syn.v
+synth_*.log
+synth_*.v
