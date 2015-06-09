@@ -512,10 +512,7 @@ module picorv32 #(
 						$display("DECODE: 0x%08x jal", current_pc);
 `endif
 						mem_do_rinst <= 1;
-						if (latched_is_lu || latched_is_lh || latched_is_lb)
-							reg_next_pc <= current_pc + decoded_imm;
-						else
-							reg_next_pc <= current_pc + decoded_imm_uj;
+						reg_next_pc <= current_pc + decoded_imm_uj;
 						latched_branch <= 1;
 					end else begin
 						mem_do_rinst <= 0;
