@@ -119,6 +119,9 @@ Todos:
 ------
 
 - Optional IRQ support
+- Optional FENCE support
 - Optional write-through cache
 - Optional support for compressed ISA
+- Improved documentation and examples
+- Code cleanups and refactoring of main FSM
 
