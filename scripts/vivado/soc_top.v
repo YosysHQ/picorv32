@@ -1,15 +1,11 @@
 `timescale 1 ns / 1 ps
 
 module soc_top (
-	input         clk,
-	input         resetn,
-	output        trap,
-	output [7:0]  out_byte,
-	output reg    out_byte_en,
-
-	output        monitor_valid,
-	output [31:0] monitor_addr,
-	output [31:0] monitor_data
+	input            clk,
+	input            resetn,
+	output           trap,
+	output reg [7:0] out_byte,
+	output reg       out_byte_en
 );
 	// 4096 32bit words = 16kB memory
 	parameter MEM_SIZE = 4096;
@@ -46,15 +42,10 @@ module soc_top (
 		.mem_la_wstrb(mem_la_wstrb)
 	);
 
-	assign monitor_valid = mem_valid;
-	assign monitor_addr = mem_addr;
-	assign monitor_data = mem_wstrb ? mem_wdata : mem_rdata;
-
 	reg [31:0] memory [0:MEM_SIZE-1];
-	initial $readmemh("firmware.hex", memory);
+	// initial $readmemh("firmware.hex", memory);
 
 	assign mem_ready = 1;
-	assign out_byte = mem_wdata[7:0];
 
 	always @(posedge clk) begin
 		out_byte_en <= 0;
@@ -68,6 +59,7 @@ module soc_top (
 		else
 		if (mem_la_write && mem_la_addr == 32'h1000_0000) begin
 			out_byte_en <= 1;
+			out_byte <= mem_la_wdata;
 		end
 	end
 endmodule
