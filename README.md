@@ -83,6 +83,27 @@ transaction. In the default configuration the PicoRV32 core only expects the
 `mem_rdata` input to be valid in the cycle with `mem_valid && mem_ready` and
 latches the value internally.
 
+### ENABLE_EXTERNAL_IRQ (default = 0)
+
+Set this to 1 to enable external IRQs.
+
+### ENABLE_ILLINSTR_IRQ (default = 0)
+
+Set this to 1 to enable the illigal instruction IRQ. This can be used for
+software implementations of instructions such as `MUL` and `DIV`.
+
+### ENABLE_TIMER_IRQ (default = 0)
+
+Set this to 1 to enable the built-in timer and timer IRQ.
+
+### PROGADDR_RESET (default = 0)
+
+The start address of the program.
+
+### PROGADDR_IRQ (default = 16)
+
+The start address of the interrupt handler.
+
 
 Performance:
 ------------
@@ -115,10 +136,131 @@ Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
 For the Dhrystone benchmark the average CPI is 4.167.
 
 
+Custom Instructions:
+--------------------
+
+### IRQ Handling
+
+The following custom instructions are supported when IRQs are enabled.
+
+The core has 4 additional 32-bit general-purpose registers `q0 .. q3`
+that are used for IRQ handling. When an IRQ triggers, the register
+`q0` contains the return address and `q1` contains the IRQ number.
+Registers `q2` and `q3` are uninitialized.
+
+#### getq rd, qs
+
+This instruction copies the value from a q-register to a general-purpose
+register. The Instruction is encoded under the `custom0` opcode:
+
+    0000000 00000 000XX 000 XXXXX 0001011
+    f7      f5    qs    f3  rd    opcode
+
+Example assember code using the `custom0` mnemonic:
+
+| Instruction       | Assember Code       |
+| ------------------| --------------------|
+| getq x5, q2       | custom0 5, 2, 0, 0  |
+| getq x3, q0       | custom0 3, 0, 0, 0  |
+| getq x1, q3       | custom0 1, 3, 0, 0  |
+
+#### setq qd, rs
+
+This instruction copies the value from a general-purpose register to a
+q-register. The Instruction is encoded under the `custom0` opcode:
+
+    0000001 00000 XXXXX 000 000XX 0001011
+    f7      f5    rs    f3  qd    opcode
+
+Example assember code using the `custom0` mnemonic:
+
+| Instruction       | Assember Code       |
+| ------------------| --------------------|
+| setq q2, x5       | custom0 2, 5, 0, 1  |
+| setq q0, x3       | custom0 0, 3, 0, 1  |
+| setq q3, x1       | custom0 3, 1, 0, 1  |
+
+#### retirq
+
+Return from interrupt. This instruction copies the value from `q0`
+to the program counter and enables interrupts. The Instruction is
+encoded under the `custom0` opcode:
+
+    0000010 00000 00000 000 00000 0001011
+    f7      f5    rs    f3  rd    opcode
+
+Example assember code using the `custom0` mnemonic:
+
+| Instruction       | Assember Code       |
+| ------------------| --------------------|
+| retirq            | custom0 0, 0, 0, 2  |
+
+#### maskirq
+
+Enable/disable interrupt sources. The Instruction is encoded under the
+`custom0` opcode:
+
+    0000011 XXXXX 00000 000 00000 0001011
+    f7      f5    rs    f3  rd    opcode
+
+The following interrupt sources occupy the following bits
+in the `f5` field:
+
+| Bit   | Interrupt Source     |
+| ------| ---------------------|
+| f5[0] | External IRQ         |
+| f5[1] | Timer Interrupt      |
+| f5[2] | Illegal Instruction  |
+| f5[3] | Reserved             |
+| f5[4] | Reserved             |
+
+Set bits in the IRQ mask correspond to enabled interrupt sources.
+
+Example assember code using the `custom0` mnemonic:
+
+| Instruction       | Assember Code       |
+| ------------------| --------------------|
+| maskirq 0         | custom0 0, 0, 0, 3  |
+| maskirq 1         | custom0 0, 0, 1, 3  |
+
+The processor starts with all interrupts disabled.
+
+An illegal instruction while the illegal instruction interrupt is disabled will
+cause the processor to halt.
+
+#### waitirq (unimplemented)
+
+Pause execution until an interrupt triggers. The Instruction is encoded under the
+`custom0` opcode:
+
+    0000100 00000 00000 000 00000 0001011
+    f7      f5    rs    f3  rd    opcode
+
+Example assember code using the `custom0` mnemonic:
+
+| Instruction       | Assember Code       |
+| ------------------| --------------------|
+| waitirq           | custom0 0, 0, 0, 4  |
+
+#### timer
+
+Reset the timer counter to a new value. The counter counts down cycles and
+triggers the timer interrupt when transitioning from 1 to 0. Setting the
+counter to zero disables the timer.
+
+    0000101 00000 XXXXX 000 00000 0001011
+    f7      f5    rs    f3  rd    opcode
+
+Example assember code using the `custom0` mnemonic:
+
+| Instruction       | Assember Code       |
+| ------------------| --------------------|
+| timer x2          | custom0 0, 2, 0, 5  |
+
+
 Todos:
 ------
 
-- Optional IRQ support
 - Optional FENCE support
 - Optional write-through cache
 - Optional support for compressed ISA

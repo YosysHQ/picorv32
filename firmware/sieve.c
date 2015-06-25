@@ -18,6 +18,11 @@ static bool bitmap_get(int idx)
 	return (bitmap[idx/32] & (1 << (idx % 32))) != 0;
 }
 
+static void print_chr(char ch)
+{
+	*((volatile uint32_t*)OUTPORT) = ch;
+}
+
 static void print_str(const char *p)
 {
 	while (*p != 0)
@@ -35,6 +40,13 @@ static void print_dec(int val)
 	while (p != buffer) {
 		*((volatile uint32_t*)OUTPORT) = '0' + *(--p);
 	}
+}
+
+static void print_hex(unsigned int val)
+{
+	int i;
+	for (i = 32-4; i >= 0; i -= 4)
+		*((volatile uint32_t*)OUTPORT) = "0123456789ABCDEF"[(val >> i) % 16];
 }
 
 static void print_prime(int idx, int val)
@@ -73,6 +85,95 @@ void sieve()
 				break;
 			bitmap_set(k);
 		}
+	}
+}
+
+void irq(uint32_t *regs, uint32_t irqnum)
+{
+	static int ext_irq_count = 0;
+	static int timer_irq_count = 0;
+
+	if (irqnum == 0) {
+		ext_irq_count++;
+		// print_str("[EXT-IRQ]");
+		return;
+	}
+
+	if (irqnum == 1) {
+		timer_irq_count++;
+		// print_str("[TIMER-IRQ]");
+		return;
+	}
+
+	if (irqnum == 2)
+	{
+		int i, k;
+		uint32_t pc = regs[0] - 4;
+		uint32_t instr = *(uint32_t*)pc;
+
+		print_str("\n");
+		print_str("------------------------------------------------------------\n");
+
+		if (instr == 0x00100073) {
+			print_str("SBREAK instruction at 0x");
+			print_hex(pc);
+			print_str("\n");
+		} else {
+			print_str("Illegal Instruction at 0x");
+			print_hex(pc);
+			print_str(": 0x");
+			print_hex(instr);
+			print_str("\n");
+		}
+
+		for (i = 0; i < 8; i++)
+		for (k = 0; k < 4; k++)
+		{
+			int r = i + k*8;
+
+			if (r == 0) {
+				print_str("pc  ");
+			} else
+			if (r < 10) {
+				print_chr('x');
+				print_chr('0' + r);
+				print_chr(' ');
+				print_chr(' ');
+			} else
+			if (r < 20) {
+				print_chr('x');
+				print_chr('1');
+				print_chr('0' + r - 10);
+				print_chr(' ');
+			} else
+			if (r < 30) {
+				print_chr('x');
+				print_chr('2');
+				print_chr('0' + r - 20);
+				print_chr(' ');
+			} else {
+				print_chr('x');
+				print_chr('3');
+				print_chr('0' + r - 30);
+				print_chr(' ');
+			}
+
+			print_hex(regs[r]);
+			print_str(k == 3 ? "\n" : "    ");
+		}
+
+		print_str("------------------------------------------------------------\n");
+
+		print_str("Number of external IRQs counted: ");
+		print_dec(ext_irq_count);
+		print_str("\n");
+
+		print_str("Number of timer IRQs counted: ");
+		print_dec(timer_irq_count);
+		print_str("\n");
+
+		__asm__("sbreak");
+		return;
 	}
 }
 
