@@ -53,7 +53,7 @@ Parameters:
 The following Verilog module parameters can be used to configure the PicoRV32
 core.
 
-### ENABLE_COUNTERS (default = 1)
+#### ENABLE_COUNTERS (default = 1)
 
 This parameter enables support for the `RDCYCLE[H]`, `RDTIME[H]`, and
 `RDINSTRET[H]` instructions. This instructions will cause a hardware
@@ -64,43 +64,43 @@ instructions are not optional for an RV32I core. But chances are they are not
 going to be missed after the application code has been debugged and profiled.
 This instructions are optional for an RV32E core.*
 
-### ENABLE_REGS_16_31 (default = 1)
+#### ENABLE_REGS_16_31 (default = 1)
 
 This parameter enables support for registers the `x16`..`x31`. The RV32E ISA
 excludes this registers. However, the RV32E ISA spec requires a hardware trap
 for when code tries to access this registers. This is not implemented in PicoRV32.
 
-### ENABLE_REGS_DUALPORT (default = 1)
+#### ENABLE_REGS_DUALPORT (default = 1)
 
 The register file can be implemented with two or one read ports. A dual ported
 register file improves performance a bit, but can also increase the size of
 the core.
 
-### LATCHED_MEM_RDATA (default = 0)
+#### LATCHED_MEM_RDATA (default = 0)
 
 Set this to 1 if the `mem_rdata` is kept stable by the external circuit after a
 transaction. In the default configuration the PicoRV32 core only expects the
 `mem_rdata` input to be valid in the cycle with `mem_valid && mem_ready` and
 latches the value internally.
 
-### ENABLE_EXTERNAL_IRQ (default = 0)
+#### ENABLE_EXTERNAL_IRQ (default = 0)
 
 Set this to 1 to enable external IRQs.
 
-### ENABLE_ILLINSTR_IRQ (default = 0)
+#### ENABLE_ILLINSTR_IRQ (default = 0)
 
-Set this to 1 to enable the illigal instruction IRQ. This can be used for
+Set this to 1 to enable the illegal instruction IRQ. This can be used for
 software implementations of instructions such as `MUL` and `DIV`.
 
-### ENABLE_TIMER_IRQ (default = 0)
+#### ENABLE_TIMER_IRQ (default = 0)
 
 Set this to 1 to enable the built-in timer and timer IRQ.
 
-### PROGADDR_RESET (default = 0)
+#### PROGADDR_RESET (default = 0)
 
 The start address of the program.
 
-### PROGADDR_IRQ (default = 16)
+#### PROGADDR_IRQ (default = 16)
 
 The start address of the interrupt handler.
 
@@ -136,17 +136,16 @@ Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
 For the Dhrystone benchmark the average CPI is 4.167.
 
 
-Custom Instructions:
---------------------
-
-### IRQ Handling
+Custom Instructions for IRQ Handling
+------------------------------------
 
 The following custom instructions are supported when IRQs are enabled.
 
-The core has 4 additional 32-bit general-purpose registers `q0 .. q3`
-that are used for IRQ handling. When an IRQ triggers, the register
-`q0` contains the return address and `q1` contains the IRQ number.
-Registers `q2` and `q3` are uninitialized.
+The core has 4 additional 32-bit registers `q0 .. q3` that are used for IRQ
+handling. When an IRQ triggers, the register `q0` contains the return address
+and `q1` contains the IRQ number. Registers `q2` and `q3` are uninitialized
+and can be used as temporary storage when saving/restoring register values
+in the IRQ handler.
 
 #### getq rd, qs
 
@@ -156,7 +155,7 @@ register. The Instruction is encoded under the `custom0` opcode:
     0000000 00000 000XX 000 XXXXX 0001011
     f7      f5    qs    f3  rd    opcode
 
-Example assember code using the `custom0` mnemonic:
+Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
@@ -172,7 +171,7 @@ q-register. The Instruction is encoded under the `custom0` opcode:
     0000001 00000 XXXXX 000 000XX 0001011
     f7      f5    rs    f3  qd    opcode
 
-Example assember code using the `custom0` mnemonic:
+Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
@@ -189,7 +188,7 @@ encoded under the `custom0` opcode:
     0000010 00000 00000 000 00000 0001011
     f7      f5    rs    f3  rd    opcode
 
-Example assember code using the `custom0` mnemonic:
+Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
@@ -216,7 +215,7 @@ in the `f5` field:
 
 Set bits in the IRQ mask correspond to enabled interrupt sources.
 
-Example assember code using the `custom0` mnemonic:
+Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
@@ -236,7 +235,7 @@ Pause execution until an interrupt triggers. The Instruction is encoded under th
     0000100 00000 00000 000 00000 0001011
     f7      f5    rs    f3  rd    opcode
 
-Example assember code using the `custom0` mnemonic:
+Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
@@ -251,7 +250,7 @@ counter to zero disables the timer.
     0000101 00000 XXXXX 000 00000 0001011
     f7      f5    rs    f3  rd    opcode
 
-Example assember code using the `custom0` mnemonic:
+Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
