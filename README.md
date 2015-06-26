@@ -14,7 +14,7 @@ Features and Typical Applications:
 ----------------------------------
 
 - Small (~1000 LUTs in a 7-Series Xilinx FGPA)
-- High fMAX (>250 MHz on 7-Series Xilinx FGPAs)
+- High fMAX (~250 MHz on 7-Series Xilinx FGPAs)
 - Selectable native memory interface or AXI4-Lite master
 
 This CPU is meant to be used as auxiliary processor in FPGA designs and ASICs. Due
@@ -154,7 +154,7 @@ The IRQs 0-2 can be triggered internally and have the following meaning:
 
 The core has 4 additional 32-bit registers `q0 .. q3` that are used for IRQ
 handling. When an IRQ triggers, the register `q0` contains the return address
-and `q1` contains a bitmask of all active IRQs. I.e. one call to the interrupt
+and `q1` contains a bitmask of all active IRQs. This means one call to the interrupt
 handler might need to service one than more IRQ when more than one bit is set
 in `q1`.
 
