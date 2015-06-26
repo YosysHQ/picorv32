@@ -216,12 +216,9 @@ Example assembler code using the `custom0` mnemonic:
 
 #### maskirq
 
-The "IRQ Mask" register contains a birtmask of masked (disabled) interrupts.
-This opcodes writes a new value to the irq mask register and reads the  old
-value.
-
-Enable/disable interrupt sources. This instruction is encoded under the
-`custom0` opcode:
+The "IRQ Mask" register contains a bitmask of masked (disabled) interrupts.
+This instruction writes a new value to the irq mask register and reads the old
+value. This instruction is encoded under the `custom0` opcode:
 
     0000011 00000 XXXXX 000 XXXXX 0001011
     f7      rs2   rs    f3  rd    opcode
