@@ -134,17 +134,23 @@ For the Dhrystone benchmark the average CPI is 4.167.
 Custom Instructions for IRQ Handling
 ------------------------------------
 
-The following custom instructions are supported when IRQs are enabled.
+*Note: The IRQ handling features in PicoRV32 do not follow the RISC-V
+Privileged ISA specification. Instead a small set of very simple custom
+instructions is used to implement IRQ handling with minimal hardware
+overhead.*
+
+The following custom instructions are only supported when IRQs are enabled
+via the `ENABLE_IRQ` parameter (see above).
 
 The PicoRV32 core has a built-in interrupt controller with 32 interrupts. An
 interrupt can be triggered by asserting the corresponding bit in the `irq`
 input of the core.
 
 When the interrupt handler is started, the `eoi` End Of Interrupt (EOI) signals
-for the handled interrupts goes high. The `eoi` signal goes low again when the
+for the handled interrupts go high. The `eoi` signals go low again when the
 interrupt handler returns.
 
-The IRQs 0-2 can be triggered internally and have the following meaning:
+The IRQs 0-2 can be triggered internally by the following built-in interrupt sources:
 
 | IRQ | Interrupt Source                   |
 | ---:| -----------------------------------|
@@ -155,7 +161,7 @@ The IRQs 0-2 can be triggered internally and have the following meaning:
 The core has 4 additional 32-bit registers `q0 .. q3` that are used for IRQ
 handling. When an IRQ triggers, the register `q0` contains the return address
 and `q1` contains a bitmask of all active IRQs. This means one call to the interrupt
-handler might need to service one than more IRQ when more than one bit is set
+handler might need to service more than one IRQ when more than one bit is set
 in `q1`.
 
 Registers `q2` and `q3` are uninitialized and can be used as temporary storage
