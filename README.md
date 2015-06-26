@@ -83,6 +83,10 @@ transaction. In the default configuration the PicoRV32 core only expects the
 `mem_rdata` input to be valid in the cycle with `mem_valid && mem_ready` and
 latches the value internally.
 
+#### ENABLE_PCPI (default = 0)
+
+Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
+
 #### ENABLE_IRQ (default = 0)
 
 Set this to 1 to enable IRQs.
@@ -129,6 +133,18 @@ CPI numbers for a core built without ENABLE_REGS_DUALPORT.
 Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
 
 For the Dhrystone benchmark the average CPI is 4.167.
+
+
+PicoRV32 Native Memory Interface
+--------------------------------
+
+This section is under construction.
+
+
+Pico Co-Processor Interface (PCPI)
+----------------------------------
+
+This section is under construction.
 
 
 Custom Instructions for IRQ Handling
