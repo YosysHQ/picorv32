@@ -1,5 +1,6 @@
 
-TEST_OBJS=$(addsuffix .o,$(basename $(wildcard tests/*.S)))
+TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
+FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.o firmware/stats.o
 
 test: testbench.exe firmware/firmware.hex
 	vvp -N testbench.exe
@@ -22,14 +23,17 @@ firmware/firmware.bin: firmware/firmware.elf
 	riscv64-unknown-elf-objcopy -O binary $< $@
 	chmod -x $@
 
-firmware/firmware.elf: $(TEST_OBJS) firmware/sections.lds firmware/start.o firmware/sieve.c firmware/stats.c
+firmware/firmware.elf: $(FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
 	riscv64-unknown-elf-gcc -Os -m32 -march=RV32I -ffreestanding -nostdlib -o $@ \
 		-Wl,-Bstatic,-T,firmware/sections.lds,-Map,firmware/firmware.map,--strip-debug \
-		firmware/start.o firmware/sieve.c firmware/stats.c $(TEST_OBJS) -lgcc
+		$(FIRMWARE_OBJS) $(TEST_OBJS) -lgcc
 	chmod -x $@
 
 firmware/start.o: firmware/start.S
 	riscv64-unknown-elf-gcc -c -m32 -o $@ $<
+
+firmware/%.o: firmware/%.c
+	riscv64-unknown-elf-gcc -c -Os -m32 -march=RV32I -ffreestanding -nostdlib -o $@ $<
 
 tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 	riscv64-unknown-elf-gcc -m32 -march=RV32I -c -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \

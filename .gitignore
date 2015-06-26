@@ -1,5 +1,5 @@
 /tests/*.o
-/firmware/start.o
+/firmware/*.o
 /firmware/firmware.bin
 /firmware/firmware.elf
 /firmware/firmware.hex
