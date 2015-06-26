@@ -1,6 +1,11 @@
 	.section .text
 	.global irq
 	.global sieve
+	.global multest
+	.global hard_mul
+	.global hard_mulh
+	.global hard_mulhsu
+	.global hard_mulhu
 	.global stats
 
 #define TEST(n) \
@@ -220,6 +225,9 @@ start:
 	/* jump to sieve C code */
 	jal ra,sieve
 
+	/* jump to sieve C code */
+	jal ra,multest
+
 	/* jump to stats C code */
 	jal ra,stats
 
@@ -238,4 +246,20 @@ start:
 
 	/* break */
 	sbreak
+
+hard_mul:
+	mul a0, a0, a1
+	ret
+
+hard_mulh:
+	mulh a0, a0, a1
+	ret
+
+hard_mulhsu:
+	mulhsu a0, a0, a1
+	ret
+
+hard_mulhu:
+	mulhu a0, a0, a1
+	ret
 

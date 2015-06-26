@@ -30,6 +30,7 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
+	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
@@ -47,14 +48,25 @@ module picorv32 #(
 	output reg [ 3:0] mem_wstrb,
 	input      [31:0] mem_rdata,
 
-	// look-ahead interface
+	// Look-Ahead Interface
 	output            mem_la_read,
 	output            mem_la_write,
 	output     [31:0] mem_la_addr,
 	output reg [31:0] mem_la_wdata,
 	output reg [ 3:0] mem_la_wstrb,
 
-	// IRQ interface
+	// Pico Co-Processor Interface (PCPI)
+	output reg        pcpi_insn_valid,
+	output reg [31:0] pcpi_insn,
+	output reg        pcpi_rs1_valid,
+	output     [31:0] pcpi_rs1,
+	output reg        pcpi_rs2_valid,
+	output     [31:0] pcpi_rs2,
+	input             pcpi_rd_valid,
+	input      [31:0] pcpi_rd,
+	input             pcpi_ready,
+
+	// IRQ Interface
 	input      [31:0] irq,
 	output reg [31:0] eoi
 );
@@ -70,6 +82,9 @@ module picorv32 #(
 	reg [31:0] reg_pc, reg_next_pc, reg_op1, reg_op2, reg_out, reg_alu_out;
 	reg [31:0] cpuregs [0:regfile_size-1];
 	reg [4:0] reg_sh;
+
+	assign pcpi_rs1 = reg_op1;
+	assign pcpi_rs2 = reg_op2;
 
 	wire [31:0] next_pc;
 
@@ -318,6 +333,10 @@ module picorv32 #(
 		end
 
 		if (decoder_trigger && !decoder_pseudo_trigger) begin
+			if (ENABLE_PCPI) begin
+				pcpi_insn <= mem_rdata_q;
+			end
+
 			instr_beq   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b000;
 			instr_bne   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b001;
 			instr_blt   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b100;
@@ -437,6 +456,9 @@ module picorv32 #(
 	reg [31:0] current_pc;
 	assign next_pc = latched_store && latched_branch ? reg_out : reg_next_pc;
 
+	reg [7:0] pcpi_timeout_counter;
+	reg pcpi_timeout;
+
 	reg [31:0] next_irq_pending;
 	reg do_waitirq;
 
@@ -489,6 +511,15 @@ module picorv32 #(
 
 		reg_alu_out <= alu_out;
 
+		if (ENABLE_PCPI) begin
+			if (pcpi_insn_valid) begin
+				if (pcpi_timeout_counter)
+					pcpi_timeout_counter <= pcpi_timeout_counter - 1;
+			end else
+				pcpi_timeout_counter <= ~0;
+			pcpi_timeout <= !pcpi_timeout_counter;
+		end
+
 		if (ENABLE_COUNTERS)
 			count_cycle <= resetn ? count_cycle + 1 : 0;
 
@@ -520,6 +551,9 @@ module picorv32 #(
 			latched_is_lu <= 0;
 			latched_is_lh <= 0;
 			latched_is_lb <= 0;
+			pcpi_insn_valid <= 0;
+			pcpi_rs1_valid <= 0;
+			pcpi_rs2_valid <= 0;
 			irq_active <= 0;
 			irq_mask <= ~0;
 			next_irq_pending = 0;
@@ -566,6 +600,12 @@ module picorv32 #(
 
 				reg_pc <= current_pc;
 				reg_next_pc <= current_pc;
+
+				if (ENABLE_PCPI) begin
+					pcpi_insn_valid <= 0;
+					pcpi_rs1_valid <= 0;
+					pcpi_rs2_valid <= 0;
+				end
 
 				latched_store <= 0;
 				latched_stalu <= 0;
@@ -618,14 +658,42 @@ module picorv32 #(
 				$display("DECODE: 0x%08x %-0s", reg_pc, instruction ? instruction : "UNKNOWN");
 `endif
 				if (instr_trap) begin
+					if (ENABLE_PCPI) begin
+						pcpi_rs1_valid <= 1;
+						pcpi_insn_valid <= 1;
+						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						if (ENABLE_REGS_DUALPORT) begin
+							pcpi_rs2_valid <= 1;
+							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+							reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+							if (pcpi_ready) begin
+								reg_out <= pcpi_rd;
+								latched_store <= pcpi_rd_valid;
+								cpu_state <= cpu_state_fetch;
+							end else
+							if (pcpi_timeout) begin
 `ifdef DEBUG
-					$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
+								$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
 `endif
-					if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
-						next_irq_pending[irq_sbreak] = 1;
-						cpu_state <= cpu_state_fetch;
-					end else
-						cpu_state <= cpu_state_trap;
+								if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
+									next_irq_pending[irq_sbreak] = 1;
+									cpu_state <= cpu_state_fetch;
+								end else
+									cpu_state <= cpu_state_trap;
+							end
+						end else begin
+							cpu_state <= cpu_state_ld_rs2;
+						end
+					end else begin
+`ifdef DEBUG
+						$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
+`endif
+						if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
+							next_irq_pending[irq_sbreak] = 1;
+							cpu_state <= cpu_state_fetch;
+						end else
+							cpu_state <= cpu_state_trap;
+					end
 				end else
 				if (is_rdcycle_rdcycleh_rdinstr_rdinstrh) begin
 					(* parallel_case, full_case *)
@@ -718,6 +786,24 @@ module picorv32 #(
 `endif
 				reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 				reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+				if (ENABLE_PCPI && pcpi_insn_valid) begin
+					pcpi_rs2_valid <= 1;
+					if (pcpi_ready) begin
+						reg_out <= pcpi_rd;
+						latched_store <= pcpi_rd_valid;
+						cpu_state <= cpu_state_fetch;
+					end else
+					if (pcpi_timeout) begin
+`ifdef DEBUG
+						$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
+`endif
+						if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
+							next_irq_pending[irq_sbreak] = 1;
+							cpu_state <= cpu_state_fetch;
+						end else
+							cpu_state <= cpu_state_trap;
+					end
+				end else
 				if (is_sb_sh_sw) begin
 					cpu_state <= cpu_state_stmem;
 					mem_do_rinst <= 1;
@@ -875,6 +961,70 @@ endmodule
 
 
 /***************************************************************
+ * picorv32_pcpi_mul
+ ***************************************************************/
+
+module picorv32_pcpi_mul (
+	input clk, resetn,
+
+	input             pcpi_insn_valid,
+	input      [31:0] pcpi_insn,
+	input             pcpi_rs1_valid,
+	input      [31:0] pcpi_rs1,
+	input             pcpi_rs2_valid,
+	input      [31:0] pcpi_rs2,
+	output reg        pcpi_rd_valid,
+	output reg [31:0] pcpi_rd,
+	output reg        pcpi_ready
+);
+	reg instr_mul, instr_mulh, instr_mulhsu, instr_mulhu;
+	wire instr_any_mul = |{instr_mul, instr_mulh, instr_mulhsu, instr_mulhu};
+	wire instr_any_mulh = |{instr_mulh, instr_mulhsu, instr_mulhu};
+	wire instr_rs1_signed = |{instr_mulh, instr_mulhsu};
+	wire instr_rs2_signed = |{instr_mulh};
+
+	always @(posedge clk) begin
+		instr_mul <= 0;
+		instr_mulh <= 0;
+		instr_mulhsu <= 0;
+		instr_mulhu <= 0;
+
+		if (pcpi_insn_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+			case (pcpi_insn[14:12])
+				3'b000: instr_mul <= 1;
+				3'b001: instr_mulh <= 1;
+				3'b010: instr_mulhsu <= 1;
+				3'b011: instr_mulhu <= 1;
+			endcase
+		end
+	end
+
+	// FIXME: This is just a behavioral model
+
+	reg [63:0] rs1, rs2;
+	always @(posedge clk) begin
+		pcpi_rd_valid <= 0;
+		pcpi_ready <= 0;
+		if (pcpi_rs1_valid && pcpi_rs2_valid && instr_any_mul) begin
+			if (instr_rs1_signed)
+				rs1 = $signed(pcpi_rs1);
+			else
+				rs1 = $unsigned(pcpi_rs1);
+
+			if (instr_rs2_signed)
+				rs2 = $signed(pcpi_rs2);
+			else
+				rs2 = $unsigned(pcpi_rs2);
+
+			pcpi_rd <= instr_any_mulh ? (rs1 * rs2) >> 32 : rs1 * rs2;
+			pcpi_rd_valid <= 1;
+			pcpi_ready <= 1;
+		end
+	end
+endmodule
+
+
+/***************************************************************
  * picorv32_axi
  ***************************************************************/
 
@@ -882,6 +1032,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_COUNTERS = 1,
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+	parameter [ 0:0] ENABLE_MUL = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
@@ -926,6 +1077,16 @@ module picorv32_axi #(
 	wire        mem_ready;
 	wire [31:0] mem_rdata;
 
+	wire pcpi_insn_valid;
+	wire [31:0] pcpi_insn;
+	wire pcpi_rs1_valid;
+	wire [31:0] pcpi_rs1;
+	wire pcpi_rs2_valid;
+	wire [31:0] pcpi_rs2;
+	wire pcpi_rd_valid;
+	wire [31:0] pcpi_rd;
+	wire pcpi_ready;
+
 	picorv32_axi_adapter axi_adapter (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
@@ -955,18 +1116,39 @@ module picorv32_axi #(
 		.mem_rdata      (mem_rdata      )
 	);
 
+	generate if (ENABLE_MUL) begin
+		picorv32_pcpi_mul pcpi_mul (
+			.clk            (clk            ),
+			.resetn         (resetn         ),
+			.pcpi_insn_valid(pcpi_insn_valid),
+			.pcpi_insn      (pcpi_insn      ),
+			.pcpi_rs1_valid (pcpi_rs1_valid ),
+			.pcpi_rs1       (pcpi_rs1       ),
+			.pcpi_rs2_valid (pcpi_rs2_valid ),
+			.pcpi_rs2       (pcpi_rs2       ),
+			.pcpi_rd_valid  (pcpi_rd_valid  ),
+			.pcpi_rd        (pcpi_rd        ),
+			.pcpi_ready     (pcpi_ready     )
+		);
+	end else begin
+		assign pcpi_rd = 1'bx;
+		assign pcpi_ready = 0;
+	end endgenerate
+
 	picorv32 #(
 		.ENABLE_COUNTERS     (ENABLE_COUNTERS     ),
 		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
+		.ENABLE_PCPI         (ENABLE_MUL          ),
 		.ENABLE_IRQ          (ENABLE_IRQ          ),
 		.MASKED_IRQ          (MASKED_IRQ          ),
 		.PROGADDR_RESET      (PROGADDR_RESET      ),
 		.PROGADDR_IRQ        (PROGADDR_IRQ        )
 	) picorv32_core (
-		.clk      (clk      ),
-		.resetn   (resetn   ),
-		.trap     (trap     ),
+		.clk      (clk   ),
+		.resetn   (resetn),
+		.trap     (trap  ),
+
 		.mem_valid(mem_valid),
 		.mem_addr (mem_addr ),
 		.mem_wdata(mem_wdata),
@@ -974,8 +1156,19 @@ module picorv32_axi #(
 		.mem_instr(mem_instr),
 		.mem_ready(mem_ready),
 		.mem_rdata(mem_rdata),
-		.irq      (irq      ),
-		.eoi      (eoi      )
+
+		.pcpi_insn_valid(pcpi_insn_valid),
+		.pcpi_insn      (pcpi_insn      ),
+		.pcpi_rs1_valid (pcpi_rs1_valid ),
+		.pcpi_rs1       (pcpi_rs1       ),
+		.pcpi_rs2_valid (pcpi_rs2_valid ),
+		.pcpi_rs2       (pcpi_rs2       ),
+		.pcpi_rd_valid  (pcpi_rd_valid  ),
+		.pcpi_rd        (pcpi_rd        ),
+		.pcpi_ready     (pcpi_ready     ),
+
+		.irq(irq),
+		.eoi(eoi)
 	);
 endmodule
 

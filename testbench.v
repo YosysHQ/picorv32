@@ -45,6 +45,7 @@ module testbench;
 	reg  [31:0] mem_axi_rdata;
 
 	picorv32_axi #(
+		.ENABLE_MUL(1),
 		.ENABLE_IRQ(1)
 	) uut (
 		.clk            (clk            ),
