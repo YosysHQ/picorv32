@@ -64,6 +64,7 @@ module picorv32 #(
 	output     [31:0] pcpi_rs2,
 	input             pcpi_rd_valid,
 	input      [31:0] pcpi_rd,
+	input             pcpi_wait,
 	input             pcpi_ready,
 
 	// IRQ Interface
@@ -456,7 +457,7 @@ module picorv32 #(
 	reg [31:0] current_pc;
 	assign next_pc = latched_store && latched_branch ? reg_out : reg_next_pc;
 
-	reg [7:0] pcpi_timeout_counter;
+	reg [3:0] pcpi_timeout_counter;
 	reg pcpi_timeout;
 
 	reg [31:0] next_irq_pending;
@@ -512,7 +513,7 @@ module picorv32 #(
 		reg_alu_out <= alu_out;
 
 		if (ENABLE_PCPI) begin
-			if (pcpi_insn_valid) begin
+			if (pcpi_insn_valid && !pcpi_wait) begin
 				if (pcpi_timeout_counter)
 					pcpi_timeout_counter <= pcpi_timeout_counter - 1;
 			end else
@@ -975,6 +976,7 @@ module picorv32_pcpi_mul (
 	input      [31:0] pcpi_rs2,
 	output reg        pcpi_rd_valid,
 	output reg [31:0] pcpi_rd,
+	output reg        pcpi_wait,
 	output reg        pcpi_ready
 );
 	reg instr_mul, instr_mulh, instr_mulhsu, instr_mulhu;
@@ -997,6 +999,8 @@ module picorv32_pcpi_mul (
 				3'b011: instr_mulhu <= 1;
 			endcase
 		end
+
+		pcpi_wait <= instr_any_mul;
 	end
 
 	// FIXME: This is just a behavioral model
@@ -1085,6 +1089,7 @@ module picorv32_axi #(
 	wire [31:0] pcpi_rs2;
 	wire pcpi_rd_valid;
 	wire [31:0] pcpi_rd;
+	wire pcpi_wait;
 	wire pcpi_ready;
 
 	picorv32_axi_adapter axi_adapter (
@@ -1128,10 +1133,12 @@ module picorv32_axi #(
 			.pcpi_rs2       (pcpi_rs2       ),
 			.pcpi_rd_valid  (pcpi_rd_valid  ),
 			.pcpi_rd        (pcpi_rd        ),
+			.pcpi_wait      (pcpi_wait      ),
 			.pcpi_ready     (pcpi_ready     )
 		);
 	end else begin
 		assign pcpi_rd = 1'bx;
+		assign pcpi_wait = 0;
 		assign pcpi_ready = 0;
 	end endgenerate
 
@@ -1165,6 +1172,7 @@ module picorv32_axi #(
 		.pcpi_rs2       (pcpi_rs2       ),
 		.pcpi_rd_valid  (pcpi_rd_valid  ),
 		.pcpi_rd        (pcpi_rd        ),
+		.pcpi_wait      (pcpi_wait      ),
 		.pcpi_ready     (pcpi_ready     ),
 
 		.irq(irq),
