@@ -26,17 +26,16 @@
  ***************************************************************/
 
 module picorv32 #(
-	parameter ENABLE_COUNTERS = 1,
-	parameter ENABLE_REGS_16_31 = 1,
-	parameter ENABLE_REGS_DUALPORT = 1,
-	parameter LATCHED_MEM_RDATA = 0,
-	parameter ENABLE_EXTERNAL_IRQ = 0,
-	parameter ENABLE_ILLINSTR_IRQ = 0,
-	parameter ENABLE_TIMER_IRQ = 0,
-	parameter PROGADDR_RESET = 0,
-	parameter PROGADDR_IRQ = 16
+	parameter [ 0:0] ENABLE_COUNTERS = 1,
+	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
+	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
+	parameter [ 0:0] ENABLE_IRQ = 0,
+	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
+	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
+	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010
 ) (
-	input clk, resetn, irq,
+	input clk, resetn,
 	output reg trap,
 
 	output reg        mem_valid,
@@ -53,9 +52,15 @@ module picorv32 #(
 	output            mem_la_write,
 	output     [31:0] mem_la_addr,
 	output reg [31:0] mem_la_wdata,
-	output reg [ 3:0] mem_la_wstrb
+	output reg [ 3:0] mem_la_wstrb,
+
+	// IRQ interface
+	input      [31:0] irq,
+	output reg [31:0] eoi
 );
-	localparam ENABLE_IRQ = ENABLE_EXTERNAL_IRQ || ENABLE_ILLINSTR_IRQ || ENABLE_TIMER_IRQ;
+	localparam integer irq_timer = 0;
+	localparam integer irq_sbreak = 1;
+	localparam integer irq_buserror = 2;
 
 	localparam integer irqregs_offset = ENABLE_REGS_16_31 ? 32 : 16;
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16) + 4*ENABLE_IRQ;
@@ -69,8 +74,8 @@ module picorv32 #(
 	wire [31:0] next_pc;
 
 	reg irq_active;
-	reg [4:0] irq_mask;
-	reg [4:0] irq_pending;
+	reg [31:0] irq_mask;
+	reg [31:0] irq_pending;
 	reg [31:0] timer;
 
 	// Memory Interface
@@ -185,6 +190,7 @@ module picorv32 #(
 	reg [regindex_bits-1:0] decoded_rd, decoded_rs1, decoded_rs2;
 	reg [31:0] decoded_imm, decoded_imm_uj;
 	reg decoder_trigger;
+	reg decoder_trigger_q;
 	reg decoder_pseudo_trigger;
 
 	reg is_lui_auipc_jal;
@@ -272,7 +278,7 @@ module picorv32 #(
 		if (instr_waitirq)  new_instruction = "waitirq";
 		if (instr_timer)    new_instruction = "timer";
 
-		if (new_instruction)
+		if (decoder_trigger_q)
 			instruction = new_instruction;
 	end
 
@@ -362,7 +368,7 @@ module picorv32 #(
 			instr_setq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000001 && ENABLE_IRQ;
 			instr_maskirq <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000011 && ENABLE_IRQ;
 			instr_waitirq <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000100 && ENABLE_IRQ;
-			instr_timer   <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000101 && ENABLE_TIMER_IRQ;
+			instr_timer   <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000101 && ENABLE_IRQ;
 
 			is_slli_srli_srai <= is_alu_reg_imm && |{
 				mem_rdata_q[14:12] == 3'b001 && mem_rdata_q[31:25] == 7'b0000000,
@@ -432,6 +438,8 @@ module picorv32 #(
 	reg [31:0] current_pc;
 	assign next_pc = latched_store && latched_branch ? reg_out : reg_next_pc;
 
+	reg [31:0] next_irq_pending;
+
 	reg [31:0] alu_out;
 	reg alu_out_0;
 
@@ -484,16 +492,19 @@ module picorv32 #(
 		if (ENABLE_COUNTERS)
 			count_cycle <= resetn ? count_cycle + 1 : 0;
 
-		if (ENABLE_TIMER_IRQ && timer) begin
+		next_irq_pending = irq_pending;
+
+		if (ENABLE_IRQ && timer) begin
 			if (timer - 1 == 0)
-				irq_pending[1] <= 1;
+				next_irq_pending[irq_timer] = 1;
 			timer <= timer - 1;
 		end
 
-		if (ENABLE_EXTERNAL_IRQ && irq) begin
-			irq_pending[0] <= 1;
+		if (ENABLE_IRQ) begin
+			next_irq_pending = next_irq_pending | irq;
 		end
 
+		decoder_trigger_q <= decoder_trigger;
 		decoder_trigger <= mem_do_rinst && mem_done;
 		decoder_pseudo_trigger <= 0;
 
@@ -509,9 +520,10 @@ module picorv32 #(
 			latched_is_lh <= 0;
 			latched_is_lb <= 0;
 			irq_active <= 0;
-			irq_mask <= 0;
-			irq_pending <= 0;
+			irq_mask <= ~0;
+			next_irq_pending = 0;
 			irq_state <= 0;
+			eoi <= 0;
 			timer <= 0;
 			cpu_state <= cpu_state_fetch;
 		end else
@@ -546,16 +558,9 @@ module picorv32 #(
 					mem_do_rinst <= 1;
 				end else
 				if (ENABLE_IRQ && irq_state[1]) begin
-					cpuregs[latched_rd] <=
-						irq_pending[0] && irq_mask[0] ? 0 :
-						irq_pending[1] && irq_mask[1] ? 1 :
-						irq_pending[2] && irq_mask[2] ? 2 :
-						irq_pending[3] && irq_mask[3] ? 3 : 4;
-					irq_pending <=
-						irq_pending[0] && irq_mask[0] ? irq_pending & 5'b11110 :
-						irq_pending[1] && irq_mask[1] ? irq_pending & 5'b11101 :
-						irq_pending[2] && irq_mask[2] ? irq_pending & 5'b11011 :
-						irq_pending[3] && irq_mask[3] ? irq_pending & 5'b10111 : irq_pending & 5'b01111;
+					eoi <= irq_pending & ~irq_mask;
+					cpuregs[latched_rd] <= irq_pending & ~irq_mask;
+					next_irq_pending = next_irq_pending & irq_mask;
 				end
 
 				reg_pc <= current_pc;
@@ -569,7 +574,7 @@ module picorv32 #(
 				latched_is_lb <= 0;
 				latched_rd <= decoded_rd;
 
-				if (ENABLE_IRQ && ((decoder_trigger && !irq_active && |(irq_pending & irq_mask)) || irq_state)) begin
+				if (ENABLE_IRQ && ((decoder_trigger && !irq_active && |(irq_pending & ~irq_mask)) || irq_state)) begin
 					irq_state <=
 						irq_state == 2'b00 ? 2'b01 :
 						irq_state == 2'b01 ? 2'b10 : 2'b00;
@@ -600,14 +605,14 @@ module picorv32 #(
 				reg_op1 <= 'bx;
 				reg_op2 <= 'bx;
 `ifdef DEBUG
-				$display("DECODE: 0x%08x %-0s", reg_pc, instruction);
+				$display("DECODE: 0x%08x %-0s", reg_pc, instruction ? instruction : "UNKNOWN");
 `endif
 				if (instr_trap) begin
 `ifdef DEBUG
 					$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
 `endif
-					if (ENABLE_ILLINSTR_IRQ && irq_mask[2] && !irq_active) begin
-						irq_pending[2] <= 1;
+					if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
+						next_irq_pending[irq_sbreak] = 1;
 						cpu_state <= cpu_state_fetch;
 					end else
 						cpu_state <= cpu_state_trap;
@@ -645,6 +650,7 @@ module picorv32 #(
 					cpu_state <= cpu_state_fetch;
 				end else
 				if (ENABLE_IRQ && instr_retirq) begin
+					eoi <= 0;
 					irq_active <= 0;
 					latched_branch <= 1;
 					latched_store <= 1;
@@ -652,10 +658,12 @@ module picorv32 #(
 					cpu_state <= cpu_state_fetch;
 				end else
 				if (ENABLE_IRQ && instr_maskirq) begin
-					irq_mask = decoded_rs2;
+					latched_store <= 1;
+					reg_out <= irq_mask;
+					irq_mask <= (decoded_rs1 ? cpuregs[decoded_rs1] : 0) | MASKED_IRQ;
 					cpu_state <= cpu_state_fetch;
 				end else
-				if (ENABLE_TIMER_IRQ && instr_timer) begin
+				if (ENABLE_IRQ && instr_timer) begin
 					timer <= cpuregs[decoded_rs1];
 					cpu_state <= cpu_state_fetch;
 				end else begin
@@ -806,20 +814,29 @@ module picorv32 #(
 `ifdef DEBUG
 				$display("MISALIGNED WORD: 0x%08x", reg_op1);
 `endif
-				cpu_state <= cpu_state_trap;
+				if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
+					next_irq_pending[irq_buserror] = 1;
+				end else
+					cpu_state <= cpu_state_trap;
 			end
 			if (mem_wordsize == 1 && reg_op1[0] != 0) begin
 `ifdef DEBUG
 				$display("MISALIGNED HALFWORD: 0x%08x", reg_op1);
 `endif
-				cpu_state <= cpu_state_trap;
+				if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
+					next_irq_pending[irq_buserror] = 1;
+				end else
+					cpu_state <= cpu_state_trap;
 			end
 		end
 		if (resetn && mem_do_rinst && reg_pc[1:0] != 0) begin
 `ifdef DEBUG
 			$display("MISALIGNED INSTRUCTION: 0x%08x", reg_pc);
 `endif
-			cpu_state <= cpu_state_trap;
+			if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
+				next_irq_pending[irq_buserror] = 1;
+			end else
+				cpu_state <= cpu_state_trap;
 		end
 
 		if (!resetn || mem_done) begin
@@ -836,6 +853,8 @@ module picorv32 #(
 		if (set_mem_do_wdata)
 			mem_do_wdata <= 1;
 
+		irq_pending <= next_irq_pending & ~MASKED_IRQ;
+
 		reg_pc[1:0] <= 0;
 		reg_next_pc[1:0] <= 0;
 		current_pc = 'bx;
@@ -848,14 +867,15 @@ endmodule
  ***************************************************************/
 
 module picorv32_axi #(
-	parameter ENABLE_COUNTERS = 1,
-	parameter ENABLE_REGS_16_31 = 1,
-	parameter ENABLE_REGS_DUALPORT = 1,
-	parameter ENABLE_EXTERNAL_IRQ = 0,
-	parameter ENABLE_ILLINSTR_IRQ = 0,
-	parameter ENABLE_TIMER_IRQ = 0
+	parameter [ 0:0] ENABLE_COUNTERS = 1,
+	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
+	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+	parameter [ 0:0] ENABLE_IRQ = 0,
+	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
+	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
+	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010
 ) (
-	input clk, resetn, irq,
+	input clk, resetn,
 	output trap,
 
 	// AXI4-lite master memory interface
@@ -880,7 +900,11 @@ module picorv32_axi #(
 
 	input         mem_axi_rvalid,
 	output        mem_axi_rready,
-	input  [31:0] mem_axi_rdata
+	input  [31:0] mem_axi_rdata,
+
+	// IRQ interface
+	input  [31:0] irq,
+	output [31:0] eoi
 );
 	wire        mem_valid;
 	wire [31:0] mem_addr;
@@ -923,13 +947,13 @@ module picorv32_axi #(
 		.ENABLE_COUNTERS     (ENABLE_COUNTERS     ),
 		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
-		.ENABLE_EXTERNAL_IRQ (ENABLE_EXTERNAL_IRQ ),
-		.ENABLE_ILLINSTR_IRQ (ENABLE_ILLINSTR_IRQ ),
-		.ENABLE_TIMER_IRQ    (ENABLE_TIMER_IRQ    )
+		.ENABLE_IRQ          (ENABLE_IRQ          ),
+		.MASKED_IRQ          (MASKED_IRQ          ),
+		.PROGADDR_RESET      (PROGADDR_RESET      ),
+		.PROGADDR_IRQ        (PROGADDR_IRQ        )
 	) picorv32_core (
 		.clk      (clk      ),
 		.resetn   (resetn   ),
-		.irq      (irq      ),
 		.trap     (trap     ),
 		.mem_valid(mem_valid),
 		.mem_addr (mem_addr ),
@@ -937,7 +961,9 @@ module picorv32_axi #(
 		.mem_wstrb(mem_wstrb),
 		.mem_instr(mem_instr),
 		.mem_ready(mem_ready),
-		.mem_rdata(mem_rdata)
+		.mem_rdata(mem_rdata),
+		.irq      (irq      ),
+		.eoi      (eoi      )
 	);
 endmodule
 

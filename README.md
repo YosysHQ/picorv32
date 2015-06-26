@@ -83,24 +83,19 @@ transaction. In the default configuration the PicoRV32 core only expects the
 `mem_rdata` input to be valid in the cycle with `mem_valid && mem_ready` and
 latches the value internally.
 
-#### ENABLE_EXTERNAL_IRQ (default = 0)
+#### ENABLE_IRQ (default = 0)
 
-Set this to 1 to enable external IRQs.
+Set this to 1 to enable IRQs.
 
-#### ENABLE_ILLINSTR_IRQ (default = 0)
+#### MASKED_IRQ (default = 32'h 0000_0000)
 
-Set this to 1 to enable the illegal instruction IRQ. This can be used for
-software implementations of instructions such as `MUL` and `DIV`.
+A 1 bit in this bitmask corresponds to a permanently disabled IRQ.
 
-#### ENABLE_TIMER_IRQ (default = 0)
-
-Set this to 1 to enable the built-in timer and timer IRQ.
-
-#### PROGADDR_RESET (default = 0)
+#### PROGADDR_RESET (default = 32'h 0000_0000)
 
 The start address of the program.
 
-#### PROGADDR_IRQ (default = 16)
+#### PROGADDR_IRQ (default = 32'h 0000_0010)
 
 The start address of the interrupt handler.
 
@@ -141,11 +136,30 @@ Custom Instructions for IRQ Handling
 
 The following custom instructions are supported when IRQs are enabled.
 
+The PicoRV32 core has a built-in interrupt controller with 32 interrupts. An
+interrupt can be triggered by asserting the corresponding bit in the `irq`
+input of the core.
+
+When the interrupt handler is started, the `eoi` End Of Interrupt (EOI) signals
+for the handled interrupts goes high. The `eoi` signal goes low again when the
+interrupt handler returns.
+
+The IRQs 0-2 can be triggered internally and have the following meaning:
+
+| IRQ | Interrupt Source                   |
+| ---:| -----------------------------------|
+|   0 | Timer Interrupt                    |
+|   1 | SBREAK or Illegal Instruction      |
+|   2 | BUS Error (Unalign Memory Access)  |
+
 The core has 4 additional 32-bit registers `q0 .. q3` that are used for IRQ
 handling. When an IRQ triggers, the register `q0` contains the return address
-and `q1` contains the IRQ number. Registers `q2` and `q3` are uninitialized
-and can be used as temporary storage when saving/restoring register values
-in the IRQ handler.
+and `q1` contains a bitmask of all active IRQs. I.e. one call to the interrupt
+handler might need to service one than more IRQ when more than one bit is set
+in `q1`.
+
+Registers `q2` and `q3` are uninitialized and can be used as temporary storage
+when saving/restoring register values in the IRQ handler.
 
 #### getq rd, qs
 
@@ -182,7 +196,7 @@ Example assembler code using the `custom0` mnemonic:
 #### retirq
 
 Return from interrupt. This instruction copies the value from `q0`
-to the program counter and enables interrupts. The Instruction is
+to the program counter and re-enables interrupts. The Instruction is
 encoded under the `custom0` opcode:
 
     0000010 00000 00000 000 00000 0001011
@@ -196,36 +210,26 @@ Example assembler code using the `custom0` mnemonic:
 
 #### maskirq
 
+The "IRQ Mask" register contains a birtmask of masked (disabled) interrupts.
+This opcodes writes a new value to the irq mask register and reads the  old
+value.
+
 Enable/disable interrupt sources. The Instruction is encoded under the
 `custom0` opcode:
 
-    0000011 XXXXX 00000 000 00000 0001011
+    0000011 00000 XXXXX 000 XXXXX 0001011
     f7      f5    rs    f3  rd    opcode
-
-The following interrupt sources occupy the following bits
-in the `f5` field:
-
-| Bit   | Interrupt Source     |
-| ------| ---------------------|
-| f5[0] | External IRQ         |
-| f5[1] | Timer Interrupt      |
-| f5[2] | Illegal Instruction  |
-| f5[3] | Reserved             |
-| f5[4] | Reserved             |
-
-Set bits in the IRQ mask correspond to enabled interrupt sources.
 
 Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
-| maskirq 0         | custom0 0, 0, 0, 3  |
-| maskirq 1         | custom0 0, 0, 1, 3  |
+| maskirq x1, x2    | custom0 1, 2, 0, 3  |
 
 The processor starts with all interrupts disabled.
 
-An illegal instruction while the illegal instruction interrupt is disabled will
-cause the processor to halt.
+An illegal instruction or bus error while the illegal instruction or bus error
+interrupt is disabled will cause the processor to halt.
 
 #### waitirq (unimplemented)
 
@@ -243,7 +247,7 @@ Example assembler code using the `custom0` mnemonic:
 
 #### timer
 
-Reset the timer counter to a new value. The counter counts down cycles and
+Reset the timer counter to a new value. The counter counts down clock cycles and
 triggers the timer interrupt when transitioning from 1 to 0. Setting the
 counter to zero disables the timer.
 
@@ -261,6 +265,7 @@ Todos:
 ------
 
 - Optional FENCE support
+- Optional Co-Processor Interface
 - Optional write-through cache
 - Optional support for compressed ISA
 - Improved documentation and examples

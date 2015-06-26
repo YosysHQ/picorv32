@@ -10,7 +10,7 @@
 	jal zero,n; n ## _ret:
 
 reset_vec:
-	custom0 0,0,7,3 // maskirq 7
+	custom0 0,0,0,3 // maskirq zero, zero
 	j start
 	nop
 	nop

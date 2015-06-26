@@ -33,7 +33,7 @@ static void print_dec(int val)
 {
 	char buffer[10];
 	char *p = buffer;
-	while (val) {
+	while (val || p == buffer) {
 		*(p++) = val % 10;
 		val = val / 10;
 	}
@@ -88,24 +88,28 @@ void sieve()
 	}
 }
 
-void irq(uint32_t *regs, uint32_t irqnum)
+uint32_t *irq(uint32_t *regs, uint32_t irqs)
 {
-	static int ext_irq_count = 0;
+	static int ext_irq_4_count = 0;
+	static int ext_irq_5_count = 0;
 	static int timer_irq_count = 0;
 
-	if (irqnum == 0) {
-		ext_irq_count++;
-		// print_str("[EXT-IRQ]");
-		return;
+	if ((irqs & (1<<4)) != 0) {
+		ext_irq_4_count++;
+		// print_str("[EXT-IRQ-4]");
 	}
 
-	if (irqnum == 1) {
+	if ((irqs & (1<<5)) != 0) {
+		ext_irq_5_count++;
+		// print_str("[EXT-IRQ-5]");
+	}
+
+	if ((irqs & 1) != 0) {
 		timer_irq_count++;
 		// print_str("[TIMER-IRQ]");
-		return;
 	}
 
-	if (irqnum == 2)
+	if ((irqs & 6) != 0)
 	{
 		int i, k;
 		uint32_t pc = regs[0] - 4;
@@ -114,12 +118,22 @@ void irq(uint32_t *regs, uint32_t irqnum)
 		print_str("\n");
 		print_str("------------------------------------------------------------\n");
 
-		if (instr == 0x00100073) {
-			print_str("SBREAK instruction at 0x");
-			print_hex(pc);
-			print_str("\n");
-		} else {
-			print_str("Illegal Instruction at 0x");
+		if ((irqs & 2) != 0) {
+			if (instr == 0x00100073) {
+				print_str("SBREAK instruction at 0x");
+				print_hex(pc);
+				print_str("\n");
+			} else {
+				print_str("Illegal Instruction at 0x");
+				print_hex(pc);
+				print_str(": 0x");
+				print_hex(instr);
+				print_str("\n");
+			}
+		}
+
+		if ((irqs & 4) != 0) {
+			print_str("Bus error in Instruction at 0x");
 			print_hex(pc);
 			print_str(": 0x");
 			print_hex(instr);
@@ -164,8 +178,12 @@ void irq(uint32_t *regs, uint32_t irqnum)
 
 		print_str("------------------------------------------------------------\n");
 
-		print_str("Number of external IRQs counted: ");
-		print_dec(ext_irq_count);
+		print_str("Number of fast external IRQs counted: ");
+		print_dec(ext_irq_4_count);
+		print_str("\n");
+
+		print_str("Number of slow external IRQs counted: ");
+		print_dec(ext_irq_5_count);
 		print_str("\n");
 
 		print_str("Number of timer IRQs counted: ");
@@ -173,7 +191,8 @@ void irq(uint32_t *regs, uint32_t irqnum)
 		print_str("\n");
 
 		__asm__("sbreak");
-		return;
 	}
+
+	return regs;
 }
 

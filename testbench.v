@@ -6,8 +6,14 @@ module testbench;
 
 	reg clk = 1;
 	reg resetn = 0;
-	wire irq = &uut.picorv32_core.count_cycle[12:0];
+	reg [31:0] irq;
 	wire trap;
+
+	always @* begin
+		irq = 0;
+		irq[4] = &uut.picorv32_core.count_cycle[12:0];
+		irq[5] = &uut.picorv32_core.count_cycle[15:0];
+	end
 
 	always #5 clk = ~clk;
 
@@ -39,13 +45,10 @@ module testbench;
 	reg  [31:0] mem_axi_rdata;
 
 	picorv32_axi #(
-		.ENABLE_EXTERNAL_IRQ (1),
-		.ENABLE_ILLINSTR_IRQ (1),
-		.ENABLE_TIMER_IRQ    (1)
+		.ENABLE_IRQ(1)
 	) uut (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
-		.irq            (irq            ),
 		.trap           (trap           ),
 		.mem_axi_awvalid(mem_axi_awvalid),
 		.mem_axi_awready(mem_axi_awready),
@@ -63,7 +66,8 @@ module testbench;
 		.mem_axi_arprot (mem_axi_arprot ),
 		.mem_axi_rvalid (mem_axi_rvalid ),
 		.mem_axi_rready (mem_axi_rready ),
-		.mem_axi_rdata  (mem_axi_rdata  )
+		.mem_axi_rdata  (mem_axi_rdata  ),
+		.irq            (irq            )
 	);
 
 	reg [31:0] memory [0:64*1024/4-1];
