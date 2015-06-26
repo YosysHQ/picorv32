@@ -15,6 +15,7 @@
 /dhrystone/*.d
 /dhrystone/*.o
 /testbench.exe
+/testbench_sp.exe
 /testbench_axi.exe
 /testbench.vcd
 .*.swp

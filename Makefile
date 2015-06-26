@@ -5,12 +5,19 @@ FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.
 test: testbench.exe firmware/firmware.hex
 	vvp -N testbench.exe
 
+test_sp: testbench_sp.exe firmware/firmware.hex
+	vvp -N testbench_sp.exe
+
 test_axi: testbench_axi.exe firmware/firmware.hex
 	vvp -N testbench_axi.exe
 
 testbench.exe: testbench.v picorv32.v
 	iverilog -o testbench.exe testbench.v picorv32.v
 	chmod -x testbench.exe
+
+testbench_sp.exe: testbench.v picorv32.v
+	iverilog -o testbench_sp.exe -DSP_TEST testbench.v picorv32.v
+	chmod -x testbench_sp.exe
 
 testbench_axi.exe: testbench.v picorv32.v
 	iverilog -o testbench_axi.exe -DAXI_TEST testbench.v picorv32.v
@@ -41,8 +48,8 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 
 clean:
 	rm -vrf $(TEST_OBJS) firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex \
-		firmware/firmware.map testbench.exe testbench.vcd .Xil fsm_encoding.os \
+		firmware/firmware.map testbench*.exe testbench.vcd .Xil fsm_encoding.os \
 		synth_vivado.log synth_vivado_*.backup.log synth_vivado.v
 
-.PHONY: test test_axi clean
+.PHONY: test test_sp test_axi clean
 

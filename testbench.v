@@ -45,6 +45,9 @@ module testbench;
 	reg  [31:0] mem_axi_rdata;
 
 	picorv32_axi #(
+`ifdef SP_TEST
+		.ENABLE_REGS_DUALPORT(0),
+`endif
 		.ENABLE_MUL(1),
 		.ENABLE_IRQ(1)
 	) uut (
