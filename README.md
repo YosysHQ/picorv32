@@ -315,7 +315,6 @@ Todos:
 ------
 
 - Optional FENCE support
-- Optional Co-Processor Interface
 - Optional write-through cache
 - Optional support for compressed ISA
 - Improved documentation and examples
