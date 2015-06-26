@@ -268,6 +268,36 @@ Example assembler code using the `custom0` mnemonic:
 | timer x1, x2      | custom0 1, 2, 0, 5  |
 
 
+Building a pure RV32I Toolchain:
+--------------------------------
+
+The default settings in the [riscv-tools](https://github.com/riscv/riscv-tools) build
+scripts will build a compiler, assembler and linker that can target any RISC-V ISA,
+but the libraries are built for RV32G and RV64G targets. Follow the instructions
+below to build a complete toolchain (including libraries) that target a pure RV32I
+CPU.
+
+The following commands will build the RISC-V gnu toolchain and libraries for a
+pure RV32I target, and install it in `/opt/riscv32i`:
+
+    sudo mkdir /opt/riscv32i
+    sudo chown $USER /opt/riscv32i
+
+    git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
+    cd riscv-gnu-toolchain-rv32i
+
+    sed -i 's|--enable-languages|--with-arch=RV32I &|' Makefile.in
+    sed -i 's|asm volatile|value = 0; // &|' newlib/newlib/libc/machine/riscv/ieeefp.c
+
+    mkdir build; cd build
+    ../configure --with-xlen=32 --prefix=/opt/riscv32i
+    make -j$(nproc)
+
+The commands will all be named using the prefix `riscv32-unknown-elf-`, which
+makes it easy to install them side-by-side with the regular riscv-tools, which
+are using the name prefix `riscv64-unknown-elf-` by default.
+
+
 Todos:
 ------
 
