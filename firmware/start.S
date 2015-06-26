@@ -6,10 +6,11 @@
 #define TEST(n) \
 	.global n; .global n ## _ret; \
 	addi x1, zero, 1000; \
-	custom0 0,1,0,5; /* timer x1 */ \
+	custom0 0,1,0,5; /* timer zero, x1 */ \
 	jal zero,n; n ## _ret:
 
 reset_vec:
+	custom0 0,0,0,4 // waitirq zero
 	custom0 0,0,0,3 // maskirq zero, zero
 	j start
 	nop

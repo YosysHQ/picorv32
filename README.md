@@ -164,10 +164,10 @@ when saving/restoring register values in the IRQ handler.
 #### getq rd, qs
 
 This instruction copies the value from a q-register to a general-purpose
-register. The Instruction is encoded under the `custom0` opcode:
+register. This instruction is encoded under the `custom0` opcode:
 
     0000000 00000 000XX 000 XXXXX 0001011
-    f7      f5    qs    f3  rd    opcode
+    f7      rs2   qs    f3  rd    opcode
 
 Example assembler code using the `custom0` mnemonic:
 
@@ -180,10 +180,10 @@ Example assembler code using the `custom0` mnemonic:
 #### setq qd, rs
 
 This instruction copies the value from a general-purpose register to a
-q-register. The Instruction is encoded under the `custom0` opcode:
+q-register. This instruction is encoded under the `custom0` opcode:
 
     0000001 00000 XXXXX 000 000XX 0001011
-    f7      f5    rs    f3  qd    opcode
+    f7      rs2   rs    f3  qd    opcode
 
 Example assembler code using the `custom0` mnemonic:
 
@@ -196,11 +196,11 @@ Example assembler code using the `custom0` mnemonic:
 #### retirq
 
 Return from interrupt. This instruction copies the value from `q0`
-to the program counter and re-enables interrupts. The Instruction is
+to the program counter and re-enables interrupts. This instruction is
 encoded under the `custom0` opcode:
 
     0000010 00000 00000 000 00000 0001011
-    f7      f5    rs    f3  rd    opcode
+    f7      rs2   rs    f3  rd    opcode
 
 Example assembler code using the `custom0` mnemonic:
 
@@ -214,11 +214,11 @@ The "IRQ Mask" register contains a birtmask of masked (disabled) interrupts.
 This opcodes writes a new value to the irq mask register and reads the  old
 value.
 
-Enable/disable interrupt sources. The Instruction is encoded under the
+Enable/disable interrupt sources. This instruction is encoded under the
 `custom0` opcode:
 
     0000011 00000 XXXXX 000 XXXXX 0001011
-    f7      f5    rs    f3  rd    opcode
+    f7      rs2   rs    f3  rd    opcode
 
 Example assembler code using the `custom0` mnemonic:
 
@@ -231,34 +231,35 @@ The processor starts with all interrupts disabled.
 An illegal instruction or bus error while the illegal instruction or bus error
 interrupt is disabled will cause the processor to halt.
 
-#### waitirq (unimplemented)
+#### waitirq
 
-Pause execution until an interrupt triggers. The Instruction is encoded under the
-`custom0` opcode:
+Pause execution until an interrupt triggers. This instruction is encoded under the
+`custom0` opcode. The bitmask of pending IRQs is written to `rd`.
 
-    0000100 00000 00000 000 00000 0001011
-    f7      f5    rs    f3  rd    opcode
+    0000100 00000 00000 000 XXXXX 0001011
+    f7      rs2   rs    f3  rd    opcode
 
 Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
-| waitirq           | custom0 0, 0, 0, 4  |
+| waitirq x1        | custom0 1, 0, 0, 4  |
 
 #### timer
 
 Reset the timer counter to a new value. The counter counts down clock cycles and
 triggers the timer interrupt when transitioning from 1 to 0. Setting the
-counter to zero disables the timer.
+counter to zero disables the timer. The old value of the counter is written to
+`rd`.
 
-    0000101 00000 XXXXX 000 00000 0001011
-    f7      f5    rs    f3  rd    opcode
+    0000101 00000 XXXXX 000 XXXXX 0001011
+    f7      rs2   rs    f3  rd    opcode
 
 Example assembler code using the `custom0` mnemonic:
 
 | Instruction       | Assember Code       |
 | ------------------| --------------------|
-| timer x2          | custom0 0, 2, 0, 5  |
+| timer x1, x2      | custom0 1, 2, 0, 5  |
 
 
 Todos:
