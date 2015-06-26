@@ -2,7 +2,7 @@
 read_verilog ../../picorv32.v
 read_xdc synth_speed.xdc
 
-synth_design -part xc7a15t-fgg484 -top picorv32_axi
+synth_design -part xc7k70t-fbg676 -top picorv32_axi
 opt_design
 place_design
 route_design
