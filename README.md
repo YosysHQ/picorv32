@@ -311,6 +311,26 @@ makes it easy to install them side-by-side with the regular riscv-tools, which
 are using the name prefix `riscv64-unknown-elf-` by default.
 
 
+Evaluation: Timing on Xilinx 7-Series FPGAs
+-------------------------------------------
+
+The following table lists the maximum clock speeds that PicoRV32 can run at on
+Xilinx 7-Series FPGAs. This are the values reported by Vivado 2015.1 post
+place&route static timing analysis (report_timing).
+
+| Device               | Speedgrade | Clock Period (Freq.) |
+|:-------------------- |:----------:| --------------------:|
+| Xilinx Artix-7T      | -1         |     5.1 ns (196 MHz) |
+| Xilinx Artix-7T      | -2         |     4.1 ns (243 MHz) |
+| Xilinx Artix-7T      | -3         |     3.6 ns (277 MHz) |
+| Xilinx Kintex-7T     | -1         |     3.3 ns (303 MHz) |
+| Xilinx Kintex-7T     | -2         |     2.6 ns (384 MHz) |
+| Xilinx Kintex-7T     | -3         |     2.5 ns (400 MHz) |
+| Xilinx Virtex-7T     | -1         |     3.1 ns (322 MHz) |
+| Xilinx Virtex-7T     | -2         |     2.6 ns (384 MHz) |
+| Xilinx Virtex-7T     | -3         |     2.4 ns (416 MHz) |
+
+
 Todos:
 ------
 
