@@ -217,6 +217,11 @@ start:
 	TEST(or)
 	TEST(and)
 
+	TEST(mulh)
+	TEST(mulhsu)
+	TEST(mulhu)
+	TEST(mul)
+
 	TEST(simple)
 
 	/* set stack pointer */

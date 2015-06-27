@@ -31,7 +31,7 @@ firmware/firmware.bin: firmware/firmware.elf
 	chmod -x $@
 
 firmware/firmware.elf: $(FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
-	riscv64-unknown-elf-gcc -Os -m32 -march=RV32I -ffreestanding -nostdlib -o $@ \
+	riscv64-unknown-elf-gcc -Os -m32 -ffreestanding -nostdlib -o $@ \
 		-Wl,-Bstatic,-T,firmware/sections.lds,-Map,firmware/firmware.map,--strip-debug \
 		$(FIRMWARE_OBJS) $(TEST_OBJS) -lgcc
 	chmod -x $@
@@ -40,10 +40,10 @@ firmware/start.o: firmware/start.S
 	riscv64-unknown-elf-gcc -c -m32 -o $@ $<
 
 firmware/%.o: firmware/%.c
-	riscv64-unknown-elf-gcc -c -Os -m32 -march=RV32I -ffreestanding -nostdlib -o $@ $<
+	riscv64-unknown-elf-gcc -c -m32 -march=RV32I -Os -ffreestanding -nostdlib -o $@ $<
 
 tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
-	riscv64-unknown-elf-gcc -m32 -march=RV32I -c -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \
+	riscv64-unknown-elf-gcc -c -m32 -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
 clean:
