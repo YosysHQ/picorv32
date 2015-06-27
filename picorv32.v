@@ -1072,6 +1072,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_COUNTERS = 1,
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
@@ -1105,6 +1106,18 @@ module picorv32_axi #(
 	output        mem_axi_rready,
 	input  [31:0] mem_axi_rdata,
 
+	// Pico Co-Processor Interface (PCPI)
+	output        pcpi_insn_valid,
+	output [31:0] pcpi_insn,
+	output        pcpi_rs1_valid,
+	output [31:0] pcpi_rs1,
+	output        pcpi_rs2_valid,
+	output [31:0] pcpi_rs2,
+	input         pcpi_rd_valid,
+	input  [31:0] pcpi_rd,
+	input         pcpi_wait,
+	input         pcpi_ready,
+
 	// IRQ interface
 	input  [31:0] irq,
 	output [31:0] eoi
@@ -1117,16 +1130,15 @@ module picorv32_axi #(
 	wire        mem_ready;
 	wire [31:0] mem_rdata;
 
-	wire pcpi_insn_valid;
-	wire [31:0] pcpi_insn;
-	wire pcpi_rs1_valid;
-	wire [31:0] pcpi_rs1;
-	wire pcpi_rs2_valid;
-	wire [31:0] pcpi_rs2;
-	wire pcpi_rd_valid;
-	wire [31:0] pcpi_rd;
-	wire pcpi_wait;
-	wire pcpi_ready;
+	wire mul_pcpi_wait;
+	wire mul_pcpi_ready;
+	wire mul_pcpi_rd_valid;
+	wire [31:0] mul_pcpi_rd;
+
+	wire int_pcpi_wait = mul_pcpi_wait || (pcpi_wait && ENABLE_PCPI);
+	wire int_pcpi_ready = mul_pcpi_ready || (pcpi_ready && ENABLE_PCPI);
+	wire int_pcpi_rd_valid = mul_pcpi_rd_valid || (pcpi_rd_valid && ENABLE_PCPI);
+	wire [31:0] int_pcpi_rd = mul_pcpi_rd_valid ? mul_pcpi_rd : pcpi_rd;
 
 	picorv32_axi_adapter axi_adapter (
 		.clk            (clk            ),
@@ -1159,30 +1171,31 @@ module picorv32_axi #(
 
 	generate if (ENABLE_MUL) begin
 		picorv32_pcpi_mul pcpi_mul (
-			.clk            (clk            ),
-			.resetn         (resetn         ),
-			.pcpi_insn_valid(pcpi_insn_valid),
-			.pcpi_insn      (pcpi_insn      ),
-			.pcpi_rs1_valid (pcpi_rs1_valid ),
-			.pcpi_rs1       (pcpi_rs1       ),
-			.pcpi_rs2_valid (pcpi_rs2_valid ),
-			.pcpi_rs2       (pcpi_rs2       ),
-			.pcpi_rd_valid  (pcpi_rd_valid  ),
-			.pcpi_rd        (pcpi_rd        ),
-			.pcpi_wait      (pcpi_wait      ),
-			.pcpi_ready     (pcpi_ready     )
+			.clk            (clk                ),
+			.resetn         (resetn             ),
+			.pcpi_insn_valid(    pcpi_insn_valid),
+			.pcpi_insn      (    pcpi_insn      ),
+			.pcpi_rs1_valid (    pcpi_rs1_valid ),
+			.pcpi_rs1       (    pcpi_rs1       ),
+			.pcpi_rs2_valid (    pcpi_rs2_valid ),
+			.pcpi_rs2       (    pcpi_rs2       ),
+			.pcpi_rd_valid  (mul_pcpi_rd_valid  ),
+			.pcpi_rd        (mul_pcpi_rd        ),
+			.pcpi_wait      (mul_pcpi_wait      ),
+			.pcpi_ready     (mul_pcpi_ready     )
 		);
 	end else begin
-		assign pcpi_rd = 1'bx;
-		assign pcpi_wait = 0;
-		assign pcpi_ready = 0;
+		assign mul_pcpi_rd_valid = 0;
+		assign mul_pcpi_rd = 1'bx;
+		assign mul_pcpi_wait = 0;
+		assign mul_pcpi_ready = 0;
 	end endgenerate
 
 	picorv32 #(
 		.ENABLE_COUNTERS     (ENABLE_COUNTERS     ),
 		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
-		.ENABLE_PCPI         (ENABLE_MUL          ),
+		.ENABLE_PCPI         (ENABLE_PCPI || ENABLE_MUL),
 		.ENABLE_IRQ          (ENABLE_IRQ          ),
 		.MASKED_IRQ          (MASKED_IRQ          ),
 		.PROGADDR_RESET      (PROGADDR_RESET      ),
@@ -1200,16 +1213,16 @@ module picorv32_axi #(
 		.mem_ready(mem_ready),
 		.mem_rdata(mem_rdata),
 
-		.pcpi_insn_valid(pcpi_insn_valid),
-		.pcpi_insn      (pcpi_insn      ),
-		.pcpi_rs1_valid (pcpi_rs1_valid ),
-		.pcpi_rs1       (pcpi_rs1       ),
-		.pcpi_rs2_valid (pcpi_rs2_valid ),
-		.pcpi_rs2       (pcpi_rs2       ),
-		.pcpi_rd_valid  (pcpi_rd_valid  ),
-		.pcpi_rd        (pcpi_rd        ),
-		.pcpi_wait      (pcpi_wait      ),
-		.pcpi_ready     (pcpi_ready     ),
+		.pcpi_insn_valid(    pcpi_insn_valid),
+		.pcpi_insn      (    pcpi_insn      ),
+		.pcpi_rs1_valid (    pcpi_rs1_valid ),
+		.pcpi_rs1       (    pcpi_rs1       ),
+		.pcpi_rs2_valid (    pcpi_rs2_valid ),
+		.pcpi_rs2       (    pcpi_rs2       ),
+		.pcpi_rd_valid  (int_pcpi_rd_valid  ),
+		.pcpi_rd        (int_pcpi_rd        ),
+		.pcpi_wait      (int_pcpi_wait      ),
+		.pcpi_ready     (int_pcpi_ready     ),
 
 		.irq(irq),
 		.eoi(eoi)
