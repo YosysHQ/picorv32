@@ -16,6 +16,8 @@ Features and Typical Applications:
 - Small (~1000 LUTs in a 7-Series Xilinx FGPA)
 - High fMAX (~250 MHz on 7-Series Xilinx FGPAs)
 - Selectable native memory interface or AXI4-Lite master
+- Optional IRQ support (using a simple custom ISA)
+- Optional Co-Processor Interface
 
 This CPU is meant to be used as auxiliary processor in FPGA designs and ASICs. Due
 to its high fMAX it can be integrated in most existing designs without crossing
@@ -45,6 +47,14 @@ memory interface and AXI4. This core can be used to create custom cores that
 include one or more PicoRV32 cores together with local RAM, ROM, and
 memory-mapped peripherals, communicating with each other using the native
 interface, and communicating with the outside world via AXI4.
+
+The optional IRQ feature can be used to react to events from the outside, implemnt
+fault handlers, or catch instructions from a larger ISA and emulate them in
+software.
+
+The optional Pico Co-Prosessor Interface (PCPI) can be used to implement
+non-branching instructions in an external coprocessor. An implementation
+of a core that implements the `MUL[H[SU|U]]` instructions is provided.
 
 
 Parameters:
@@ -83,9 +93,19 @@ transaction. In the default configuration the PicoRV32 core only expects the
 `mem_rdata` input to be valid in the cycle with `mem_valid && mem_ready` and
 latches the value internally.
 
+This parameter is only available for the `picorv32` core. In the
+`picorv32_axi` core this is implicitly set to 0.
+
 #### ENABLE_PCPI (default = 0)
 
 Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
+
+#### ENABLE_MUL (default = 0)
+
+This parameter is only available on the `picorv32_axi` core. It internally
+enables PCPI and instantiates the `picorv32_pcpi_mul` core that implements
+Mthe `MUL[H[SU|U]]` instructions. The external CPCI interface only becomes
+functional when ENABLE_PCPI is set as well.
 
 #### ENABLE_IRQ (default = 0)
 
@@ -158,7 +178,7 @@ overhead.*
 The following custom instructions are only supported when IRQs are enabled
 via the `ENABLE_IRQ` parameter (see above).
 
-The PicoRV32 core has a built-in interrupt controller with 32 interrupts. An
+The PicoRV32 core has a built-in interrupt controller with 32 interrupt inputs. An
 interrupt can be triggered by asserting the corresponding bit in the `irq`
 input of the core.
 
@@ -174,9 +194,12 @@ The IRQs 0-2 can be triggered internally by the following built-in interrupt sou
 |   1 | SBREAK or Illegal Instruction      |
 |   2 | BUS Error (Unalign Memory Access)  |
 
+This interrupts can also be triggered by external sources, such as co-processors
+connected via PCPI.
+
 The core has 4 additional 32-bit registers `q0 .. q3` that are used for IRQ
-handling. When an IRQ triggers, the register `q0` contains the return address
-and `q1` contains a bitmask of all active IRQs. This means one call to the interrupt
+handling. When the IRQ handler is called, the register `q0` contains the return address
+and `q1` contains a bitmask of all IRQs to be handled. This means one call to the interrupt
 handler might need to service more than one IRQ when more than one bit is set
 in `q1`.
 
