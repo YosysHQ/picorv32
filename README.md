@@ -104,7 +104,7 @@ Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
 
 This parameter is only available on the `picorv32_axi` core. It internally
 enables PCPI and instantiates the `picorv32_pcpi_mul` core that implements
-Mthe `MUL[H[SU|U]]` instructions. The external CPCI interface only becomes
+the `MUL[H[SU|U]]` instructions. The external CPCI interface only becomes
 functional when ENABLE_PCPI is set as well.
 
 #### ENABLE_IRQ (default = 0)
@@ -198,18 +198,20 @@ This interrupts can also be triggered by external sources, such as co-processors
 connected via PCPI.
 
 The core has 4 additional 32-bit registers `q0 .. q3` that are used for IRQ
-handling. When the IRQ handler is called, the register `q0` contains the return address
-and `q1` contains a bitmask of all IRQs to be handled. This means one call to the interrupt
-handler might need to service more than one IRQ when more than one bit is set
-in `q1`.
+handling. When the IRQ handler is called, the register `q0` contains the return
+address and `q1` contains a bitmask of all IRQs to be handled. This means one
+call to the interrupt handler needs to service more than one IRQ when more than
+one bit is set in `q1`.
 
 Registers `q2` and `q3` are uninitialized and can be used as temporary storage
 when saving/restoring register values in the IRQ handler.
 
+All of the following instructions are encoded under the `custom0` opcode.
+
 #### getq rd, qs
 
 This instruction copies the value from a q-register to a general-purpose
-register. This instruction is encoded under the `custom0` opcode:
+register.
 
     0000000 00000 000XX 000 XXXXX 0001011
     f7      rs2   qs    f3  rd    opcode
@@ -225,7 +227,7 @@ Example assembler code using the `custom0` mnemonic:
 #### setq qd, rs
 
 This instruction copies the value from a general-purpose register to a
-q-register. This instruction is encoded under the `custom0` opcode:
+q-register.
 
     0000001 00000 XXXXX 000 000XX 0001011
     f7      rs2   rs    f3  qd    opcode
@@ -241,8 +243,7 @@ Example assembler code using the `custom0` mnemonic:
 #### retirq
 
 Return from interrupt. This instruction copies the value from `q0`
-to the program counter and re-enables interrupts. This instruction is
-encoded under the `custom0` opcode:
+to the program counter and re-enables interrupts.
 
     0000010 00000 00000 000 00000 0001011
     f7      rs2   rs    f3  rd    opcode
@@ -257,7 +258,7 @@ Example assembler code using the `custom0` mnemonic:
 
 The "IRQ Mask" register contains a bitmask of masked (disabled) interrupts.
 This instruction writes a new value to the irq mask register and reads the old
-value. This instruction is encoded under the `custom0` opcode:
+value.
 
     0000011 00000 XXXXX 000 XXXXX 0001011
     f7      rs2   rs    f3  rd    opcode
@@ -275,8 +276,8 @@ interrupt is disabled will cause the processor to halt.
 
 #### waitirq
 
-Pause execution until an interrupt triggers. This instruction is encoded under the
-`custom0` opcode. The bitmask of pending IRQs is written to `rd`.
+Pause execution until an interrupt triggers. The bitmask of pending IRQs is
+written to `rd`.
 
     0000100 00000 00000 000 XXXXX 0001011
     f7      rs2   rs    f3  rd    opcode
