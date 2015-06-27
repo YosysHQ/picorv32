@@ -1,3 +1,8 @@
+#define ENABLE_RVTST
+#define ENABLE_SIEVE
+#define ENABLE_MULTST
+#define ENABLE_STATS
+
 	.section .text
 	.global irq
 	.global sieve
@@ -8,11 +13,19 @@
 	.global hard_mulhu
 	.global stats
 
-#define TEST(n) \
-	.global n; .global n ## _ret; \
+#ifdef ENABLE_RVTST
+#  define TEST(n) \
+	.global n; \
 	addi x1, zero, 1000; \
 	custom0 0,1,0,5; /* timer zero, x1 */ \
-	jal zero,n; n ## _ret:
+	jal zero,n; \
+	.global n ## _ret; \
+	n ## _ret:
+#else
+#  define TEST(n) \
+	.global n ## _ret; \
+	n ## _ret:
+#endif
 
 reset_vec:
 	custom0 0,0,0,4 // waitirq zero
@@ -227,14 +240,20 @@ start:
 	/* set stack pointer */
 	lui sp,(64*1024)>>12
 
-	/* jump to sieve C code */
+#ifdef ENABLE_SIEVE
+	/* call sieve C code */
 	jal ra,sieve
+#endif
 
-	/* jump to sieve C code */
+#ifdef ENABLE_MULTST
+	/* call sieve C code */
 	jal ra,multest
+#endif
 
-	/* jump to stats C code */
+#ifdef ENABLE_STATS
+	/* call stats C code */
 	jal ra,stats
+#endif
 
 	/* print "DONE\n" */
 	lui a0,0x10000000>>12
