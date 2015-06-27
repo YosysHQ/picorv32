@@ -985,13 +985,17 @@ module picorv32_pcpi_mul (
 	wire instr_rs1_signed = |{instr_mulh, instr_mulhsu};
 	wire instr_rs2_signed = |{instr_mulh};
 
+	reg pcpi_wait_q;
+	wire mul_start = pcpi_wait && !pcpi_wait_q;
+
 	always @(posedge clk) begin
 		instr_mul <= 0;
 		instr_mulh <= 0;
 		instr_mulhsu <= 0;
 		instr_mulhu <= 0;
 
-		if (pcpi_insn_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+		if (resetn && pcpi_insn_valid && pcpi_rs1_valid && pcpi_rs2_valid &&
+				pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
 			case (pcpi_insn[14:12])
 				3'b000: instr_mul <= 1;
 				3'b001: instr_mulh <= 1;
@@ -1001,26 +1005,58 @@ module picorv32_pcpi_mul (
 		end
 
 		pcpi_wait <= instr_any_mul;
+		pcpi_wait_q <= pcpi_wait;
 	end
 
-	// FIXME: This is just a behavioral model
+	reg [63:0] rs1, rs2, rd, rdx;
+	reg [6:0] mul_counter;
+	reg mul_waiting;
+	reg mul_finish;
 
-	reg [63:0] rs1, rs2;
+	always @(posedge clk) begin
+		mul_finish <= 0;
+		if (!resetn) begin
+			mul_waiting <= 1;
+		end else
+		if (mul_waiting) begin
+			if (instr_rs1_signed)
+				rs1 <= $signed(pcpi_rs1);
+			else
+				rs1 <= $unsigned(pcpi_rs1);
+
+			if (instr_rs2_signed)
+				rs2 <= $signed(pcpi_rs2);
+			else
+				rs2 <= $unsigned(pcpi_rs2);
+
+			rd <= 0;
+			rdx <= 0;
+			mul_counter <= instr_any_mulh ? 64 : 32;
+			mul_waiting <= !mul_start;
+		end else begin
+			// carry save accumulator
+			if (rs1[0]) begin
+				rd <= rd ^ rdx ^ rs2;
+				rdx <= ((rd & rdx) | (rd & rs2) | (rdx & rs2)) << 1;
+			end else begin
+				rd <= rd ^ rdx;
+				rdx <= (rd & rdx) << 1;
+			end
+			rs1 <= rs1 >> 1;
+			rs2 <= rs2 << 1;
+			mul_counter <= mul_counter - 1;
+			if (!mul_counter) begin
+				mul_finish <= 1;
+				mul_waiting <= 1;
+			end
+		end
+	end
+
 	always @(posedge clk) begin
 		pcpi_rd_valid <= 0;
 		pcpi_ready <= 0;
-		if (pcpi_rs1_valid && pcpi_rs2_valid && instr_any_mul) begin
-			if (instr_rs1_signed)
-				rs1 = $signed(pcpi_rs1);
-			else
-				rs1 = $unsigned(pcpi_rs1);
-
-			if (instr_rs2_signed)
-				rs2 = $signed(pcpi_rs2);
-			else
-				rs2 = $unsigned(pcpi_rs2);
-
-			pcpi_rd <= instr_any_mulh ? (rs1 * rs2) >> 32 : rs1 * rs2;
+		if (mul_finish) begin
+			pcpi_rd <= instr_any_mulh ? rd >> 32 : rd;
 			pcpi_rd_valid <= 1;
 			pcpi_ready <= 1;
 		end
