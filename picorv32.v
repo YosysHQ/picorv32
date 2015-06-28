@@ -57,13 +57,11 @@ module picorv32 #(
 	output reg [ 3:0] mem_la_wstrb,
 
 	// Pico Co-Processor Interface (PCPI)
-	output reg        pcpi_insn_valid,
+	output reg        pcpi_valid,
 	output reg [31:0] pcpi_insn,
-	output reg        pcpi_rs1_valid,
 	output     [31:0] pcpi_rs1,
-	output reg        pcpi_rs2_valid,
 	output     [31:0] pcpi_rs2,
-	input             pcpi_rd_valid,
+	input             pcpi_wr,
 	input      [31:0] pcpi_rd,
 	input             pcpi_wait,
 	input             pcpi_ready,
@@ -100,40 +98,38 @@ module picorv32 #(
 
 	// Internal PCPI Cores
 
-	wire        pcpi_mul_rd_valid;
+	wire        pcpi_mul_wr;
 	wire [31:0] pcpi_mul_rd;
 	wire        pcpi_mul_wait;
 	wire        pcpi_mul_ready;
 
-	reg        pcpi_int_rd_valid;
+	reg        pcpi_int_wr;
 	reg [31:0] pcpi_int_rd;
 	reg        pcpi_int_wait;
 	reg        pcpi_int_ready;
 
 	generate if (ENABLE_MUL) begin
 		picorv32_pcpi_mul pcpi_mul (
-			.clk            (clk              ),
-			.resetn         (resetn           ),
-			.pcpi_insn_valid(pcpi_insn_valid  ),
-			.pcpi_insn      (pcpi_insn        ),
-			.pcpi_rs1_valid (pcpi_rs1_valid   ),
-			.pcpi_rs1       (pcpi_rs1         ),
-			.pcpi_rs2_valid (pcpi_rs2_valid   ),
-			.pcpi_rs2       (pcpi_rs2         ),
-			.pcpi_rd_valid  (pcpi_mul_rd_valid),
-			.pcpi_rd        (pcpi_mul_rd      ),
-			.pcpi_wait      (pcpi_mul_wait    ),
-			.pcpi_ready     (pcpi_mul_ready   )
+			.clk       (clk            ),
+			.resetn    (resetn         ),
+			.pcpi_valid(pcpi_valid     ),
+			.pcpi_insn (pcpi_insn      ),
+			.pcpi_rs1  (pcpi_rs1       ),
+			.pcpi_rs2  (pcpi_rs2       ),
+			.pcpi_wr   (pcpi_mul_wr    ),
+			.pcpi_rd   (pcpi_mul_rd    ),
+			.pcpi_wait (pcpi_mul_wait  ),
+			.pcpi_ready(pcpi_mul_ready )
 		);
 	end else begin
-		assign pcpi_mul_rd_valid = 0;
+		assign pcpi_mul_wr = 0;
 		assign pcpi_mul_rd = 1'bx;
 		assign pcpi_mul_wait = 0;
 		assign pcpi_mul_ready = 0;
 	end endgenerate
 
 	always @* begin
-		pcpi_int_rd_valid = 0;
+		pcpi_int_wr = 0;
 		pcpi_int_rd = 1'bx;
 		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait,  ENABLE_MUL && pcpi_mul_wait};
 		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready, ENABLE_MUL && pcpi_mul_ready};
@@ -141,11 +137,11 @@ module picorv32 #(
 		(* parallel_case *)
 		case (1'b1)
 			ENABLE_PCPI && pcpi_ready: begin
-				pcpi_int_rd_valid = pcpi_rd_valid;
+				pcpi_int_wr = pcpi_wr;
 				pcpi_int_rd = pcpi_rd;
 			end
 			ENABLE_MUL && pcpi_mul_ready: begin
-				pcpi_int_rd_valid = pcpi_mul_rd_valid;
+				pcpi_int_wr = pcpi_mul_wr;
 				pcpi_int_rd = pcpi_mul_rd;
 			end
 		endcase
@@ -570,7 +566,7 @@ module picorv32 #(
 		reg_alu_out <= alu_out;
 
 		if (WITH_PCPI) begin
-			if (pcpi_insn_valid && !pcpi_int_wait) begin
+			if (pcpi_valid && !pcpi_int_wait) begin
 				if (pcpi_timeout_counter)
 					pcpi_timeout_counter <= pcpi_timeout_counter - 1;
 			end else
@@ -609,9 +605,7 @@ module picorv32 #(
 			latched_is_lu <= 0;
 			latched_is_lh <= 0;
 			latched_is_lb <= 0;
-			pcpi_insn_valid <= 0;
-			pcpi_rs1_valid <= 0;
-			pcpi_rs2_valid <= 0;
+			pcpi_valid <= 0;
 			irq_active <= 0;
 			irq_mask <= ~0;
 			next_irq_pending = 0;
@@ -711,20 +705,16 @@ module picorv32 #(
 `endif
 				if (instr_trap) begin
 					if (WITH_PCPI) begin
-						pcpi_rs1_valid <= 1;
-						pcpi_insn_valid <= 1;
 						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						if (ENABLE_REGS_DUALPORT) begin
-							pcpi_rs2_valid <= 1;
+							pcpi_valid <= 1;
 							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 							reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 							if (pcpi_int_ready) begin
 								mem_do_rinst <= 1;
-								pcpi_insn_valid <= 0;
-								pcpi_rs1_valid <= 0;
-								pcpi_rs2_valid <= 0;
+								pcpi_valid <= 0;
 								reg_out <= pcpi_int_rd;
-								latched_store <= pcpi_int_rd_valid;
+								latched_store <= pcpi_int_wr;
 								cpu_state <= cpu_state_fetch;
 							end else
 							if (pcpi_timeout) begin
@@ -842,15 +832,13 @@ module picorv32 #(
 `endif
 				reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 				reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-				if (WITH_PCPI && pcpi_insn_valid) begin
-					pcpi_rs2_valid <= 1;
+				if (WITH_PCPI && instr_trap) begin
+					pcpi_valid <= 1;
 					if (pcpi_int_ready) begin
 						mem_do_rinst <= 1;
-						pcpi_insn_valid <= 0;
-						pcpi_rs1_valid <= 0;
-						pcpi_rs2_valid <= 0;
+						pcpi_valid <= 0;
 						reg_out <= pcpi_int_rd;
-						latched_store <= pcpi_int_rd_valid;
+						latched_store <= pcpi_int_wr;
 						cpu_state <= cpu_state_fetch;
 					end else
 					if (pcpi_timeout) begin
@@ -1030,13 +1018,11 @@ module picorv32_pcpi_mul #(
 ) (
 	input clk, resetn,
 
-	input             pcpi_insn_valid,
+	input             pcpi_valid,
 	input      [31:0] pcpi_insn,
-	input             pcpi_rs1_valid,
 	input      [31:0] pcpi_rs1,
-	input             pcpi_rs2_valid,
 	input      [31:0] pcpi_rs2,
-	output reg        pcpi_rd_valid,
+	output reg        pcpi_wr,
 	output reg [31:0] pcpi_rd,
 	output reg        pcpi_wait,
 	output reg        pcpi_ready
@@ -1056,8 +1042,7 @@ module picorv32_pcpi_mul #(
 		instr_mulhsu <= 0;
 		instr_mulhu <= 0;
 
-		if (resetn && pcpi_insn_valid && pcpi_rs1_valid && pcpi_rs2_valid &&
-				pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+		if (resetn && pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
 			case (pcpi_insn[14:12])
 				3'b000: instr_mul <= 1;
 				3'b001: instr_mulh <= 1;
@@ -1133,12 +1118,12 @@ module picorv32_pcpi_mul #(
 	end
 
 	always @(posedge clk) begin
-		pcpi_rd_valid <= 0;
+		pcpi_wr <= 0;
 		pcpi_ready <= 0;
 		if (mul_finish) begin
-			pcpi_rd <= instr_any_mulh ? rd >> 32 : rd;
-			pcpi_rd_valid <= 1;
+			pcpi_wr <= 1;
 			pcpi_ready <= 1;
+			pcpi_rd <= instr_any_mulh ? rd >> 32 : rd;
 		end
 	end
 endmodule
@@ -1187,13 +1172,11 @@ module picorv32_axi #(
 	input  [31:0] mem_axi_rdata,
 
 	// Pico Co-Processor Interface (PCPI)
-	output        pcpi_insn_valid,
+	output        pcpi_valid,
 	output [31:0] pcpi_insn,
-	output        pcpi_rs1_valid,
 	output [31:0] pcpi_rs1,
-	output        pcpi_rs2_valid,
 	output [31:0] pcpi_rs2,
-	input         pcpi_rd_valid,
+	input         pcpi_wr,
 	input  [31:0] pcpi_rd,
 	input         pcpi_wait,
 	input         pcpi_ready,
@@ -1262,16 +1245,14 @@ module picorv32_axi #(
 		.mem_ready(mem_ready),
 		.mem_rdata(mem_rdata),
 
-		.pcpi_insn_valid(pcpi_insn_valid),
-		.pcpi_insn      (pcpi_insn      ),
-		.pcpi_rs1_valid (pcpi_rs1_valid ),
-		.pcpi_rs1       (pcpi_rs1       ),
-		.pcpi_rs2_valid (pcpi_rs2_valid ),
-		.pcpi_rs2       (pcpi_rs2       ),
-		.pcpi_rd_valid  (pcpi_rd_valid  ),
-		.pcpi_rd        (pcpi_rd        ),
-		.pcpi_wait      (pcpi_wait      ),
-		.pcpi_ready     (pcpi_ready     ),
+		.pcpi_valid(pcpi_valid),
+		.pcpi_insn (pcpi_insn ),
+		.pcpi_rs1  (pcpi_rs1  ),
+		.pcpi_rs2  (pcpi_rs2  ),
+		.pcpi_wr   (pcpi_wr   ),
+		.pcpi_rd   (pcpi_rd   ),
+		.pcpi_wait (pcpi_wait ),
+		.pcpi_ready(pcpi_ready),
 
 		.irq(irq),
 		.eoi(eoi)

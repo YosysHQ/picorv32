@@ -79,8 +79,8 @@ Simply copy this file into your project.
 
 #### Makefile and testbench.v
 
-A basic test environment run `make test`, `make test_sp` and/or `make test_axi` to run
-the test firmware in different environments.
+A basic test environment. Run `make test`, `make test_sp` and/or `make test_axi` to run
+the test firmware in different hardware configurations.
 
 #### firmware/
 
@@ -205,13 +205,99 @@ For the Dhrystone benchmark the average CPI is 4.167.
 PicoRV32 Native Memory Interface
 --------------------------------
 
-This section is under construction.
+The native memory interface of PicoRV32 is a simple valid-ready interface
+that can run one memory transfer at a time:
+
+    output        mem_valid
+    output        mem_instr
+    input         mem_ready
+    
+    output [31:0] mem_addr
+    output [31:0] mem_wdata
+    output [ 3:0] mem_wstrb
+    input  [31:0] mem_rdata
+
+The core initiates a memory transfer by asserting `mem_valid`. The valid
+signal stays high until the peer asserts `mem_ready`. All core outputs
+are stable over the `mem_valid` period.
+
+#### Read Transfer
+
+In a read transfer `mem_wstrb` has the value 0 and `mem_wdata` is unused.
+
+The memory reads the address `mem_addr` and makes the read value available on
+`mem_rdata` in the cycle `mem_ready` is high.
+
+There is no need for an external wait cycle. The memory read can be implemented
+asynchronously with `mem_ready` going high in the same cycle as `mem_valid`, or
+`mem_ready` being tied to constant 1.
+
+#### Write Transfer
+
+In a write transfer `mem_wstrb` is not 0 and `mem_rdata` is unused. The memory
+write the data at `mem_wdata` to the address `mem_addr` and acknowledges the
+transfer by asserting `mem_ready`.
+
+There is no need for an external wait cycle. The memory can acknowledge the
+write immediately  with `mem_ready` going high in the same cycle as
+`mem_valid`, or `mem_ready` being tied to constant 1.
+
+#### Look-Ahead Interface
+
+The PicoRV32 core also provides a "Look-Ahead Memory Interface" that provides
+all information about the next memory transfer one clock cycle earlier than the
+normal interface.
+
+    output        mem_la_read
+    output        mem_la_write
+    output [31:0] mem_la_addr
+    output [31:0] mem_la_wdata
+    output [ 3:0] mem_la_wstrb
+
+In the clock cycle before `mem_valid` goes high, this interface will output a
+pulse on `mem_la_read` or `mem_la_write` to indicate the start of a read or
+write transaction in the next clock cycles.
+
+*Note: The signals `mem_la_read`, `mem_la_write`, and `mem_la_addr` are driven
+by combinatorical circuits within the PicoRV32 core. It might be harder to
+achieve timing closure with the look-ahead interface than with the normal
+memory interface described above.*
 
 
 Pico Co-Processor Interface (PCPI)
 ----------------------------------
 
-This section is under construction.
+The Pico Co-Processor Interface (PCPI) can be used to implement non-branching
+instructions in external cores:
+
+    output        pcpi_valid
+    output [31:0] pcpi_insn
+    output [31:0] pcpi_rs1
+    output [31:0] pcpi_rs2
+    input         pcpi_wr
+    input  [31:0] pcpi_rd
+    input         pcpi_wait
+    input         pcpi_ready
+
+When an unsupported instruction is encountered and the PCPI feature is
+activated (see ENABLE_PCPI above), then `pcpi_valid` is asserted, the
+instruction word itself is output on `pcpi_insn`, the `rs1` and `rs2`
+fields are decoded and the values in those registers are output
+on `pcpi_rs1` and `pcpi_rs2`.
+
+An external PCPI core can then decode the instruction, execute it, and assert
+`pcpi_ready` when execution of the instruction is finished. Optionally a
+result value can be written to `pcpi_rd` and `pcpi_wr` asserted. The
+PicoRV32 core will then decode the `rd` field of the instruction and
+write the value from `pcpi_rd` to the respective register.
+
+When no external PCPI core acknowledges the instruction within 16 clock
+cycles, then an illegal instruction exception is raised and the respective
+interrupt handler is called. A PCPI core that needs more than a couple of
+cycles to execute an instruction, should assert `pcpi_wait` as soon as
+the instruction has been decoded successfully and keep it asserted until
+it asserts `pcpi_ready`. This will prevent the PicoRV32 core from raising
+an illegal instruction exception.
 
 
 Custom Instructions for IRQ Handling
@@ -407,11 +493,4 @@ enabled PCPI, IRQ and MUL features.
 
 *Note: Most of the size reduction in the "small" core comes from eliminating
 the counter instructions, not from reducing the size of the register file.*
-
-
-Todos:
-------
-
-- Optional support for compressed ISA
-- Improved documentation and examples
 
