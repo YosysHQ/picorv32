@@ -292,6 +292,10 @@ start:
 	/* break */
 	sbreak
 
+
+/* Hard mul functions for multest.c
+ **********************************/
+
 hard_mul:
 	mul a0, a0, a1
 	ret

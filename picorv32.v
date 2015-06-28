@@ -660,12 +660,6 @@ module picorv32 #(
 				reg_pc <= current_pc;
 				reg_next_pc <= current_pc;
 
-				if (WITH_PCPI) begin
-					pcpi_insn_valid <= 0;
-					pcpi_rs1_valid <= 0;
-					pcpi_rs2_valid <= 0;
-				end
-
 				latched_store <= 0;
 				latched_stalu <= 0;
 				latched_branch <= 0;
@@ -726,6 +720,10 @@ module picorv32 #(
 							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 							reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 							if (pcpi_int_ready) begin
+								mem_do_rinst <= 1;
+								pcpi_insn_valid <= 0;
+								pcpi_rs1_valid <= 0;
+								pcpi_rs2_valid <= 0;
 								reg_out <= pcpi_int_rd;
 								latched_store <= pcpi_int_rd_valid;
 								cpu_state <= cpu_state_fetch;
@@ -848,6 +846,10 @@ module picorv32 #(
 				if (WITH_PCPI && pcpi_insn_valid) begin
 					pcpi_rs2_valid <= 1;
 					if (pcpi_int_ready) begin
+						mem_do_rinst <= 1;
+						pcpi_insn_valid <= 0;
+						pcpi_rs1_valid <= 0;
+						pcpi_rs2_valid <= 0;
 						reg_out <= pcpi_int_rd;
 						latched_store <= pcpi_int_rd_valid;
 						cpu_state <= cpu_state_fetch;
@@ -1023,7 +1025,10 @@ endmodule
  * picorv32_pcpi_mul
  ***************************************************************/
 
-module picorv32_pcpi_mul (
+module picorv32_pcpi_mul #(
+	// increasing this parameter increases performance and core size
+	parameter STEPS_AT_ONCE = 1
+) (
 	input clk, resetn,
 
 	input             pcpi_insn_valid,
@@ -1067,9 +1072,32 @@ module picorv32_pcpi_mul (
 	end
 
 	reg [63:0] rs1, rs2, rd, rdx;
+	reg [63:0] next_rs1, next_rs2, next_rd, next_rdx, next_rdt;
 	reg [6:0] mul_counter;
 	reg mul_waiting;
 	reg mul_finish;
+	integer i;
+
+	// carry save accumulator
+	always @* begin
+		next_rd = rd;
+		next_rdx = rdx;
+		next_rs1 = rs1;
+		next_rs2 = rs2;
+
+		for (i = 0; i < STEPS_AT_ONCE; i=i+1) begin
+			if (next_rs1[0]) begin
+				next_rdt = (next_rd ^ next_rdx) ^ next_rs2;
+				next_rdx = ((next_rd & next_rdx) | (next_rd & next_rs2) | (next_rdx & next_rs2)) << 1;
+			end else begin
+				next_rdt = next_rd ^ next_rdx;
+				next_rdx = (next_rd & next_rdx) << 1;
+			end
+			next_rd = next_rdt;
+			next_rs1 = next_rs1 >> 1;
+			next_rs2 = next_rs2 << 1;
+		end
+	end
 
 	always @(posedge clk) begin
 		mul_finish <= 0;
@@ -1089,21 +1117,16 @@ module picorv32_pcpi_mul (
 
 			rd <= 0;
 			rdx <= 0;
-			mul_counter <= instr_any_mulh ? 64 : 32;
+			mul_counter <= (instr_any_mulh ? 63 - STEPS_AT_ONCE : 31 - STEPS_AT_ONCE);
 			mul_waiting <= !mul_start;
 		end else begin
-			// carry save accumulator
-			if (rs1[0]) begin
-				rd <= rd ^ rdx ^ rs2;
-				rdx <= ((rd & rdx) | (rd & rs2) | (rdx & rs2)) << 1;
-			end else begin
-				rd <= rd ^ rdx;
-				rdx <= (rd & rdx) << 1;
-			end
-			rs1 <= rs1 >> 1;
-			rs2 <= rs2 << 1;
-			mul_counter <= mul_counter - 1;
-			if (!mul_counter) begin
+			rd <= next_rd;
+			rdx <= next_rdx;
+			rs1 <= next_rs1;
+			rs2 <= next_rs2;
+
+			mul_counter <= mul_counter - STEPS_AT_ONCE;
+			if (mul_counter[6]) begin
 				mul_finish <= 1;
 				mul_waiting <= 1;
 			end

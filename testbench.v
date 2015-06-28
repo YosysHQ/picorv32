@@ -244,10 +244,12 @@ module testbench;
 		$finish;
 	end
 
+	integer cycle_counter;
 	always @(posedge clk) begin
+		cycle_counter <= resetn ? cycle_counter + 1 : 0;
 		if (resetn && trap) begin
 			repeat (10) @(posedge clk);
-			$display("TRAP");
+			$display("TRAP after %1d clock cycles", cycle_counter);
 			$finish;
 		end
 	end

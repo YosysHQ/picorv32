@@ -194,6 +194,9 @@ CPI numbers for a core built without ENABLE_REGS_DUALPORT.
 | indirect jump (jalr) |    6 |        6 |
 | shift operations     | 4-14 |     4-15 |
 
+When `ENABLE_MUL` is activated, then a `MUL` instruction will execute
+in 42 cycles and a `MULH[SU|U]` instruction will execute in 74 cycles.
+
 Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
 
 For the Dhrystone benchmark the average CPI is 4.167.
