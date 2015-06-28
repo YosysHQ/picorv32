@@ -195,7 +195,7 @@ CPI numbers for a core built without ENABLE_REGS_DUALPORT.
 | shift operations     | 4-14 |     4-15 |
 
 When `ENABLE_MUL` is activated, then a `MUL` instruction will execute
-in 42 cycles and a `MULH[SU|U]` instruction will execute in 74 cycles.
+in 40 cycles and a `MULH[SU|U]` instruction will execute in 72 cycles.
 
 Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
 
@@ -405,12 +405,13 @@ enabled PCPI, IRQ and MUL features.
 | PicoRV32 "regular" |        996 |             48 |
 | PicoRV32 "large"   |       1814 |             88 |
 
+*Note: Most of the size reduction in the "small" core comes from eliminating
+the counter instructions, not from reducing the size of the register file.*
+
 
 Todos:
 ------
 
-- Optional FENCE support
-- Optional write-through cache
 - Optional support for compressed ISA
 - Improved documentation and examples
 
