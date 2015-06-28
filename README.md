@@ -10,8 +10,8 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 (a license that is similar in terms to the MIT license or the 2-clause BSD license).
 
 
-Features and Typical Applications:
-----------------------------------
+Features and Typical Applications
+---------------------------------
 
 - Small (~1000 LUTs in a 7-Series Xilinx FGPA)
 - High fMAX (~250 MHz on 7-Series Xilinx FGPAs)
@@ -57,8 +57,8 @@ non-branching instructions in an external coprocessor. An implementation
 of a core that implements the `MUL[H[SU|U]]` instructions is provided.
 
 
-Files in this Repository:
--------------------------
+Files in this Repository
+------------------------
 
 #### README.md
 
@@ -102,8 +102,8 @@ Another simple test firmware that runs the Dhrystome benchmark.
 Various scripts and examples for different (synthesis) tools and hardware architectures.
 
 
-Parameters:
------------
+Verilog Module Parameters
+-------------------------
 
 The following Verilog module parameters can be used to configure the PicoRV32
 core.
@@ -168,8 +168,8 @@ The start address of the program.
 The start address of the interrupt handler.
 
 
-Performance:
-------------
+Cycles per Instruction Performance
+----------------------------------
 
 *A short reminder: This core is optimized for size, not performance.*
 
@@ -344,8 +344,8 @@ Example:
     timer x1, x2
 
 
-Building a pure RV32I Toolchain:
---------------------------------
+Building a pure RV32I Toolchain
+-------------------------------
 
 The default settings in the [riscv-tools](https://github.com/riscv/riscv-tools) build
 scripts will build a compiler, assembler and linker that can target any RISC-V ISA,
@@ -374,12 +374,12 @@ makes it easy to install them side-by-side with the regular riscv-tools, which
 are using the name prefix `riscv64-unknown-elf-` by default.
 
 
-Evaluation: Timing on Xilinx 7-Series FPGAs
--------------------------------------------
+Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
+-----------------------------------------------------------
 
 The following table lists the maximum clock speeds that PicoRV32 can run at on
 Xilinx 7-Series FPGAs. This are the values reported by Vivado 2015.1 post
-place&route static timing analysis (report_timing).
+place&route static timing analysis with `report_timing`.
 
 | Device               | Speedgrade | Clock Period (Freq.) |
 |:-------------------- |:----------:| --------------------:|
@@ -393,6 +393,18 @@ place&route static timing analysis (report_timing).
 | Xilinx Virtex-7T     | -2         |     2.6 ns (384 MHz) |
 | Xilinx Virtex-7T     | -3         |     2.4 ns (416 MHz) |
 
+The following table lists the resource utilization in area-optimized synthesis,
+as reported by Vivado 2015.1 post optimization with `report_utilization`. The
+"small" core is PicoRV32 configured down to a RV32E cpu, the "regular" core is
+PicoRV32 with its default settings and the "large" core is PicoRV32 with
+enabled PCPI, IRQ and MUL features.
+
+| Core Variant       | Slice LUTs | LUTs as Memory |
+|:------------------ | ----------:| --------------:|
+| PicoRV32 "small"   |        855 |             48 |
+| PicoRV32 "regular" |        996 |             48 |
+| PicoRV32 "large"   |       1814 |             88 |
+
 
 Todos:
 ------
@@ -401,5 +413,4 @@ Todos:
 - Optional write-through cache
 - Optional support for compressed ISA
 - Improved documentation and examples
-- Code cleanups and refactoring of main FSM
 

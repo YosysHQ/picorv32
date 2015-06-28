@@ -1,5 +1,4 @@
 synth_*.log
 synth_*.mmi
 synth_*.bit
-synth_*.v
 tab_*/

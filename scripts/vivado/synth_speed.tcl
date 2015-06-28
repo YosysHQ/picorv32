@@ -11,5 +11,3 @@ route_design
 report_utilization
 report_timing
 
-write_verilog -force synth_speed.v
-
