@@ -102,10 +102,9 @@ Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
 
 #### ENABLE_MUL (default = 0)
 
-This parameter is only available on the `picorv32_axi` core. It internally
-enables PCPI and instantiates the `picorv32_pcpi_mul` core that implements
-the `MUL[H[SU|U]]` instructions. The external CPCI interface only becomes
-functional when ENABLE_PCPI is set as well.
+This parameter internally enables PCPI and instantiates the `picorv32_pcpi_mul`
+core that implements the `MUL[H[SU|U]]` instructions. The external CPCI
+interface only becomes functional when ENABLE_PCPI is set as well.
 
 #### ENABLE_IRQ (default = 0)
 
