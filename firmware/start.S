@@ -91,15 +91,15 @@ irq_vec:
 	addi a0, a0, %lo(irq_regs)
 
 	// arg1 = interrupt type
-	getq x11, q1
+	getq a1, q1
 
 	// call to C function
 	jal ra, irq
 
 	/* restore registers */
 
-	lui x1, %hi(irq_regs)
-	addi x1, x1, %lo(irq_regs)
+	// new irq_regs address returned from C code in a0
+	addi x1, a0, 0
 
 	lw x2,   0*4(x1)
 	setq q0, x2
@@ -260,6 +260,11 @@ start:
 
 	/* set stack pointer */
 	lui sp,(64*1024)>>12
+
+	/* set gp and tp */
+	lui gp, %hi(0xdeadbeef)
+	addi gp, gp, %lo(0xdeadbeef)
+	addi tp, gp, 0
 
 #ifdef ENABLE_SIEVE
 	/* call sieve C code */
