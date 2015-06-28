@@ -47,9 +47,9 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
 clean:
-	rm -vrf $(TEST_OBJS) firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex \
-		firmware/firmware.map testbench*.exe testbench.vcd .Xil fsm_encoding.os \
-		synth_vivado.log synth_vivado_*.backup.log synth_vivado.v
+	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) \
+		firmware/firmware.{elf,bin,hex,map} \
+		testbench{,_sp,_axi}.exe testbench.vcd
 
 .PHONY: test test_sp test_axi clean
 

@@ -206,53 +206,51 @@ one bit is set in `q1`.
 Registers `q2` and `q3` are uninitialized and can be used as temporary storage
 when saving/restoring register values in the IRQ handler.
 
-All of the following instructions are encoded under the `custom0` opcode.
+All of the following instructions are encoded under the `custom0` opcode. The f3
+and rs2 fields are ignored in all this instructions.
+
+See [firmware/custom_ops.S](firmware/custom_ops.S) for GNU assembler macros that
+implement mnemonics for this instructions.
+
+See [firmware/start.S](firmware/start.S) for an example implementaion of an
+interrupt handler assember wrapper, and [firmware/irq.c](firmware/irq.c) for
+the actual interrupt handler.
 
 #### getq rd, qs
 
 This instruction copies the value from a q-register to a general-purpose
 register.
 
-    0000000 00000 000XX 000 XXXXX 0001011
+    0000000 ----- 000XX --- XXXXX 0001011
     f7      rs2   qs    f3  rd    opcode
 
-Example assembler code using the `custom0` mnemonic:
+Example:
 
-| Instruction       | Assember Code       |
-| ------------------| --------------------|
-| getq x5, q2       | custom0 5, 2, 0, 0  |
-| getq x3, q0       | custom0 3, 0, 0, 0  |
-| getq x1, q3       | custom0 1, 3, 0, 0  |
+    getq x5, q2
 
 #### setq qd, rs
 
 This instruction copies the value from a general-purpose register to a
 q-register.
 
-    0000001 00000 XXXXX 000 000XX 0001011
+    0000001 ----- XXXXX --- 000XX 0001011
     f7      rs2   rs    f3  qd    opcode
 
-Example assembler code using the `custom0` mnemonic:
+Example:
 
-| Instruction       | Assember Code       |
-| ------------------| --------------------|
-| setq q2, x5       | custom0 2, 5, 0, 1  |
-| setq q0, x3       | custom0 0, 3, 0, 1  |
-| setq q3, x1       | custom0 3, 1, 0, 1  |
+    setq q2, x5
 
 #### retirq
 
 Return from interrupt. This instruction copies the value from `q0`
 to the program counter and re-enables interrupts.
 
-    0000010 00000 00000 000 00000 0001011
+    0000010 ----- 00000 --- 00000 0001011
     f7      rs2   rs    f3  rd    opcode
 
-Example assembler code using the `custom0` mnemonic:
+Example:
 
-| Instruction       | Assember Code       |
-| ------------------| --------------------|
-| retirq            | custom0 0, 0, 0, 2  |
+    retirq
 
 #### maskirq
 
@@ -260,14 +258,12 @@ The "IRQ Mask" register contains a bitmask of masked (disabled) interrupts.
 This instruction writes a new value to the irq mask register and reads the old
 value.
 
-    0000011 00000 XXXXX 000 XXXXX 0001011
+    0000011 ----- XXXXX --- XXXXX 0001011
     f7      rs2   rs    f3  rd    opcode
 
-Example assembler code using the `custom0` mnemonic:
+Example:
 
-| Instruction       | Assember Code       |
-| ------------------| --------------------|
-| maskirq x1, x2    | custom0 1, 2, 0, 3  |
+    maskirq x1, x2
 
 The processor starts with all interrupts disabled.
 
@@ -276,17 +272,15 @@ interrupt is disabled will cause the processor to halt.
 
 #### waitirq
 
-Pause execution until an interrupt triggers. The bitmask of pending IRQs is
-written to `rd`.
+Pause execution until an interrupt becomes pending. The bitmask of pending IRQs
+is written to `rd`.
 
-    0000100 00000 00000 000 XXXXX 0001011
+    0000100 ----- 00000 --- XXXXX 0001011
     f7      rs2   rs    f3  rd    opcode
 
-Example assembler code using the `custom0` mnemonic:
+Example:
 
-| Instruction       | Assember Code       |
-| ------------------| --------------------|
-| waitirq x1        | custom0 1, 0, 0, 4  |
+    waitirq x1
 
 #### timer
 
@@ -295,14 +289,12 @@ triggers the timer interrupt when transitioning from 1 to 0. Setting the
 counter to zero disables the timer. The old value of the counter is written to
 `rd`.
 
-    0000101 00000 XXXXX 000 XXXXX 0001011
+    0000101 ----- XXXXX --- XXXXX 0001011
     f7      rs2   rs    f3  rd    opcode
 
-Example assembler code using the `custom0` mnemonic:
+Example:
 
-| Instruction       | Assember Code       |
-| ------------------| --------------------|
-| timer x1, x2      | custom0 1, 2, 0, 5  |
+    timer x1, x2
 
 
 Building a pure RV32I Toolchain:

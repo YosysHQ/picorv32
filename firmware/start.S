@@ -1,7 +1,16 @@
+// This is free and unencumbered software released into the public domain.
+// 
+// Anyone is free to copy, modify, publish, use, compile, sell, or
+// distribute this software, either in source code form or as a compiled
+// binary, for any purpose, commercial or non-commercial, and by any
+// means.
+
 #define ENABLE_RVTST
 #define ENABLE_SIEVE
 #define ENABLE_MULTST
 #define ENABLE_STATS
+
+#include "custom_ops.S"
 
 	.section .text
 	.global irq
@@ -13,43 +22,33 @@
 	.global hard_mulhu
 	.global stats
 
-#ifdef ENABLE_RVTST
-#  define TEST(n) \
-	.global n; \
-	addi x1, zero, 1000; \
-	custom0 0,1,0,5; /* timer zero, x1 */ \
-	jal zero,n; \
-	.global n ## _ret; \
-	n ## _ret:
-#else
-#  define TEST(n) \
-	.global n ## _ret; \
-	n ## _ret:
-#endif
-
 reset_vec:
-	custom0 0,0,0,4 // waitirq zero
-	custom0 0,0,0,3 // maskirq zero, zero
+	// no more than 16 bytes here !
+	waitirq zero
+	maskirq zero, zero
 	j start
-	nop
-	nop
 
+
+/* Interrupt handler
+ **********************************/
+
+.balign 16
 irq_vec:
 	/* save registers */
 
-	custom0 2,1,0,1 // setq q2, x1
-	custom0 3,2,0,1 // setq q3, x2
+	setq q2, x1
+	setq q3, x2
 
 	lui x1, %hi(irq_regs)
 	addi x1, x1, %lo(irq_regs)
 
-	custom0 2,0,0,0 // getq x2, q0
+	getq x2, q0
 	sw x2,   0*4(x1)
 
-	custom0 2,2,0,0 // getq x2, q2
+	getq x2, q2
 	sw x2,   1*4(x1)
 
-	custom0 2,3,0,0 // getq x2, q3
+	getq x2, q3
 	sw x2,   2*4(x1)
 
 	sw x3,   3*4(x1)
@@ -82,19 +81,19 @@ irq_vec:
 	sw x30, 30*4(x1)
 	sw x31, 31*4(x1)
 
-	/* call interrupt handler */
+	/* call interrupt handler C function */
 
-	lui sp, %hi(irq_stack_top)
-	addi sp, sp, %lo(irq_stack_top)
+	lui sp, %hi(irq_stack)
+	addi sp, sp, %lo(irq_stack)
 
 	// arg0 = address of regs
 	lui a0, %hi(irq_regs)
 	addi a0, a0, %lo(irq_regs)
 
 	// arg1 = interrupt type
-	custom0 11,1,0,0 // getq x11, q1
+	getq x11, q1
 
-	// call to c function
+	// call to C function
 	jal ra, irq
 
 	/* restore registers */
@@ -103,13 +102,13 @@ irq_vec:
 	addi x1, x1, %lo(irq_regs)
 
 	lw x2,   0*4(x1)
-	custom0 0,2,0,1 // setq q0, x2
+	setq q0, x2
 
 	lw x2,   1*4(x1)
-	custom0 1,2,0,1 // setq q1, x2
+	setq q1, x2
 
 	lw x2,   2*4(x1)
-	custom0 2,2,0,1 // setq q2, x2
+	setq q2, x2
 
 	lw x3,   3*4(x1)
 	lw x4,   4*4(x1)
@@ -141,21 +140,27 @@ irq_vec:
 	lw x30, 30*4(x1)
 	lw x31, 31*4(x1)
 
-	custom0 1,1,0,0 // getq x1, q1
-	custom0 2,2,0,0 // getq x2, q2
+	getq x1, q1
+	getq x2, q2
 
-	custom0 0,0,0,2 // retirq
+	retirq
 
 irq_regs:
-	// registers are saved to this memory region
+	// registers are saved to this memory region during interrupt handling
 	// the program counter is saved as register 0
 	.fill 32,4
 
-irq_stack:
+	// stack for the interrupt handler
 	.fill 128,4
-irq_stack_top:
+irq_stack:
+
+
+/* Main program
+ **********************************/
 
 start:
+	/* zero-initialize all registers */
+
 	addi x1, zero, 0
 	addi x2, zero, 0
 	addi x3, zero, 0
@@ -187,6 +192,22 @@ start:
 	addi x29, zero, 0
 	addi x30, zero, 0
 	addi x31, zero, 0
+
+	/* running tests from riscv-tests */
+
+#ifdef ENABLE_RVTST
+#  define TEST(n) \
+	.global n; \
+	addi x1, zero, 1000; \
+	timer zero, x1; \
+	jal zero,n; \
+	.global n ## _ret; \
+	n ## _ret:
+#else
+#  define TEST(n) \
+	.global n ## _ret; \
+	n ## _ret:
+#endif
 
 	TEST(lui)
 	TEST(auipc)
