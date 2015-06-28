@@ -57,6 +57,51 @@ non-branching instructions in an external coprocessor. An implementation
 of a core that implements the `MUL[H[SU|U]]` instructions is provided.
 
 
+Files in this Repository:
+-------------------------
+
+#### README.md
+
+You are reading it right now.
+
+#### picorv32.v
+
+This Verilog file contains the following Verilog modules:
+
+| Module                  | Description                                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| `picorv32`              | The PicoRV32 CPU                                              |
+| `picorv32_axi`          | The version of the CPU with AXI4-Lite interface               |
+| `picorv32_axi_adapter`  | Adapter from PicoRV32 Memory Interface to AXI4-Lite           |
+| `picorv32_pcpi_mul`     | A PCPI core that implements the `MUL[H[SU|U]]` instructions   |
+
+Simply copy this file into your project.
+
+#### Makefile and testbench.v
+
+A basic test environment run `make test`, `make test_sp` and/or `make test_axi` to run
+the test firmware in different environments.
+
+#### firmware/
+
+A simple test firmware. This runs the basic tests from `tests/`, some C code, tests IRQ
+handling and the multiply PCPI core.
+
+All the code in `firmware/` is in the public domain. Simply copy whatever you can use.
+
+#### tests/
+
+Simple instruction-level tests from [riscv-tests](https://github.com/riscv/riscv-tests).
+
+#### dhrystone/
+
+Another simple test firmware that runs the Dhrystome benchmark.
+
+#### scripts/
+
+Various scripts and examples for different (synthesis) tools and hardware architectures.
+
+
 Parameters:
 -----------
 
