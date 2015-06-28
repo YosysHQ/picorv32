@@ -267,7 +267,7 @@ start:
 #endif
 
 #ifdef ENABLE_MULTST
-	/* call sieve C code */
+	/* call multest C code */
 	jal ra,multest
 #endif
 
