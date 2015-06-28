@@ -33,6 +33,8 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
+	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
+	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010
@@ -75,8 +77,8 @@ module picorv32 #(
 	localparam integer irq_buserror = 2;
 
 	localparam integer irqregs_offset = ENABLE_REGS_16_31 ? 32 : 16;
-	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16) + 4*ENABLE_IRQ;
-	localparam integer regindex_bits = (ENABLE_REGS_16_31 ? 5 : 4) + ENABLE_IRQ;
+	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16) + 4*ENABLE_IRQ*ENABLE_IRQ_QREGS;
+	localparam integer regindex_bits = (ENABLE_REGS_16_31 ? 5 : 4) + ENABLE_IRQ*ENABLE_IRQ_QREGS;
 
 	localparam WITH_PCPI = ENABLE_PCPI || ENABLE_MUL;
 
@@ -379,11 +381,11 @@ module picorv32 #(
 			decoded_rs1 <= mem_rdata_latched[19:15];
 			decoded_rs2 <= mem_rdata_latched[24:20];
 
-			if (mem_rdata_latched[6:0] == 7'b0001011 && mem_rdata_latched[31:25] == 7'b0000000 && ENABLE_IRQ)
+			if (mem_rdata_latched[6:0] == 7'b0001011 && mem_rdata_latched[31:25] == 7'b0000000 && ENABLE_IRQ && ENABLE_IRQ_QREGS)
 				decoded_rs1[regindex_bits-1] <= 1; // instr_getq
 
 			if (mem_rdata_latched[6:0] == 7'b0001011 && mem_rdata_latched[31:25] == 7'b0000010 && ENABLE_IRQ)
-				decoded_rs1 <= irqregs_offset; // instr_retirq
+				decoded_rs1 <= ENABLE_IRQ_QREGS ? irqregs_offset : 3; // instr_retirq
 		end
 
 		if (decoder_trigger && !decoder_pseudo_trigger) begin
@@ -437,10 +439,10 @@ module picorv32 #(
 			instr_rdinstr  <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
 			instr_rdinstrh <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS;
 
-			instr_getq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000000 && ENABLE_IRQ;
-			instr_setq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000001 && ENABLE_IRQ;
+			instr_getq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000000 && ENABLE_IRQ && ENABLE_IRQ_QREGS;
+			instr_setq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000001 && ENABLE_IRQ && ENABLE_IRQ_QREGS;
 			instr_maskirq <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000011 && ENABLE_IRQ;
-			instr_timer   <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000101 && ENABLE_IRQ;
+			instr_timer   <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000101 && ENABLE_IRQ && ENABLE_IRQ_TIMER;
 
 			is_slli_srli_srai <= is_alu_reg_imm && |{
 				mem_rdata_q[14:12] == 3'b001 && mem_rdata_q[31:25] == 7'b0000000,
@@ -579,7 +581,7 @@ module picorv32 #(
 
 		next_irq_pending = irq_pending;
 
-		if (ENABLE_IRQ && timer) begin
+		if (ENABLE_IRQ && ENABLE_IRQ_TIMER && timer) begin
 			if (timer - 1 == 0)
 				next_irq_pending[irq_timer] = 1;
 			timer <= timer - 1;
@@ -665,7 +667,10 @@ module picorv32 #(
 					irq_state <=
 						irq_state == 2'b00 ? 2'b01 :
 						irq_state == 2'b01 ? 2'b10 : 2'b00;
-					latched_rd <= irqregs_offset | irq_state[0];
+					if (ENABLE_IRQ_QREGS)
+						latched_rd <= irqregs_offset | irq_state[0];
+					else
+						latched_rd <= irq_state[0] ? 4 : 3;
 				end else
 				if (ENABLE_IRQ && (decoder_trigger || do_waitirq) && instr_waitirq) begin
 					if (irq_pending) begin
@@ -762,12 +767,12 @@ module picorv32 #(
 					mem_do_rinst <= mem_do_prefetch;
 					cpu_state <= cpu_state_exec;
 				end else
-				if (ENABLE_IRQ && instr_getq) begin
+				if (ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq) begin
 					reg_out <= cpuregs[decoded_rs1];
 					latched_store <= 1;
 					cpu_state <= cpu_state_fetch;
 				end else
-				if (ENABLE_IRQ && instr_setq) begin
+				if (ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_setq) begin
 					reg_out <= cpuregs[decoded_rs1];
 					latched_rd <= latched_rd | irqregs_offset;
 					latched_store <= 1;
@@ -787,7 +792,7 @@ module picorv32 #(
 					irq_mask <= (decoded_rs1 ? cpuregs[decoded_rs1] : 0) | MASKED_IRQ;
 					cpu_state <= cpu_state_fetch;
 				end else
-				if (ENABLE_IRQ && instr_timer) begin
+				if (ENABLE_IRQ && ENABLE_IRQ_TIMER && instr_timer) begin
 					latched_store <= 1;
 					reg_out <= timer;
 					timer <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
@@ -1140,6 +1145,8 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
+	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
+	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010
@@ -1229,6 +1236,8 @@ module picorv32_axi #(
 		.ENABLE_PCPI         (ENABLE_PCPI         ),
 		.ENABLE_MUL          (ENABLE_MUL          ),
 		.ENABLE_IRQ          (ENABLE_IRQ          ),
+		.ENABLE_IRQ_QREGS    (ENABLE_IRQ_QREGS    ),
+		.ENABLE_IRQ_TIMER    (ENABLE_IRQ_TIMER    ),
 		.MASKED_IRQ          (MASKED_IRQ          ),
 		.PROGADDR_RESET      (PROGADDR_RESET      ),
 		.PROGADDR_IRQ        (PROGADDR_IRQ        )

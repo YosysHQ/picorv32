@@ -153,7 +153,19 @@ interface only becomes functional when ENABLE_PCPI is set as well.
 
 #### ENABLE_IRQ (default = 0)
 
-Set this to 1 to enable IRQs.
+Set this to 1 to enable IRQs. (see "" below for a discussion of IRQs)
+
+#### ENABLE_IRQ_QREGS (default = 1)
+
+Set this to 0 to disable support for the `getq` and `setq` instructions. Without
+the q-registers, the irq return address will be stored in x3 (gp) and the IRQ
+bitmask in x4 (tp), the global pointer and thread pointer registers according
+to the RISC-V ABI.  Code generated from ordinary C code will not interact with
+those registers.
+
+#### ENABLE_IRQ_TIMER (default = 1)
+
+Set this to 0 to disable support for the `timer` instruction.
 
 #### MASKED_IRQ (default = 32'h 0000_0000)
 
