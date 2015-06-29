@@ -1,0 +1,7 @@
+# yosys synthesis script for post-synthesis simulation (make test_synth)
+
+read_verilog picorv32.v
+chparam -set ENABLE_IRQ 1 -set ENABLE_MUL 1 picorv32_axi
+hierarchy -top picorv32_axi
+synth
+write_verilog synth.v

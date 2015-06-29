@@ -17,5 +17,8 @@
 /testbench.exe
 /testbench_sp.exe
 /testbench_axi.exe
+/testbench_synth.exe
 /testbench.vcd
+/synth.log
+/synth.v
 .*.swp
