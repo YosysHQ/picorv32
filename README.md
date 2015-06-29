@@ -82,6 +82,11 @@ Simply copy this file into your project.
 A basic test environment. Run `make test`, `make test_sp` and/or `make test_axi` to run
 the test firmware in different hardware configurations.
 
+*Note: The test bench is using Icarus Verilog. However, Icarus Verilog 0.9.7
+(the latest release at the time of writing) has a few bugs that prevent the
+test bench from running. Upgrade to the latest github master of Icarus Verilog
+to run the test bench.*
+
 #### firmware/
 
 A simple test firmware. This runs the basic tests from `tests/`, some C code, tests IRQ
