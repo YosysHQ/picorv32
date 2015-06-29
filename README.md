@@ -176,6 +176,16 @@ Support for the timer is always disabled when ENABLE_IRQ is set to 0.
 
 A 1 bit in this bitmask corresponds to a permanently disabled IRQ.
 
+#### LATCHED_IRQ (default = 32'h ffff_ffff)
+
+A 1 bit in this bitmask indicates that the corresponding IRQ is "latched", i.e.
+when the IRQ line is high for only one cycle, the interrupt will be marked as
+pending and stay pending until the interrupt handler is called (aka "pulse
+interrupts" or "edge-triggered interrupts").
+
+Set a bit in this bitmask to 0 to convert an interrupt line to operate
+as "level sensitive" interrupt.
+
 #### PROGADDR_RESET (default = 32'h 0000_0000)
 
 The start address of the program.

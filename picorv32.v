@@ -36,6 +36,7 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
 	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
+	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010
 ) (
@@ -579,7 +580,7 @@ module picorv32 #(
 		if (ENABLE_COUNTERS)
 			count_cycle <= resetn ? count_cycle + 1 : 0;
 
-		next_irq_pending = irq_pending;
+		next_irq_pending = ENABLE_IRQ ? irq_pending & LATCHED_IRQ : 'bx;
 
 		if (ENABLE_IRQ && ENABLE_IRQ_TIMER && timer) begin
 			if (timer - 1 == 0)
@@ -1148,6 +1149,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
 	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
+	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010
 ) (
@@ -1239,6 +1241,7 @@ module picorv32_axi #(
 		.ENABLE_IRQ_QREGS    (ENABLE_IRQ_QREGS    ),
 		.ENABLE_IRQ_TIMER    (ENABLE_IRQ_TIMER    ),
 		.MASKED_IRQ          (MASKED_IRQ          ),
+		.LATCHED_IRQ         (LATCHED_IRQ         ),
 		.PROGADDR_RESET      (PROGADDR_RESET      ),
 		.PROGADDR_IRQ        (PROGADDR_IRQ        )
 	) picorv32_core (
