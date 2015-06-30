@@ -9,6 +9,18 @@ Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](http://ris
 PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wikipedia.org/wiki/ISC_license)
 (a license that is similar in terms to the MIT license or the 2-clause BSD license).
 
+#### Table of Contents
+
+- [Features and Typical Applications](#features-and-typical-applications)
+- [Files in this Repository](#files-in-this-repository)
+- [Verilog Module Parameters](#verilog-module-parameters)
+- [Cycles per Instruction Performance](#cycles-per-instruction-performance)
+- [PicoRV32 Native Memory Interface](#picorv32-native-memory-interface)
+- [Pico Co-Processor Interface (PCPI)](#pico-co-processor-interface-pcpi)
+- [Custom Instructions for IRQ Handling](#custom-instructions-for-irq-handling)
+- [Building a pure RV32I Toolchain](#building-a-pure-rv32i-toolchain)
+- [Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs](#evaluation-timing-and-utilization-on-xilinx-7-series-fpgas)
+
 
 Features and Typical Applications
 ---------------------------------

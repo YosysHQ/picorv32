@@ -56,10 +56,13 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 	riscv64-unknown-elf-gcc -c -m32 -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
+toc:
+	gawk '/^-+$$/ { y=tolower(x); gsub("[^a-z0-9]+", "-", y); gsub("-$$", "", y); printf("- [%s](#%s)\n", x, y); } { x=$$0; }' README.md
+
 clean:
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) \
 		firmware/firmware.{elf,bin,hex,map} synth.v \
 		testbench{,_sp,_axi,_synth}.exe testbench.vcd
 
-.PHONY: test test_sp test_axi clean
+.PHONY: test test_sp test_axi test_sync toc clean
 
