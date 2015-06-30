@@ -1019,8 +1019,8 @@ endmodule
  ***************************************************************/
 
 module picorv32_pcpi_mul #(
-	// increasing this parameter increases performance and core size
-	parameter STEPS_AT_ONCE = 1
+	parameter STEPS_AT_ONCE = 1,
+	parameter CARRY_CHAIN = 4
 ) (
 	input clk, resetn,
 
@@ -1062,11 +1062,12 @@ module picorv32_pcpi_mul #(
 	end
 
 	reg [63:0] rs1, rs2, rd, rdx;
-	reg [63:0] next_rs1, next_rs2, next_rd, next_rdx, next_rdt;
+	reg [63:0] next_rs1, next_rs2, this_rs2;
+	reg [63:0] next_rd, next_rdx, next_rdt;
 	reg [6:0] mul_counter;
 	reg mul_waiting;
 	reg mul_finish;
-	integer i;
+	integer i, j;
 
 	// carry save accumulator
 	always @* begin
@@ -1076,14 +1077,18 @@ module picorv32_pcpi_mul #(
 		next_rs2 = rs2;
 
 		for (i = 0; i < STEPS_AT_ONCE; i=i+1) begin
-			if (next_rs1[0]) begin
-				next_rdt = (next_rd ^ next_rdx) ^ next_rs2;
-				next_rdx = ((next_rd & next_rdx) | (next_rd & next_rs2) | (next_rdx & next_rs2)) << 1;
+			this_rs2 = next_rs1[0] ? next_rs2 : 0;
+			if (CARRY_CHAIN == 0) begin
+				next_rdt = next_rd ^ next_rdx ^ this_rs2;
+				next_rdx = ((next_rd & next_rdx) | (next_rd & this_rs2) | (next_rdx & this_rs2)) << 1;
+				next_rd = next_rdt;
 			end else begin
-				next_rdt = next_rd ^ next_rdx;
-				next_rdx = (next_rd & next_rdx) << 1;
+				next_rdt = 0;
+				for (j = 0; j < 64; j = j + CARRY_CHAIN)
+					{next_rdt[j+CARRY_CHAIN-1], next_rd[j +: CARRY_CHAIN]} =
+							next_rd[j +: CARRY_CHAIN] + next_rdx[j +: CARRY_CHAIN] + this_rs2[j +: CARRY_CHAIN];
+				next_rdx = next_rdt << 1;
 			end
-			next_rd = next_rdt;
 			next_rs1 = next_rs1 >> 1;
 			next_rs2 = next_rs2 << 1;
 		end
