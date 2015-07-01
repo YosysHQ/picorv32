@@ -30,6 +30,8 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
+	parameter [ 0:0] CATCH_MISALIGN = 1,
+	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
@@ -280,7 +282,7 @@ module picorv32 #(
 	reg is_alu_reg_reg;
 	reg is_compare;
 
-	assign instr_trap = !{instr_lui, instr_auipc, instr_jal, instr_jalr,
+	assign instr_trap = (CATCH_ILLINSN || ENABLE_PCPI) && !{instr_lui, instr_auipc, instr_jal, instr_jalr,
 			instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu,
 			instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu, instr_sb, instr_sh, instr_sw,
 			instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi, instr_slli, instr_srli, instr_srai,
@@ -569,8 +571,8 @@ module picorv32 #(
 
 		reg_alu_out <= alu_out;
 
-		if (WITH_PCPI) begin
-			if (pcpi_valid && !pcpi_int_wait) begin
+		if (WITH_PCPI && CATCH_ILLINSN) begin
+			if (resetn && pcpi_valid && !pcpi_int_wait) begin
 				if (pcpi_timeout_counter)
 					pcpi_timeout_counter <= pcpi_timeout_counter - 1;
 			end else
@@ -710,7 +712,7 @@ module picorv32 #(
 `ifdef DEBUG
 				$display("DECODE: 0x%08x %-0s", reg_pc, instruction ? instruction : "UNKNOWN");
 `endif
-				if (instr_trap) begin
+				if ((CATCH_ILLINSN || WITH_PCPI) && instr_trap) begin
 					if (WITH_PCPI) begin
 						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						if (ENABLE_REGS_DUALPORT) begin
@@ -724,7 +726,7 @@ module picorv32 #(
 								latched_store <= pcpi_int_wr;
 								cpu_state <= cpu_state_fetch;
 							end else
-							if (pcpi_timeout) begin
+							if (CATCH_ILLINSN && pcpi_timeout) begin
 `ifdef DEBUG
 								$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
 `endif
@@ -848,7 +850,7 @@ module picorv32 #(
 						latched_store <= pcpi_int_wr;
 						cpu_state <= cpu_state_fetch;
 					end else
-					if (pcpi_timeout) begin
+					if (CATCH_ILLINSN && pcpi_timeout) begin
 `ifdef DEBUG
 						$display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);
 `endif
@@ -962,7 +964,7 @@ module picorv32 #(
 			end
 		endcase
 
-		if (resetn && (mem_do_rdata || mem_do_wdata)) begin
+		if (CATCH_MISALIGN && resetn && (mem_do_rdata || mem_do_wdata)) begin
 			if (mem_wordsize == 0 && reg_op1[1:0] != 0) begin
 `ifdef DEBUG
 				$display("MISALIGNED WORD: 0x%08x", reg_op1);
@@ -982,7 +984,7 @@ module picorv32 #(
 					cpu_state <= cpu_state_trap;
 			end
 		end
-		if (resetn && mem_do_rinst && reg_pc[1:0] != 0) begin
+		if (CATCH_MISALIGN && resetn && mem_do_rinst && reg_pc[1:0] != 0) begin
 `ifdef DEBUG
 			$display("MISALIGNED INSTRUCTION: 0x%08x", reg_pc);
 `endif
@@ -1149,6 +1151,8 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_COUNTERS = 1,
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+	parameter [ 0:0] CATCH_MISALIGN = 1,
+	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
@@ -1241,6 +1245,8 @@ module picorv32_axi #(
 		.ENABLE_COUNTERS     (ENABLE_COUNTERS     ),
 		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
+		.CATCH_MISALIGN      (CATCH_MISALIGN      ),
+		.CATCH_ILLINSN       (CATCH_ILLINSN       ),
 		.ENABLE_PCPI         (ENABLE_PCPI         ),
 		.ENABLE_MUL          (ENABLE_MUL          ),
 		.ENABLE_IRQ          (ENABLE_IRQ          ),

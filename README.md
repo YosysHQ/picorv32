@@ -158,6 +158,15 @@ latches the value internally.
 This parameter is only available for the `picorv32` core. In the
 `picorv32_axi` core this is implicitly set to 0.
 
+#### CATCH_MISALIGN (default = 1)
+
+Set this to 0 to disable the circuitry for catching misaligned memory
+accesses.
+
+#### CATCH_ILLINSN (default = 1)
+
+Set this to 0 to disable the circuitry for catching illegal instructions.
+
 #### ENABLE_PCPI (default = 0)
 
 Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
