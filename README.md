@@ -516,36 +516,49 @@ are using the name prefix `riscv64-unknown-elf-` by default.
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
 -----------------------------------------------------------
 
-The following table lists the maximum clock speeds that PicoRV32 can run at on
-Xilinx 7-Series FPGAs. This are the values reported by Vivado 2015.1 post
-place&route static timing analysis with `report_timing`.
+The following evaluations have been performed with Vivado 2015.1.
+
+#### Timing on Xilinx 7-Series FPGAs
+
+The `picorv32_axi` module in its default configuration has been placed and
+routed for Xilinx Artix-7T (xc7a15t-fgg484), Xilinx Kintex-7T (xc7k70t-fbg676),
+and Xilinx Virtex-7T (xc7v585t-ffg1761) devices in all speed grades. A binary
+search is used to find the lowest clock period for which the design meets
+timing.
+
+See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 
 | Device               | Speedgrade | Clock Period (Freq.) |
 |:-------------------- |:----------:| --------------------:|
-| Xilinx Artix-7T      | -1         |     5.1 ns (196 MHz) |
-| Xilinx Artix-7T      | -2         |     4.1 ns (243 MHz) |
-| Xilinx Artix-7T      | -3         |     3.6 ns (277 MHz) |
-| Xilinx Kintex-7T     | -1         |     3.3 ns (303 MHz) |
-| Xilinx Kintex-7T     | -2         |     2.6 ns (384 MHz) |
-| Xilinx Kintex-7T     | -3         |     2.5 ns (400 MHz) |
-| Xilinx Virtex-7T     | -1         |     3.1 ns (322 MHz) |
-| Xilinx Virtex-7T     | -2         |     2.6 ns (384 MHz) |
+| Xilinx Artix-7T      | -1         |     4.8 ns (208 MHz) |
+| Xilinx Artix-7T      | -2         |     3.9 ns (256 MHz) |
+| Xilinx Artix-7T      | -3         |     3.7 ns (270 MHz) |
+| Xilinx Kintex-7T     | -1         |     3.4 ns (294 MHz) |
+| Xilinx Kintex-7T     | -2         |     2.7 ns (370 MHz) |
+| Xilinx Kintex-7T     | -3         |     2.6 ns (384 MHz) |
+| Xilinx Virtex-7T     | -1         |     3.0 ns (333 MHz) |
+| Xilinx Virtex-7T     | -2         |     2.5 ns (400 MHz) |
 | Xilinx Virtex-7T     | -3         |     2.4 ns (416 MHz) |
 
-The following table lists the resource utilization in area-optimized synthesis,
-as reported by Vivado 2015.1 post optimization with `report_utilization`.
+#### Utilization on Xilinx 7-Series FPGAs
 
-PicoRV32 "small" is the core without counter instructions, with externally
-latched `mem_rdata`, and without catching of misaligned memory accesses and
-illegal instructions.
+The following table lists the resource utilization in area-optimized synthesis
+for the following three cores:
 
-PicoRV32 "regular" is simply the core with its default settings.
+- **PicoRV32 (small):** The `picorv32` module without counter instructions,
+  with externally latched `mem_rdata`, and without catching of misaligned
+  memory accesses and illegal instructions.
 
-And PicoRV32 "large" is with enabled PCPI, IRQ and MUL features.
+- **PicoRV32 (regular):** The `picorv32` module in its default configuration.
+
+- **PicoRV32 (large):** The `picorv32` module with enabled PCPI, IRQ and MUL
+  features.
+
+See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 "small"   |        828 |             48 |             422 |
-| PicoRV32 "regular" |        968 |             48 |             564 |
-| PicoRV32 "large"   |       1742 |             88 |            1002 |
+| PicoRV32 (small)   |        828 |             48 |             422 |
+| PicoRV32 (regular) |        968 |             48 |             564 |
+| PicoRV32 (large)   |       1742 |             88 |            1002 |
 
