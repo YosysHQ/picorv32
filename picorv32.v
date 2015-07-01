@@ -487,15 +487,16 @@ module picorv32 #(
 
 	// Main State Machine
 
-	localparam cpu_state_trap   = 0;
-	localparam cpu_state_fetch  = 1;
-	localparam cpu_state_ld_rs1 = 2;
-	localparam cpu_state_ld_rs2 = 3;
-	localparam cpu_state_exec   = 4;
-	localparam cpu_state_shift  = 5;
-	localparam cpu_state_stmem  = 6;
-	localparam cpu_state_ldmem  = 7;
-	reg [2:0] cpu_state;
+	localparam cpu_state_trap   = 8'b10000000;
+	localparam cpu_state_fetch  = 8'b01000000;
+	localparam cpu_state_ld_rs1 = 8'b00100000;
+	localparam cpu_state_ld_rs2 = 8'b00010000;
+	localparam cpu_state_exec   = 8'b00001000;
+	localparam cpu_state_shift  = 8'b00000100;
+	localparam cpu_state_stmem  = 8'b00000010;
+	localparam cpu_state_ldmem  = 8'b00000001;
+
+	reg [7:0] cpu_state;
 	reg [1:0] irq_state;
 
 	reg set_mem_do_rinst;
