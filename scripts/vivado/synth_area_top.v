@@ -1,7 +1,6 @@
 
 module top_small (
 	input clk, resetn,
-	output trap,
 
 	output        mem_valid,
 	output        mem_instr,
@@ -14,13 +13,12 @@ module top_small (
 );
 	picorv32 #(
 		.ENABLE_COUNTERS(0),
-		.ENABLE_REGS_16_31(0),
-		.ENABLE_REGS_DUALPORT(1),
-		.LATCHED_MEM_RDATA(1)
+		.LATCHED_MEM_RDATA(1),
+		.CATCH_MISALIGN(0),
+		.CATCH_ILLINSN(0)
 	) picorv32 (
 		.clk      (clk      ),
 		.resetn   (resetn   ),
-		.trap     (trap     ),
 		.mem_valid(mem_valid),
 		.mem_instr(mem_instr),
 		.mem_ready(mem_ready),
@@ -91,13 +89,11 @@ module top_large (
 	output [ 3:0] mem_la_wstrb,
 
 	// Pico Co-Processor Interface (PCPI)
-	output        pcpi_insn_valid,
+	output        pcpi_valid,
 	output [31:0] pcpi_insn,
-	output        pcpi_rs1_valid,
 	output [31:0] pcpi_rs1,
-	output        pcpi_rs2_valid,
 	output [31:0] pcpi_rs2,
-	input         pcpi_rd_valid,
+	input         pcpi_wr,
 	input  [31:0] pcpi_rd,
 	input         pcpi_wait,
 	input         pcpi_ready,
@@ -126,13 +122,11 @@ module top_large (
 		.mem_la_addr    (mem_la_addr    ),
 		.mem_la_wdata   (mem_la_wdata   ),
 		.mem_la_wstrb   (mem_la_wstrb   ),
-		.pcpi_insn_valid(pcpi_insn_valid),
+		.pcpi_valid     (pcpi_valid     ),
 		.pcpi_insn      (pcpi_insn      ),
-		.pcpi_rs1_valid (pcpi_rs1_valid ),
 		.pcpi_rs1       (pcpi_rs1       ),
-		.pcpi_rs2_valid (pcpi_rs2_valid ),
 		.pcpi_rs2       (pcpi_rs2       ),
-		.pcpi_rd_valid  (pcpi_rd_valid  ),
+		.pcpi_wr        (pcpi_wr        ),
 		.pcpi_rd        (pcpi_rd        ),
 		.pcpi_wait      (pcpi_wait      ),
 		.pcpi_ready     (pcpi_ready     ),

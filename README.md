@@ -533,17 +533,19 @@ place&route static timing analysis with `report_timing`.
 | Xilinx Virtex-7T     | -3         |     2.4 ns (416 MHz) |
 
 The following table lists the resource utilization in area-optimized synthesis,
-as reported by Vivado 2015.1 post optimization with `report_utilization`. The
-"small" core is PicoRV32 configured down to a RV32E cpu, the "regular" core is
-PicoRV32 with its default settings and the "large" core is PicoRV32 with
-enabled PCPI, IRQ and MUL features.
+as reported by Vivado 2015.1 post optimization with `report_utilization`.
+
+PicoRV32 "small" is the core without counter instructions, with externally
+latched `mem_rdata`, and without catching of misaligned memory access and
+illegal instructions.
+
+PicoRV32 "regular" is simply the core with its default settings.
+
+And PicoRV32 "large" is with enabled PCPI, IRQ and MUL features.
 
 | Core Variant       | Slice LUTs | LUTs as Memory |
 |:------------------ | ----------:| --------------:|
-| PicoRV32 "small"   |        855 |             48 |
-| PicoRV32 "regular" |        996 |             48 |
-| PicoRV32 "large"   |       1814 |             88 |
-
-*Note: Most of the size reduction in the "small" core comes from eliminating
-the counter instructions, not from reducing the size of the register file.*
+| PicoRV32 "small"   |        828 |             48 |
+| PicoRV32 "regular" |        968 |             48 |
+| PicoRV32 "large"   |       1742 |             88 |
 
