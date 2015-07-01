@@ -25,8 +25,8 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 Features and Typical Applications
 ---------------------------------
 
-- Small (~1000 LUTs in a 7-Series Xilinx FGPA)
-- High fMAX (~250 MHz on 7-Series Xilinx FGPAs)
+- Small (~1000 LUTs in a 7-Series Xilinx FPGA)
+- High fMAX (~250 MHz on 7-Series Xilinx FPGAs)
 - Selectable native memory interface or AXI4-Lite master
 - Optional IRQ support (using a simple custom ISA)
 - Optional Co-Processor Interface
@@ -60,11 +60,11 @@ include one or more PicoRV32 cores together with local RAM, ROM, and
 memory-mapped peripherals, communicating with each other using the native
 interface, and communicating with the outside world via AXI4.
 
-The optional IRQ feature can be used to react to events from the outside, implemnt
+The optional IRQ feature can be used to react to events from the outside, implement
 fault handlers, or catch instructions from a larger ISA and emulate them in
 software.
 
-The optional Pico Co-Prosessor Interface (PCPI) can be used to implement
+The optional Pico Co-Processor Interface (PCPI) can be used to implement
 non-branching instructions in an external coprocessor. An implementation
 of a core that implements the `MUL[H[SU|U]]` instructions is provided.
 
@@ -112,7 +112,7 @@ Simple instruction-level tests from [riscv-tests](https://github.com/riscv/riscv
 
 #### dhrystone/
 
-Another simple test firmware that runs the Dhrystome benchmark.
+Another simple test firmware that runs the Dhrystone benchmark.
 
 #### scripts/
 
@@ -165,7 +165,7 @@ Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
 #### ENABLE_MUL (default = 0)
 
 This parameter internally enables PCPI and instantiates the `picorv32_pcpi_mul`
-core that implements the `MUL[H[SU|U]]` instructions. The external CPCI
+core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
 interface only becomes functional when ENABLE_PCPI is set as well.
 
 #### ENABLE_IRQ (default = 0)
@@ -218,7 +218,7 @@ Cycles per Instruction Performance
 *A short reminder: This core is optimized for size, not performance.*
 
 Unless stated otherwise, the following numbers apply to a PicoRV32 with
-ENABLE_REGS_DUALPORT active and connected to a memory that can accomodate
+ENABLE_REGS_DUALPORT active and connected to a memory that can accommodate
 requests within one clock cycle.
 
 The average Cycles per Instruction (CPI) is 4 to 5, depending on the mix of
@@ -303,7 +303,7 @@ pulse on `mem_la_read` or `mem_la_write` to indicate the start of a read or
 write transaction in the next clock cycles.
 
 *Note: The signals `mem_la_read`, `mem_la_write`, and `mem_la_addr` are driven
-by combinatorical circuits within the PicoRV32 core. It might be harder to
+by combinatorial circuits within the PicoRV32 core. It might be harder to
 achieve timing closure with the look-ahead interface than with the normal
 memory interface described above.*
 
@@ -389,8 +389,8 @@ and rs2 fields are ignored in all this instructions.
 See [firmware/custom_ops.S](firmware/custom_ops.S) for GNU assembler macros that
 implement mnemonics for this instructions.
 
-See [firmware/start.S](firmware/start.S) for an example implementaion of an
-interrupt handler assember wrapper, and [firmware/irq.c](firmware/irq.c) for
+See [firmware/start.S](firmware/start.S) for an example implementation of an
+interrupt handler assembler wrapper, and [firmware/irq.c](firmware/irq.c) for
 the actual interrupt handler.
 
 #### getq rd, qs
