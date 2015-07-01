@@ -533,10 +533,10 @@ place&route static timing analysis with `report_timing`.
 | Xilinx Virtex-7T     | -3         |     2.4 ns (416 MHz) |
 
 The following table lists the resource utilization in area-optimized synthesis,
-as reported by Vivado 2015.2 post optimization with `report_utilization`.
+as reported by Vivado 2015.1 post optimization with `report_utilization`.
 
 PicoRV32 "small" is the core without counter instructions, with externally
-latched `mem_rdata`, and without catching of misaligned memory access and
+latched `mem_rdata`, and without catching of misaligned memory accesses and
 illegal instructions.
 
 PicoRV32 "regular" is simply the core with its default settings.

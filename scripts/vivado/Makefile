@@ -1,5 +1,5 @@
 
-export VIVADO = /opt/Xilinx/Vivado/2015.2/bin/vivado
+export VIVADO = /opt/Xilinx/Vivado/2015.1/bin/vivado
 
 help:
 	@echo "Usage: make {synth_speed|synth_area|synth_soc}"
