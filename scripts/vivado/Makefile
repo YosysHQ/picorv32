@@ -1,5 +1,5 @@
 
-export VIVADO = /opt/Xilinx/Vivado/2015.1/bin/vivado
+export VIVADO = /opt/Xilinx/Vivado/2015.2/bin/vivado
 
 help:
 	@echo "Usage: make {synth_speed|synth_area|synth_soc}"
@@ -13,6 +13,9 @@ synth_%:
 
 tab_%/results.txt:
 	bash tabtest.sh $@
+
+area: synth_area_small synth_area_regular synth_area_large
+	-grep -B4 -A10 'Slice LUTs' synth_area_small.log synth_area_regular.log synth_area_large.log
 
 table.txt: tab_small_xc7a_1/results.txt tab_small_xc7a_2/results.txt tab_small_xc7a_3/results.txt
 table.txt: tab_small_xc7k_1/results.txt tab_small_xc7k_2/results.txt tab_small_xc7k_3/results.txt
