@@ -9,7 +9,7 @@ test: testbench.exe firmware/firmware.hex
 testbench.vcd: testbench.exe firmware/firmware.hex
 	vvp -N $< +vcd
 
-testbench_view: testbench.vcd
+view: testbench.vcd
 	gtkwave $< testbench.gtkw
 
 test_sp: testbench_sp.exe firmware/firmware.hex
@@ -68,8 +68,8 @@ toc:
 
 clean:
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) \
-		firmware/firmware.{elf,bin,hex,map} synth.v \
-		testbench.exe testbench_sp.exe testbench_axi.exe testbench_synth.exe testbench.vcd
+		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
+		synth.v testbench.exe testbench_sp.exe testbench_axi.exe testbench_synth.exe testbench.vcd
 
-.PHONY: test test_sp test_axi test_sync toc clean
+.PHONY: test view test_sp test_axi test_sync toc clean
 

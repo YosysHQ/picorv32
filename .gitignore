@@ -18,6 +18,7 @@
 /testbench_sp.exe
 /testbench_axi.exe
 /testbench_synth.exe
+/testbench.gtkw
 /testbench.vcd
 /synth.log
 /synth.v
