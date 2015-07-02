@@ -264,7 +264,7 @@ that can run one memory transfer at a time:
     output        mem_valid
     output        mem_instr
     input         mem_ready
-    
+
     output [31:0] mem_addr
     output [31:0] mem_wdata
     output [ 3:0] mem_wstrb
