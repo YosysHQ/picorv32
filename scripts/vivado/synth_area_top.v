@@ -14,6 +14,7 @@ module top_small (
 	picorv32 #(
 		.ENABLE_COUNTERS(0),
 		.LATCHED_MEM_RDATA(1),
+		.TWO_STAGE_SHIFT(0),
 		.CATCH_MISALIGN(0),
 		.CATCH_ILLINSN(0)
 	) picorv32 (

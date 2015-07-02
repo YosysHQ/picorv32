@@ -539,13 +539,13 @@ See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 |:-------------------- |:----------:| --------------------:|
 | Xilinx Artix-7T      | -1         |     4.8 ns (208 MHz) |
 | Xilinx Artix-7T      | -2         |     3.9 ns (256 MHz) |
-| Xilinx Artix-7T      | -3         |     3.7 ns (270 MHz) |
-| Xilinx Kintex-7T     | -1         |     3.4 ns (294 MHz) |
-| Xilinx Kintex-7T     | -2         |     2.7 ns (370 MHz) |
+| Xilinx Artix-7T      | -3         |     3.4 ns (294 MHz) |
+| Xilinx Kintex-7T     | -1         |     3.2 ns (312 MHz) |
+| Xilinx Kintex-7T     | -2         |     2.5 ns (400 MHz) |
 | Xilinx Kintex-7T     | -3         |     2.6 ns (384 MHz) |
 | Xilinx Virtex-7T     | -1         |     3.0 ns (333 MHz) |
-| Xilinx Virtex-7T     | -2         |     2.5 ns (400 MHz) |
-| Xilinx Virtex-7T     | -3         |     2.4 ns (416 MHz) |
+| Xilinx Virtex-7T     | -2         |     2.7 ns (370 MHz) |
+| Xilinx Virtex-7T     | -3         |     2.3 ns (434 MHz) |
 
 #### Utilization on Xilinx 7-Series FPGAs
 
@@ -553,8 +553,8 @@ The following table lists the resource utilization in area-optimized synthesis
 for the following three cores:
 
 - **PicoRV32 (small):** The `picorv32` module without counter instructions,
-  with externally latched `mem_rdata`, and without catching of misaligned
-  memory accesses and illegal instructions.
+  without two-stage shifts, with externally latched `mem_rdata`, and without
+  catching of misaligned memory accesses and illegal instructions.
 
 - **PicoRV32 (regular):** The `picorv32` module in its default configuration.
 
@@ -565,7 +565,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        828 |             48 |             422 |
-| PicoRV32 (regular) |        968 |             48 |             564 |
-| PicoRV32 (large)   |       1742 |             88 |            1002 |
+| PicoRV32 (small)   |        775 |             48 |             422 |
+| PicoRV32 (regular) |        963 |             48 |             564 |
+| PicoRV32 (large)   |       1800 |             88 |            1002 |
 
