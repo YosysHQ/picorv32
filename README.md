@@ -158,6 +158,13 @@ latches the value internally.
 This parameter is only available for the `picorv32` core. In the
 `picorv32_axi` core this is implicitly set to 0.
 
+#### TWO_STAGE_SHIFT (default = 1)
+
+By default shift operations are performed in two stages: first shift in units
+of 4 bits and then shift in units of 1 bit. This speeds up shift operations,
+but adds additional hardware. Set this parameter to 0 to disable the two-stage
+shift to further reduce the size of the core.
+
 #### CATCH_MISALIGN (default = 1)
 
 Set this to 0 to disable the circuitry for catching misaligned memory

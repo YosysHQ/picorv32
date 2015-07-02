@@ -36,6 +36,7 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
+	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
 	parameter [ 0:0] CATCH_MISALIGN = 1,
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
@@ -885,7 +886,7 @@ module picorv32 #(
 					reg_out <= reg_op1;
 					mem_do_rinst <= mem_do_prefetch;
 					cpu_state <= cpu_state_fetch;
-				end else if (reg_sh >= 4) begin
+				end else if (TWO_STAGE_SHIFT && reg_sh >= 4) begin
 					(* parallel_case, full_case *)
 					case (1'b1)
 						instr_slli || instr_sll: reg_op1 <= reg_op1 << 4;
@@ -1136,6 +1137,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_COUNTERS = 1,
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
+	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
 	parameter [ 0:0] CATCH_MISALIGN = 1,
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
@@ -1230,6 +1232,7 @@ module picorv32_axi #(
 		.ENABLE_COUNTERS     (ENABLE_COUNTERS     ),
 		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
+		.TWO_STAGE_SHIFT     (TWO_STAGE_SHIFT     ),
 		.CATCH_MISALIGN      (CATCH_MISALIGN      ),
 		.CATCH_ILLINSN       (CATCH_ILLINSN       ),
 		.ENABLE_PCPI         (ENABLE_PCPI         ),
