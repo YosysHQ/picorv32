@@ -1,9 +1,16 @@
 
 TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.o firmware/multest.o firmware/stats.o
+GCC_WARNS = -Wall -Wextra -Wshadow -Wundef
 
 test: testbench.exe firmware/firmware.hex
 	vvp -N testbench.exe
+
+testbench.vcd: testbench.exe firmware/firmware.hex
+	vvp -N $< +vcd
+
+testbench_view: testbench.vcd
+	gtkwave $< testbench.gtkw
 
 test_sp: testbench_sp.exe firmware/firmware.hex
 	vvp -N testbench_sp.exe
@@ -50,7 +57,7 @@ firmware/start.o: firmware/start.S
 	riscv64-unknown-elf-gcc -c -m32 -o $@ $<
 
 firmware/%.o: firmware/%.c
-	riscv64-unknown-elf-gcc -c -m32 -march=RV32I -Os -ffreestanding -nostdlib -o $@ $<
+	riscv64-unknown-elf-gcc -c -m32 -march=RV32I -Os $(GCC_WARNS) -ffreestanding -nostdlib -o $@ $<
 
 tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 	riscv64-unknown-elf-gcc -c -m32 -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \
@@ -62,7 +69,7 @@ toc:
 clean:
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) \
 		firmware/firmware.{elf,bin,hex,map} synth.v \
-		testbench{,_sp,_axi,_synth}.exe testbench.vcd
+		testbench.exe testbench_sp.exe testbench_axi.exe testbench_synth.exe testbench.vcd
 
 .PHONY: test test_sp test_axi test_sync toc clean
 
