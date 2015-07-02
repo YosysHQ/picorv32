@@ -719,9 +719,11 @@ module picorv32 #(
 				case (1'b1)
 					(CATCH_ILLINSN || WITH_PCPI) && instr_trap: begin
 						if (WITH_PCPI) begin
+							`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
 							reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 							if (ENABLE_REGS_DUALPORT) begin
 								pcpi_valid <= 1;
+								`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);)
 								reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 								reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 								if (pcpi_int_ready) begin
@@ -773,12 +775,14 @@ module picorv32 #(
 						cpu_state <= cpu_state_exec;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq: begin
-						reg_out <= cpuregs[decoded_rs1];
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
+						reg_out <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						latched_store <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_setq: begin
-						reg_out <= cpuregs[decoded_rs1];
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
+						reg_out <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						latched_rd <= latched_rd | irqregs_offset;
 						latched_store <= 1;
 						cpu_state <= cpu_state_fetch;
@@ -788,18 +792,21 @@ module picorv32 #(
 						irq_active <= 0;
 						latched_branch <= 1;
 						latched_store <= 1;
-						reg_out <= cpuregs[decoded_rs1];
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
+						reg_out <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && instr_maskirq: begin
 						latched_store <= 1;
 						reg_out <= irq_mask;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
 						irq_mask <= (decoded_rs1 ? cpuregs[decoded_rs1] : 0) | MASKED_IRQ;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_TIMER && instr_timer: begin
 						latched_store <= 1;
 						reg_out <= timer;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
 						timer <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						cpu_state <= cpu_state_fetch;
 					end
