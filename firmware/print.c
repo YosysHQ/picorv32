@@ -20,7 +20,7 @@ void print_str(const char *p)
 		*((volatile uint32_t*)OUTPORT) = *(p++);
 }
 
-void print_dec(int val)
+void print_dec(unsigned int val)
 {
 	char buffer[10];
 	char *p = buffer;

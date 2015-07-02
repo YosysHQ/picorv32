@@ -17,7 +17,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs);
 // print.c
 void print_chr(char ch);
 void print_str(const char *p);
-void print_dec(int val);
+void print_dec(unsigned int val);
 void print_hex(unsigned int val);
 
 // sieve.c

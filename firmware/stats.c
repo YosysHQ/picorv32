@@ -7,7 +7,7 @@
 
 #include "firmware.h"
 
-static void stats_print_dec(int val, int digits, bool zero_pad)
+static void stats_print_dec(unsigned int val, int digits, bool zero_pad)
 {
 	char buffer[32];
 	char *p = buffer;
@@ -27,7 +27,7 @@ static void stats_print_dec(int val, int digits, bool zero_pad)
 
 void stats()
 {
-	int num_cycles, num_instr;
+	unsigned int num_cycles, num_instr;
 	asm("rdcycle %0; rdinstret %1;" : "=r"(num_cycles), "=r"(num_instr));
 	print_str("Cycle counter ........");
 	stats_print_dec(num_cycles, 8, false);
