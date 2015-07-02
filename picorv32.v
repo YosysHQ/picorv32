@@ -639,26 +639,29 @@ module picorv32 #(
 
 				current_pc = reg_next_pc;
 
-				if (latched_branch) begin
-					current_pc = latched_store ? (latched_stalu ? reg_alu_out : reg_out) : reg_next_pc;
-					`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + 4, current_pc);)
-					cpuregs[latched_rd] <= reg_pc + 4;
-				end else
-				if (latched_store) begin
-					`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? reg_alu_out : reg_out);)
-					cpuregs[latched_rd] <= latched_stalu ? reg_alu_out : reg_out;
-				end else
-				if (ENABLE_IRQ && irq_state[0]) begin
-					cpuregs[latched_rd] <= current_pc;
-					current_pc = PROGADDR_IRQ;
-					irq_active <= 1;
-					mem_do_rinst <= 1;
-				end else
-				if (ENABLE_IRQ && irq_state[1]) begin
-					eoi <= irq_pending & ~irq_mask;
-					cpuregs[latched_rd] <= irq_pending & ~irq_mask;
-					next_irq_pending = next_irq_pending & irq_mask;
-				end
+				(* parallel_case *)
+				case (1'b1)
+					latched_branch: begin
+						current_pc = latched_store ? (latched_stalu ? reg_alu_out : reg_out) : reg_next_pc;
+						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + 4, current_pc);)
+						cpuregs[latched_rd] <= reg_pc + 4;
+					end
+					latched_store && !latched_branch: begin
+						`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? reg_alu_out : reg_out);)
+						cpuregs[latched_rd] <= latched_stalu ? reg_alu_out : reg_out;
+					end
+					ENABLE_IRQ && irq_state[0]: begin
+						cpuregs[latched_rd] <= current_pc;
+						current_pc = PROGADDR_IRQ;
+						irq_active <= 1;
+						mem_do_rinst <= 1;
+					end
+					ENABLE_IRQ && irq_state[1]: begin
+						eoi <= irq_pending & ~irq_mask;
+						cpuregs[latched_rd] <= irq_pending & ~irq_mask;
+						next_irq_pending = next_irq_pending & irq_mask;
+					end
+				endcase
 
 				reg_pc <= current_pc;
 				reg_next_pc <= current_pc;
@@ -711,153 +714,178 @@ module picorv32 #(
 				reg_op1 <= 'bx;
 				reg_op2 <= 'bx;
 				`debug($display("DECODE: 0x%08x %-0s", reg_pc, instruction ? instruction : "UNKNOWN");)
-				if ((CATCH_ILLINSN || WITH_PCPI) && instr_trap) begin
-					if (WITH_PCPI) begin
-						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
-						if (ENABLE_REGS_DUALPORT) begin
-							pcpi_valid <= 1;
-							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-							reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-							if (pcpi_int_ready) begin
-								mem_do_rinst <= 1;
-								pcpi_valid <= 0;
-								reg_out <= pcpi_int_rd;
-								latched_store <= pcpi_int_wr;
-								cpu_state <= cpu_state_fetch;
-							end else
-							if (CATCH_ILLINSN && pcpi_timeout) begin
-								`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
-								if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
-									next_irq_pending[irq_sbreak] = 1;
+
+				(* parallel_case *)
+				case (1'b1)
+					(CATCH_ILLINSN || WITH_PCPI) && instr_trap: begin
+						if (WITH_PCPI) begin
+							reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+							if (ENABLE_REGS_DUALPORT) begin
+								pcpi_valid <= 1;
+								reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+								reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+								if (pcpi_int_ready) begin
+									mem_do_rinst <= 1;
+									pcpi_valid <= 0;
+									reg_out <= pcpi_int_rd;
+									latched_store <= pcpi_int_wr;
 									cpu_state <= cpu_state_fetch;
 								end else
-									cpu_state <= cpu_state_trap;
+								if (CATCH_ILLINSN && pcpi_timeout) begin
+									`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
+									if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
+										next_irq_pending[irq_sbreak] = 1;
+										cpu_state <= cpu_state_fetch;
+									end else
+										cpu_state <= cpu_state_trap;
+								end
+							end else begin
+								cpu_state <= cpu_state_ld_rs2;
 							end
 						end else begin
-							cpu_state <= cpu_state_ld_rs2;
+							`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
+							if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
+								next_irq_pending[irq_sbreak] = 1;
+								cpu_state <= cpu_state_fetch;
+							end else
+								cpu_state <= cpu_state_trap;
 						end
-					end else begin
-						`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
-						if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
-							next_irq_pending[irq_sbreak] = 1;
-							cpu_state <= cpu_state_fetch;
-						end else
-							cpu_state <= cpu_state_trap;
 					end
-				end else
-				if (is_rdcycle_rdcycleh_rdinstr_rdinstrh) begin
-					(* parallel_case, full_case *)
-					case (1'b1)
-						instr_rdcycle:
-							reg_out <= count_cycle[31:0];
-						instr_rdcycleh:
-							reg_out <= count_cycle[63:32];
-						instr_rdinstr:
-							reg_out <= count_instr[31:0];
-						instr_rdinstrh:
-							reg_out <= count_instr[63:32];
-					endcase
-					latched_store <= 1;
-					cpu_state <= cpu_state_fetch;
-				end else
-				if (is_lui_auipc_jal) begin
-					reg_op1 <= instr_lui ? 0 : reg_pc;
-					reg_op2 <= decoded_imm;
-					mem_do_rinst <= mem_do_prefetch;
-					cpu_state <= cpu_state_exec;
-				end else
-				if (ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq) begin
-					reg_out <= cpuregs[decoded_rs1];
-					latched_store <= 1;
-					cpu_state <= cpu_state_fetch;
-				end else
-				if (ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_setq) begin
-					reg_out <= cpuregs[decoded_rs1];
-					latched_rd <= latched_rd | irqregs_offset;
-					latched_store <= 1;
-					cpu_state <= cpu_state_fetch;
-				end else
-				if (ENABLE_IRQ && instr_retirq) begin
-					eoi <= 0;
-					irq_active <= 0;
-					latched_branch <= 1;
-					latched_store <= 1;
-					reg_out <= cpuregs[decoded_rs1];
-					cpu_state <= cpu_state_fetch;
-				end else
-				if (ENABLE_IRQ && instr_maskirq) begin
-					latched_store <= 1;
-					reg_out <= irq_mask;
-					irq_mask <= (decoded_rs1 ? cpuregs[decoded_rs1] : 0) | MASKED_IRQ;
-					cpu_state <= cpu_state_fetch;
-				end else
-				if (ENABLE_IRQ && ENABLE_IRQ_TIMER && instr_timer) begin
-					latched_store <= 1;
-					reg_out <= timer;
-					timer <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
-					cpu_state <= cpu_state_fetch;
-				end else begin
-					`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-					reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
-					if (is_lb_lh_lw_lbu_lhu) begin
-						cpu_state <= cpu_state_ldmem;
-						mem_do_rinst <= 1;
-					end else if (is_slli_srli_srai) begin
-						reg_sh <= decoded_rs2;
-						cpu_state <= cpu_state_shift;
-					end else if (is_jalr_addi_slti_sltiu_xori_ori_andi) begin
+					ENABLE_COUNTERS && is_rdcycle_rdcycleh_rdinstr_rdinstrh: begin
+						(* parallel_case, full_case *)
+						case (1'b1)
+							instr_rdcycle:
+								reg_out <= count_cycle[31:0];
+							instr_rdcycleh:
+								reg_out <= count_cycle[63:32];
+							instr_rdinstr:
+								reg_out <= count_instr[31:0];
+							instr_rdinstrh:
+								reg_out <= count_instr[63:32];
+						endcase
+						latched_store <= 1;
+						cpu_state <= cpu_state_fetch;
+					end
+					is_lui_auipc_jal: begin
+						reg_op1 <= instr_lui ? 0 : reg_pc;
 						reg_op2 <= decoded_imm;
 						mem_do_rinst <= mem_do_prefetch;
 						cpu_state <= cpu_state_exec;
-					end else if (ENABLE_REGS_DUALPORT) begin
-						`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);)
-						reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-						reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-						if (is_sb_sh_sw) begin
-							cpu_state <= cpu_state_stmem;
-							mem_do_rinst <= 1;
-						end else if (is_sll_srl_sra) begin
-							cpu_state <= cpu_state_shift;
-						end else begin
-							mem_do_rinst <= mem_do_prefetch;
-							cpu_state <= cpu_state_exec;
-						end
-					end else
-						cpu_state <= cpu_state_ld_rs2;
-				end
+					end
+					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq: begin
+						reg_out <= cpuregs[decoded_rs1];
+						latched_store <= 1;
+						cpu_state <= cpu_state_fetch;
+					end
+					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_setq: begin
+						reg_out <= cpuregs[decoded_rs1];
+						latched_rd <= latched_rd | irqregs_offset;
+						latched_store <= 1;
+						cpu_state <= cpu_state_fetch;
+					end
+					ENABLE_IRQ && instr_retirq: begin
+						eoi <= 0;
+						irq_active <= 0;
+						latched_branch <= 1;
+						latched_store <= 1;
+						reg_out <= cpuregs[decoded_rs1];
+						cpu_state <= cpu_state_fetch;
+					end
+					ENABLE_IRQ && instr_maskirq: begin
+						latched_store <= 1;
+						reg_out <= irq_mask;
+						irq_mask <= (decoded_rs1 ? cpuregs[decoded_rs1] : 0) | MASKED_IRQ;
+						cpu_state <= cpu_state_fetch;
+					end
+					ENABLE_IRQ && ENABLE_IRQ_TIMER && instr_timer: begin
+						latched_store <= 1;
+						reg_out <= timer;
+						timer <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						cpu_state <= cpu_state_fetch;
+					end
+					is_lb_lh_lw_lbu_lhu: begin
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
+						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						cpu_state <= cpu_state_ldmem;
+						mem_do_rinst <= 1;
+					end
+					is_slli_srli_srai: begin
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
+						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						reg_sh <= decoded_rs2;
+						cpu_state <= cpu_state_shift;
+					end
+					is_jalr_addi_slti_sltiu_xori_ori_andi: begin
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
+						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						reg_op2 <= decoded_imm;
+						mem_do_rinst <= mem_do_prefetch;
+						cpu_state <= cpu_state_exec;
+					end
+					default: begin
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
+						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						if (ENABLE_REGS_DUALPORT) begin
+							`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);)
+							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+							reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+							(* parallel_case *)
+							case (1'b1)
+								is_sb_sh_sw: begin
+									cpu_state <= cpu_state_stmem;
+									mem_do_rinst <= 1;
+								end
+								is_sll_srl_sra: begin
+									cpu_state <= cpu_state_shift;
+								end
+								default: begin
+									mem_do_rinst <= mem_do_prefetch;
+									cpu_state <= cpu_state_exec;
+								end
+							endcase
+						end else
+							cpu_state <= cpu_state_ld_rs2;
+					end
+				endcase
 			end
 
 			cpu_state_ld_rs2: begin
 				`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);)
 				reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
 				reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-				if (WITH_PCPI && instr_trap) begin
-					pcpi_valid <= 1;
-					if (pcpi_int_ready) begin
-						mem_do_rinst <= 1;
-						pcpi_valid <= 0;
-						reg_out <= pcpi_int_rd;
-						latched_store <= pcpi_int_wr;
-						cpu_state <= cpu_state_fetch;
-					end else
-					if (CATCH_ILLINSN && pcpi_timeout) begin
-						`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
-						if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
-							next_irq_pending[irq_sbreak] = 1;
+
+				(* parallel_case *)
+				case (1'b1)
+					WITH_PCPI && instr_trap: begin
+						pcpi_valid <= 1;
+						if (pcpi_int_ready) begin
+							mem_do_rinst <= 1;
+							pcpi_valid <= 0;
+							reg_out <= pcpi_int_rd;
+							latched_store <= pcpi_int_wr;
 							cpu_state <= cpu_state_fetch;
 						end else
-							cpu_state <= cpu_state_trap;
+						if (CATCH_ILLINSN && pcpi_timeout) begin
+							`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
+							if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
+								next_irq_pending[irq_sbreak] = 1;
+								cpu_state <= cpu_state_fetch;
+							end else
+								cpu_state <= cpu_state_trap;
+						end
 					end
-				end else
-				if (is_sb_sh_sw) begin
-					cpu_state <= cpu_state_stmem;
-					mem_do_rinst <= 1;
-				end else if (is_sll_srl_sra) begin
-					cpu_state <= cpu_state_shift;
-				end else begin
-					mem_do_rinst <= mem_do_prefetch;
-					cpu_state <= cpu_state_exec;
-				end
+					is_sb_sh_sw: begin
+						cpu_state <= cpu_state_stmem;
+						mem_do_rinst <= 1;
+					end
+					is_sll_srl_sra: begin
+						cpu_state <= cpu_state_shift;
+					end
+					default: begin
+						mem_do_rinst <= mem_do_prefetch;
+						cpu_state <= cpu_state_exec;
+					end
+				endcase
 			end
 
 			cpu_state_exec: begin
