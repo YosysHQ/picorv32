@@ -71,5 +71,5 @@ clean:
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
 		synth.v testbench.exe testbench_sp.exe testbench_axi.exe testbench_synth.exe testbench.vcd
 
-.PHONY: test view test_sp test_axi test_sync toc clean
+.PHONY: test view test_sp test_axi test_synth toc clean
 
