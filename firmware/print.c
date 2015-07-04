@@ -35,8 +35,7 @@ void print_dec(unsigned int val)
 
 void print_hex(unsigned int val)
 {
-	int i;
-	for (i = 32-4; i >= 0; i -= 4)
+	for (int i = 32-4; i >= 0; i -= 4)
 		*((volatile uint32_t*)OUTPORT) = "0123456789ABCDEF"[(val >> i) % 16];
 }
 

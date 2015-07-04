@@ -17,8 +17,7 @@ static uint32_t xorshift32(void) {
 
 void multest(void)
 {
-	int i;
-	for (i = 0; i < 10; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		uint32_t a = xorshift32();
 		uint32_t b = xorshift32();

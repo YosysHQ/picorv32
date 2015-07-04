@@ -30,7 +30,6 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 
 	if ((irqs & 6) != 0)
 	{
-		int i, k;
 		uint32_t pc = regs[0] - 4;
 		uint32_t instr = *(uint32_t*)pc;
 
@@ -59,8 +58,8 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 			print_str("\n");
 		}
 
-		for (i = 0; i < 8; i++)
-		for (k = 0; k < 4; k++)
+		for (int i = 0; i < 8; i++)
+		for (int k = 0; k < 4; k++)
 		{
 			int r = i + k*8;
 

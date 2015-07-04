@@ -54,18 +54,17 @@ static void print_prime(int idx, int val)
 
 void sieve(void)
 {
-	int i, j, k;
 	int idx = 1;
 	hash = 5381;
 	print_prime(idx++, 2);
-	for (i = 0; i < BITMAP_SIZE; i++) {
+	for (int i = 0; i < BITMAP_SIZE; i++) {
 		if (bitmap_get(i))
 			continue;
 		print_prime(idx++, 3+2*i);
-		for (j = 2*(3+2*i);; j += 3+2*i) {
+		for (int j = 2*(3+2*i);; j += 3+2*i) {
 			if (j%2 == 0)
 				continue;
-			k = (j-3)/2;
+			int k = (j-3)/2;
 			if (k >= BITMAP_SIZE)
 				break;
 			bitmap_set(k);
