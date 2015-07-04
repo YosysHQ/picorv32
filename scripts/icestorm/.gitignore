@@ -1,2 +1,5 @@
 synth.blif
 synth.log
+synth.bin
+synth.txt
+firmware.hex
