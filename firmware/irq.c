@@ -109,7 +109,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 		print_dec(timer_irq_count);
 		print_str("\n");
 
-		__asm__("sbreak");
+		__asm__ volatile ("sbreak");
 	}
 
 	return regs;

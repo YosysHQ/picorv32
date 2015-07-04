@@ -52,7 +52,7 @@ static void print_prime(int idx, int val)
 	hash = mkhash(hash, val);
 }
 
-void sieve()
+void sieve(void)
 {
 	int i, j, k;
 	int idx = 1;
@@ -79,7 +79,7 @@ void sieve()
 		print_str(" OK\n");
 	} else {
 		print_str(" ERROR\n");
-		asm volatile ("sbreak");
+		__asm__ volatile ("sbreak");
 	}
 }
 

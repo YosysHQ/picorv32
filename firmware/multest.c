@@ -7,7 +7,7 @@
 
 #include "firmware.h"
 
-uint32_t xorshift32() {
+static uint32_t xorshift32(void) {
 	static uint32_t x = 314159265;
 	x ^= x << 13;
 	x ^= x >> 17;
@@ -15,7 +15,7 @@ uint32_t xorshift32() {
 	return x;
 }
 
-void multest()
+void multest(void)
 {
 	int i;
 	for (i = 0; i < 10; i++)
@@ -76,7 +76,7 @@ void multest()
 
 		if (s_mul != h_mul || s_mulh != h_mulh || s_mulhsu != h_mulhsu || s_mulhu != h_mulhu) {
 			print_str("ERROR!\n");
-			asm volatile ("sbreak");
+			__asm__ volatile ("sbreak");
 			return;
 		}
 
