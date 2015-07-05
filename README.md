@@ -507,17 +507,17 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-
-    sed -i 's|--enable-languages|--with-arch=RV32I &|' Makefile.in
-    sed -i 's|asm volatile|value = 0; // &|' newlib/newlib/libc/machine/riscv/ieeefp.c
+    git checkout 5b1febd
 
     mkdir build; cd build
-    ../configure --with-xlen=32 --prefix=/opt/riscv32i
+    ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i
     make -j$(nproc)
 
 The commands will all be named using the prefix `riscv32-unknown-elf-`, which
 makes it easy to install them side-by-side with the regular riscv-tools, which
 are using the name prefix `riscv64-unknown-elf-` by default.
+
+*Note: This instructions are for git rev 5b1febd (2015-07-05) of riscv-gnu-toolchain.*
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
