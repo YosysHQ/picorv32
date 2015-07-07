@@ -165,6 +165,12 @@ of 4 bits and then shift in units of 1 bit. This speeds up shift operations,
 but adds additional hardware. Set this parameter to 0 to disable the two-stage
 shift to further reduce the size of the core.
 
+#### TWO_CYCLE_COMPARE (default = 0)
+
+This relaxes the longest data path a bit by adding an additional FF stage
+at the cost of adding an additional clock cycle delay to the conditional
+branch instructions.
+
 #### CATCH_MISALIGN (default = 1)
 
 Set this to 0 to disable the circuitry for catching misaligned memory
