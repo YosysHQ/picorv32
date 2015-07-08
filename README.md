@@ -555,14 +555,14 @@ See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 
 | Device               | Speedgrade | Clock Period (Freq.) |
 |:-------------------- |:----------:| --------------------:|
-| Xilinx Artix-7T      | -1         |     4.3 ns (232 MHz) |
-| Xilinx Artix-7T      | -2         |     3.4 ns (294 MHz) |
-| Xilinx Artix-7T      | -3         |     3.0 ns (333 MHz) |
+| Xilinx Artix-7T      | -1         |     4.2 ns (238 MHz) |
+| Xilinx Artix-7T      | -2         |     3.5 ns (285 MHz) |
+| Xilinx Artix-7T      | -3         |     3.2 ns (312 MHz) |
 | Xilinx Kintex-7T     | -1         |     2.8 ns (357 MHz) |
-| Xilinx Kintex-7T     | -2         |     2.2 ns (454 MHz) |
+| Xilinx Kintex-7T     | -2         |     2.3 ns (434 MHz) |
 | Xilinx Kintex-7T     | -3         |     2.1 ns (476 MHz) |
-| Xilinx Virtex-7T     | -1         |     2.8 ns (357 MHz) |
-| Xilinx Virtex-7T     | -2         |     2.2 ns (454 MHz) |
+| Xilinx Virtex-7T     | -1         |     2.6 ns (384 MHz) |
+| Xilinx Virtex-7T     | -2         |     2.3 ns (434 MHz) |
 | Xilinx Virtex-7T     | -3         |     2.1 ns (476 MHz) |
 
 #### Utilization on Xilinx 7-Series FPGAs
@@ -583,7 +583,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        770 |             48 |             422 |
-| PicoRV32 (regular) |        938 |             48 |             564 |
-| PicoRV32 (large)   |       1710 |             88 |            1002 |
+| PicoRV32 (small)   |        751 |             48 |             422 |
+| PicoRV32 (regular) |        901 |             48 |             564 |
+| PicoRV32 (large)   |       1718 |             88 |            1002 |
 
