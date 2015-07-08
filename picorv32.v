@@ -38,6 +38,7 @@ module picorv32 #(
 	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
 	parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
+	parameter [ 0:0] TWO_CYCLE_ALU = 0,
 	parameter [ 0:0] CATCH_MISALIGN = 1,
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
@@ -530,45 +531,103 @@ module picorv32 #(
 	reg [31:0] next_irq_pending;
 	reg do_waitirq;
 
-	reg [31:0] alu_out, reg_alu_out;
-	reg alu_out_0, reg_alu_out_0;
-	reg alu_wait;
+	reg [31:0] alu_out, alu_out_q;
+	reg alu_out_0, alu_out_0_q;
+	reg alu_wait, alu_wait_2;
 
 	always @* begin
-		alu_out_0 = 'bx;
-		(* parallel_case, full_case *)
-		case (1'b1)
-			instr_beq:
-				alu_out_0 = reg_op1 == reg_op2;
-			instr_bne:
-				alu_out_0 = reg_op1 != reg_op2;
-			instr_bge:
-				alu_out_0 = $signed(reg_op1) >= $signed(reg_op2);
-			instr_bgeu:
-				alu_out_0 = reg_op1 >= reg_op2;
-			is_slti_blt_slt:
-				alu_out_0 = $signed(reg_op1) < $signed(reg_op2);
-			is_sltiu_bltu_sltu:
-				alu_out_0 = reg_op1 < reg_op2;
-		endcase
-
-		alu_out = 'bx;
-		(* parallel_case, full_case *)
-		case (1'b1)
-			is_lui_auipc_jal_jalr_addi_add:
-				alu_out = reg_op1 + reg_op2;
-			instr_sub:
-				alu_out = reg_op1 - reg_op2;
-			is_compare:
-				alu_out = alu_out_0;
-			instr_xori || instr_xor:
-				alu_out = reg_op1 ^ reg_op2;
-			instr_ori || instr_or:
-				alu_out = reg_op1 | reg_op2;
-			instr_andi || instr_and:
-				alu_out = reg_op1 & reg_op2;
-		endcase
 	end
+
+	generate if (TWO_CYCLE_ALU) begin:two_cycle_alu
+		reg [31:0] alu_add_sub;
+		reg [31:0] alu_xor_or_and;
+		reg alu_eq, alu_ltu, alu_lts;
+
+		always @(posedge clk) begin
+			alu_add_sub <= instr_sub ? reg_op1 - reg_op2 : reg_op1 + reg_op2;
+
+			alu_xor_or_and = 'bx;
+			(* parallel_case, full_case *)
+			case (1'b1)
+				instr_xori || instr_xor:
+					alu_xor_or_and = reg_op1 ^ reg_op2;
+				instr_ori || instr_or:
+					alu_xor_or_and = reg_op1 | reg_op2;
+				instr_andi || instr_and:
+					alu_xor_or_and = reg_op1 & reg_op2;
+			endcase
+
+			alu_eq <= reg_op1 == reg_op2;
+			alu_lts <= $signed(reg_op1) < $signed(reg_op2);
+			alu_ltu <= reg_op1 < reg_op2;
+		end
+
+		always @* begin
+			alu_out_0 = 'bx;
+			(* parallel_case, full_case *)
+			case (1'b1)
+				instr_beq:
+					alu_out_0 = alu_eq;
+				instr_bne:
+					alu_out_0 = !alu_eq;
+				instr_bge:
+					alu_out_0 = !alu_lts;
+				instr_bgeu:
+					alu_out_0 = !alu_ltu;
+				is_slti_blt_slt:
+					alu_out_0 = alu_lts;
+				is_sltiu_bltu_sltu:
+					alu_out_0 = alu_ltu;
+			endcase
+
+			alu_out = 'bx;
+			(* parallel_case, full_case *)
+			case (1'b1)
+				is_lui_auipc_jal_jalr_addi_add || instr_sub:
+					alu_out = alu_add_sub;
+				is_compare:
+					alu_out = alu_out_0;
+				|{instr_xori, instr_xor, instr_ori, instr_or, instr_andi, instr_and}:
+					alu_out = alu_xor_or_and;
+			endcase
+		end
+	end else begin:one_cycle_alu
+		always @* begin
+			alu_out_0 = 'bx;
+			(* parallel_case, full_case *)
+			case (1'b1)
+				instr_beq:
+					alu_out_0 = reg_op1 == reg_op2;
+				instr_bne:
+					alu_out_0 = reg_op1 != reg_op2;
+				instr_bge:
+					alu_out_0 = $signed(reg_op1) >= $signed(reg_op2);
+				instr_bgeu:
+					alu_out_0 = reg_op1 >= reg_op2;
+				is_slti_blt_slt:
+					alu_out_0 = $signed(reg_op1) < $signed(reg_op2);
+				is_sltiu_bltu_sltu:
+					alu_out_0 = reg_op1 < reg_op2;
+			endcase
+
+			alu_out = 'bx;
+			(* parallel_case, full_case *)
+			case (1'b1)
+				is_lui_auipc_jal_jalr_addi_add:
+					alu_out = reg_op1 + reg_op2;
+				instr_sub:
+					alu_out = reg_op1 - reg_op2;
+				is_compare:
+					alu_out = alu_out_0;
+				instr_xori || instr_xor:
+					alu_out = reg_op1 ^ reg_op2;
+				instr_ori || instr_or:
+					alu_out = reg_op1 | reg_op2;
+				instr_andi || instr_and:
+					alu_out = reg_op1 & reg_op2;
+			endcase
+		end
+	end endgenerate
 
 	always @(posedge clk) begin
 		trap <= 0;
@@ -578,9 +637,11 @@ module picorv32 #(
 		set_mem_do_rdata = 0;
 		set_mem_do_wdata = 0;
 
-		reg_alu_out <= alu_out;
-		reg_alu_out_0 <= alu_out_0;
+		alu_out_0_q <= alu_out_0;
+		alu_out_q <= alu_out;
+
 		alu_wait <= 0;
+		alu_wait_2 <= 0;
 
 		if (WITH_PCPI && CATCH_ILLINSN) begin
 			if (resetn && pcpi_valid && !pcpi_int_wait) begin
@@ -646,13 +707,13 @@ module picorv32 #(
 				(* parallel_case *)
 				case (1'b1)
 					latched_branch: begin
-						current_pc = latched_store ? (latched_stalu ? reg_alu_out : reg_out) : reg_next_pc;
+						current_pc = latched_store ? (latched_stalu ? alu_out_q : reg_out) : reg_next_pc;
 						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + 4, current_pc);)
 						cpuregs[latched_rd] <= reg_pc + 4;
 					end
 					latched_store && !latched_branch: begin
-						`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? reg_alu_out : reg_out);)
-						cpuregs[latched_rd] <= latched_stalu ? reg_alu_out : reg_out;
+						`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? alu_out_q : reg_out);)
+						cpuregs[latched_rd] <= latched_stalu ? alu_out_q : reg_out;
 					end
 					ENABLE_IRQ && irq_state[0]: begin
 						cpuregs[latched_rd] <= current_pc;
@@ -775,7 +836,10 @@ module picorv32 #(
 					is_lui_auipc_jal: begin
 						reg_op1 <= instr_lui ? 0 : reg_pc;
 						reg_op2 <= decoded_imm;
-						mem_do_rinst <= mem_do_prefetch;
+						if (TWO_CYCLE_ALU)
+							alu_wait <= 1;
+						else
+							mem_do_rinst <= mem_do_prefetch;
 						cpu_state <= cpu_state_exec;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq: begin
@@ -830,7 +894,10 @@ module picorv32 #(
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
 						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						reg_op2 <= decoded_imm;
-						mem_do_rinst <= mem_do_prefetch;
+						if (TWO_CYCLE_ALU)
+							alu_wait <= 1;
+						else
+							mem_do_rinst <= mem_do_prefetch;
 						cpu_state <= cpu_state_exec;
 					end
 					default: begin
@@ -850,9 +917,10 @@ module picorv32 #(
 									cpu_state <= cpu_state_shift;
 								end
 								default: begin
-									if (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu)
+									if (TWO_CYCLE_ALU || (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu)) begin
+										alu_wait_2 <= TWO_CYCLE_ALU && (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu);
 										alu_wait <= 1;
-									else
+									end else
 										mem_do_rinst <= mem_do_prefetch;
 									cpu_state <= cpu_state_exec;
 								end
@@ -896,9 +964,10 @@ module picorv32 #(
 						cpu_state <= cpu_state_shift;
 					end
 					default: begin
-						if (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu)
+						if (TWO_CYCLE_ALU || (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu)) begin
+							alu_wait_2 <= TWO_CYCLE_ALU && (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu);
 							alu_wait <= 1;
-						else
+						end else
 							mem_do_rinst <= mem_do_prefetch;
 						cpu_state <= cpu_state_exec;
 					end
@@ -906,17 +975,18 @@ module picorv32 #(
 			end
 
 			cpu_state_exec: begin
-				latched_store <= TWO_CYCLE_COMPARE ? reg_alu_out_0 : alu_out_0;
-				latched_branch <= TWO_CYCLE_COMPARE ? reg_alu_out_0 : alu_out_0;
+				latched_store <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
+				latched_branch <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
 				reg_out <= reg_pc + decoded_imm;
-				if (TWO_CYCLE_COMPARE && alu_wait) begin
-					mem_do_rinst <= mem_do_prefetch;
+				if ((TWO_CYCLE_ALU || TWO_CYCLE_COMPARE) && (alu_wait || alu_wait_2)) begin
+					mem_do_rinst <= mem_do_prefetch && !alu_wait_2;
+					alu_wait <= alu_wait_2;
 				end else
 				if (is_beq_bne_blt_bge_bltu_bgeu) begin
 					latched_rd <= 0;
 					if (mem_done)
 						cpu_state <= cpu_state_fetch;
-					if (TWO_CYCLE_COMPARE ? reg_alu_out_0 : alu_out_0) begin
+					if (TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0) begin
 						decoder_trigger <= 0;
 						set_mem_do_rinst = 1;
 					end
@@ -1187,6 +1257,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
 	parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
+	parameter [ 0:0] TWO_CYCLE_ALU = 0,
 	parameter [ 0:0] CATCH_MISALIGN = 1,
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
@@ -1283,6 +1354,7 @@ module picorv32_axi #(
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
 		.TWO_STAGE_SHIFT     (TWO_STAGE_SHIFT     ),
 		.TWO_CYCLE_COMPARE   (TWO_CYCLE_COMPARE   ),
+		.TWO_CYCLE_ALU       (TWO_CYCLE_ALU       ),
 		.CATCH_MISALIGN      (CATCH_MISALIGN      ),
 		.CATCH_ILLINSN       (CATCH_ILLINSN       ),
 		.ENABLE_PCPI         (ENABLE_PCPI         ),

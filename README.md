@@ -171,6 +171,18 @@ This relaxes the longest data path a bit by adding an additional FF stage
 at the cost of adding an additional clock cycle delay to the conditional
 branch instructions.
 
+*Note: Enabling this parameter will be most effective when retiming (aka
+"register balancing") is enabled in the synthesis flow.*
+
+#### TWO_CYCLE_ALU (default = 0)
+
+This adds an additional FF stage in the ALU data path, improving timing
+at the cost of an additional clock cycle for all instructions that use
+the ALU.
+
+*Note: Enabling this parameter will be most effective when retiming (aka
+"register balancing") is enabled in the synthesis flow.*
+
 #### CATCH_MISALIGN (default = 1)
 
 Set this to 0 to disable the circuitry for catching misaligned memory
