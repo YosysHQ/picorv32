@@ -6,4 +6,4 @@ synth_design -part xc7k70t-fbg676 -top top_small
 opt_design -resynth_seq_area
 
 report_utilization
-# report_timing
+report_timing
