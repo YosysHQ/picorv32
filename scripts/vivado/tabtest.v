@@ -72,7 +72,9 @@ module top (
 	delay4 #(32) delay_irq             (clk, io_irq            ,    irq            );
 	delay4 #(32) delay_eoi             (clk,    eoi            , io_eoi            );
 
-	picorv32_axi core (
+	picorv32_axi #(
+		.TWO_CYCLE_COMPARE(1)
+	) cpu (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
 		.trap           (trap           ),

@@ -51,13 +51,16 @@ synth_case() {
 	mv test_${1}.log test_${1}.txt
 }
 
-while [ $step -gt 0 ]; do
+countdown=2
+while [ $countdown -gt 0 ]; do
 	synth_case $speed
 
 	if grep -q '^Slack.*(VIOLATED)' test_${speed}.txt; then
+		echo "        tab_${ip}_${dev}_${grade}/test_${speed} VIOLATED"
 		[ $speed -eq 38 ] || step=$((step / 2))
 		speed=$((speed + step))
 	elif grep -q '^Slack.*(MET)' test_${speed}.txt; then
+		echo "        tab_${ip}_${dev}_${grade}/test_${speed} MET"
 		[ $speed -lt $best_speed ] && best_speed=$speed
 		step=$((step / 2))
 		speed=$((speed - step))
@@ -65,7 +68,16 @@ while [ $step -gt 0 ]; do
 		echo "ERROR: No slack line found in $PWD/test_${speed}.txt!"
 		exit 1
 	fi
+
+	if [ $step -eq 0 ]; then
+		countdown=$((countdown - 1))
+		speed=$((best_speed - 2))
+		step=1
+	fi
 done
 
+echo "-----------------------"
+echo "Best speed for tab_${ip}_${dev}_${grade}: $best_speed"
+echo "-----------------------"
 echo $best_speed > results.txt
 
