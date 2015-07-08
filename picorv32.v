@@ -18,6 +18,7 @@
  */
 
 `timescale 1 ns / 1 ps
+// `default_nettype none
 // `define DEBUG
 
 `ifdef DEBUG
@@ -282,7 +283,7 @@ module picorv32 #(
 	reg is_jalr_addi_slti_sltiu_xori_ori_andi;
 	reg is_sb_sh_sw;
 	reg is_sll_srl_sra;
-	reg is_lui_auipc_jal_jalr_addi_add;
+	reg is_lui_auipc_jal_jalr_addi_add_sub;
 	reg is_slti_blt_slt;
 	reg is_sltiu_bltu_sltu;
 	reg is_beq_bne_blt_bge_bltu_bgeu;
@@ -302,72 +303,72 @@ module picorv32 #(
 	wire is_rdcycle_rdcycleh_rdinstr_rdinstrh;
 	assign is_rdcycle_rdcycleh_rdinstr_rdinstrh = |{instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh};
 
-	reg [63:0] new_instruction;
-	reg [63:0] instruction;
+	reg [63:0] new_ascii_instr;
+	reg [63:0] ascii_instr;
 
 	always @* begin
-		new_instruction = "";
-		if (instr_lui)      new_instruction = "lui";
-		if (instr_auipc)    new_instruction = "auipc";
-		if (instr_jal)      new_instruction = "jal";
-		if (instr_jalr)     new_instruction = "jalr";
+		new_ascii_instr = "";
+		if (instr_lui)      new_ascii_instr = "lui";
+		if (instr_auipc)    new_ascii_instr = "auipc";
+		if (instr_jal)      new_ascii_instr = "jal";
+		if (instr_jalr)     new_ascii_instr = "jalr";
 
-		if (instr_beq)      new_instruction = "beq";
-		if (instr_bne)      new_instruction = "bne";
-		if (instr_blt)      new_instruction = "blt";
-		if (instr_bge)      new_instruction = "bge";
-		if (instr_bltu)     new_instruction = "bltu";
-		if (instr_bgeu)     new_instruction = "bgeu";
+		if (instr_beq)      new_ascii_instr = "beq";
+		if (instr_bne)      new_ascii_instr = "bne";
+		if (instr_blt)      new_ascii_instr = "blt";
+		if (instr_bge)      new_ascii_instr = "bge";
+		if (instr_bltu)     new_ascii_instr = "bltu";
+		if (instr_bgeu)     new_ascii_instr = "bgeu";
 
-		if (instr_lb)       new_instruction = "lb";
-		if (instr_lh)       new_instruction = "lh";
-		if (instr_lw)       new_instruction = "lw";
-		if (instr_lbu)      new_instruction = "lbu";
-		if (instr_lhu)      new_instruction = "lhu";
-		if (instr_sb)       new_instruction = "sb";
-		if (instr_sh)       new_instruction = "sh";
-		if (instr_sw)       new_instruction = "sw";
+		if (instr_lb)       new_ascii_instr = "lb";
+		if (instr_lh)       new_ascii_instr = "lh";
+		if (instr_lw)       new_ascii_instr = "lw";
+		if (instr_lbu)      new_ascii_instr = "lbu";
+		if (instr_lhu)      new_ascii_instr = "lhu";
+		if (instr_sb)       new_ascii_instr = "sb";
+		if (instr_sh)       new_ascii_instr = "sh";
+		if (instr_sw)       new_ascii_instr = "sw";
 
-		if (instr_addi)     new_instruction = "addi";
-		if (instr_slti)     new_instruction = "slti";
-		if (instr_sltiu)    new_instruction = "sltiu";
-		if (instr_xori)     new_instruction = "xori";
-		if (instr_ori)      new_instruction = "ori";
-		if (instr_andi)     new_instruction = "andi";
-		if (instr_slli)     new_instruction = "slli";
-		if (instr_srli)     new_instruction = "srli";
-		if (instr_srai)     new_instruction = "srai";
+		if (instr_addi)     new_ascii_instr = "addi";
+		if (instr_slti)     new_ascii_instr = "slti";
+		if (instr_sltiu)    new_ascii_instr = "sltiu";
+		if (instr_xori)     new_ascii_instr = "xori";
+		if (instr_ori)      new_ascii_instr = "ori";
+		if (instr_andi)     new_ascii_instr = "andi";
+		if (instr_slli)     new_ascii_instr = "slli";
+		if (instr_srli)     new_ascii_instr = "srli";
+		if (instr_srai)     new_ascii_instr = "srai";
 
-		if (instr_add)      new_instruction = "add";
-		if (instr_sub)      new_instruction = "sub";
-		if (instr_sll)      new_instruction = "sll";
-		if (instr_slt)      new_instruction = "slt";
-		if (instr_sltu)     new_instruction = "sltu";
-		if (instr_xor)      new_instruction = "xor";
-		if (instr_srl)      new_instruction = "srl";
-		if (instr_sra)      new_instruction = "sra";
-		if (instr_or)       new_instruction = "or";
-		if (instr_and)      new_instruction = "and";
+		if (instr_add)      new_ascii_instr = "add";
+		if (instr_sub)      new_ascii_instr = "sub";
+		if (instr_sll)      new_ascii_instr = "sll";
+		if (instr_slt)      new_ascii_instr = "slt";
+		if (instr_sltu)     new_ascii_instr = "sltu";
+		if (instr_xor)      new_ascii_instr = "xor";
+		if (instr_srl)      new_ascii_instr = "srl";
+		if (instr_sra)      new_ascii_instr = "sra";
+		if (instr_or)       new_ascii_instr = "or";
+		if (instr_and)      new_ascii_instr = "and";
 
-		if (instr_rdcycle)  new_instruction = "rdcycle";
-		if (instr_rdcycleh) new_instruction = "rdcycleh";
-		if (instr_rdinstr)  new_instruction = "rdinstr";
-		if (instr_rdinstrh) new_instruction = "rdinstrh";
+		if (instr_rdcycle)  new_ascii_instr = "rdcycle";
+		if (instr_rdcycleh) new_ascii_instr = "rdcycleh";
+		if (instr_rdinstr)  new_ascii_instr = "rdinstr";
+		if (instr_rdinstrh) new_ascii_instr = "rdinstrh";
 
-		if (instr_getq)     new_instruction = "getq";
-		if (instr_setq)     new_instruction = "setq";
-		if (instr_retirq)   new_instruction = "retirq";
-		if (instr_maskirq)  new_instruction = "maskirq";
-		if (instr_waitirq)  new_instruction = "waitirq";
-		if (instr_timer)    new_instruction = "timer";
+		if (instr_getq)     new_ascii_instr = "getq";
+		if (instr_setq)     new_ascii_instr = "setq";
+		if (instr_retirq)   new_ascii_instr = "retirq";
+		if (instr_maskirq)  new_ascii_instr = "maskirq";
+		if (instr_waitirq)  new_ascii_instr = "waitirq";
+		if (instr_timer)    new_ascii_instr = "timer";
 
 		if (decoder_trigger_q)
-			instruction = new_instruction;
+			ascii_instr = new_ascii_instr;
 	end
 
 	always @(posedge clk) begin
 		is_lui_auipc_jal <= |{instr_lui, instr_auipc, instr_jal};
-		is_lui_auipc_jal_jalr_addi_add <= |{instr_lui, instr_auipc, instr_jal, instr_jalr, instr_addi, instr_add};
+		is_lui_auipc_jal_jalr_addi_add_sub <= |{instr_lui, instr_auipc, instr_jal, instr_jalr, instr_addi, instr_add, instr_sub};
 		is_slti_blt_slt <= |{instr_slti, instr_blt, instr_slt};
 		is_sltiu_bltu_sltu <= |{instr_sltiu, instr_bltu, instr_sltu};
 		is_lbu_lhu_lw <= |{instr_lbu, instr_lhu, instr_lw};
@@ -510,6 +511,20 @@ module picorv32 #(
 	reg [7:0] cpu_state;
 	reg [1:0] irq_state;
 
+	reg [127:0] ascii_state;
+
+	always @* begin
+		ascii_state = "";
+		if (cpu_state == cpu_state_trap)   ascii_state = "trap";
+		if (cpu_state == cpu_state_fetch)  ascii_state = "fetch";
+		if (cpu_state == cpu_state_ld_rs1) ascii_state = "ld_rs1";
+		if (cpu_state == cpu_state_ld_rs2) ascii_state = "ld_rs2";
+		if (cpu_state == cpu_state_exec)   ascii_state = "exec";
+		if (cpu_state == cpu_state_shift)  ascii_state = "shift";
+		if (cpu_state == cpu_state_stmem)  ascii_state = "stmem";
+		if (cpu_state == cpu_state_ldmem)  ascii_state = "ldmem";
+	end
+
 	reg set_mem_do_rinst;
 	reg set_mem_do_rdata;
 	reg set_mem_do_wdata;
@@ -535,99 +550,58 @@ module picorv32 #(
 	reg alu_out_0, alu_out_0_q;
 	reg alu_wait, alu_wait_2;
 
-	always @* begin
-	end
+	reg [31:0] alu_add_sub;
+	reg alu_eq, alu_ltu, alu_lts;
 
-	generate if (TWO_CYCLE_ALU) begin:two_cycle_alu
-		reg [31:0] alu_add_sub;
-		reg [31:0] alu_xor_or_and;
-		reg alu_eq, alu_ltu, alu_lts;
-
+	generate if (TWO_CYCLE_ALU) begin
 		always @(posedge clk) begin
 			alu_add_sub <= instr_sub ? reg_op1 - reg_op2 : reg_op1 + reg_op2;
-
-			alu_xor_or_and = 'bx;
-			(* parallel_case, full_case *)
-			case (1'b1)
-				instr_xori || instr_xor:
-					alu_xor_or_and = reg_op1 ^ reg_op2;
-				instr_ori || instr_or:
-					alu_xor_or_and = reg_op1 | reg_op2;
-				instr_andi || instr_and:
-					alu_xor_or_and = reg_op1 & reg_op2;
-			endcase
-
 			alu_eq <= reg_op1 == reg_op2;
 			alu_lts <= $signed(reg_op1) < $signed(reg_op2);
 			alu_ltu <= reg_op1 < reg_op2;
 		end
-
+	end else begin
 		always @* begin
-			alu_out_0 = 'bx;
-			(* parallel_case, full_case *)
-			case (1'b1)
-				instr_beq:
-					alu_out_0 = alu_eq;
-				instr_bne:
-					alu_out_0 = !alu_eq;
-				instr_bge:
-					alu_out_0 = !alu_lts;
-				instr_bgeu:
-					alu_out_0 = !alu_ltu;
-				is_slti_blt_slt:
-					alu_out_0 = alu_lts;
-				is_sltiu_bltu_sltu:
-					alu_out_0 = alu_ltu;
-			endcase
-
-			alu_out = 'bx;
-			(* parallel_case, full_case *)
-			case (1'b1)
-				is_lui_auipc_jal_jalr_addi_add || instr_sub:
-					alu_out = alu_add_sub;
-				is_compare:
-					alu_out = alu_out_0;
-				|{instr_xori, instr_xor, instr_ori, instr_or, instr_andi, instr_and}:
-					alu_out = alu_xor_or_and;
-			endcase
-		end
-	end else begin:one_cycle_alu
-		always @* begin
-			alu_out_0 = 'bx;
-			(* parallel_case, full_case *)
-			case (1'b1)
-				instr_beq:
-					alu_out_0 = reg_op1 == reg_op2;
-				instr_bne:
-					alu_out_0 = reg_op1 != reg_op2;
-				instr_bge:
-					alu_out_0 = $signed(reg_op1) >= $signed(reg_op2);
-				instr_bgeu:
-					alu_out_0 = reg_op1 >= reg_op2;
-				is_slti_blt_slt:
-					alu_out_0 = $signed(reg_op1) < $signed(reg_op2);
-				is_sltiu_bltu_sltu:
-					alu_out_0 = reg_op1 < reg_op2;
-			endcase
-
-			alu_out = 'bx;
-			(* parallel_case, full_case *)
-			case (1'b1)
-				is_lui_auipc_jal_jalr_addi_add:
-					alu_out = reg_op1 + reg_op2;
-				instr_sub:
-					alu_out = reg_op1 - reg_op2;
-				is_compare:
-					alu_out = alu_out_0;
-				instr_xori || instr_xor:
-					alu_out = reg_op1 ^ reg_op2;
-				instr_ori || instr_or:
-					alu_out = reg_op1 | reg_op2;
-				instr_andi || instr_and:
-					alu_out = reg_op1 & reg_op2;
-			endcase
+			alu_add_sub = instr_sub ? reg_op1 - reg_op2 : reg_op1 + reg_op2;
+			alu_eq = reg_op1 == reg_op2;
+			alu_lts = $signed(reg_op1) < $signed(reg_op2);
+			alu_ltu = reg_op1 < reg_op2;
 		end
 	end endgenerate
+
+	always @* begin
+		alu_out_0 = 'bx;
+		(* parallel_case, full_case *)
+		case (1'b1)
+			instr_beq:
+				alu_out_0 = alu_eq;
+			instr_bne:
+				alu_out_0 = !alu_eq;
+			instr_bge:
+				alu_out_0 = !alu_lts;
+			instr_bgeu:
+				alu_out_0 = !alu_ltu;
+			is_slti_blt_slt:
+				alu_out_0 = alu_lts;
+			is_sltiu_bltu_sltu:
+				alu_out_0 = alu_ltu;
+		endcase
+
+		alu_out = 'bx;
+		(* parallel_case, full_case *)
+		case (1'b1)
+			is_lui_auipc_jal_jalr_addi_add_sub:
+				alu_out = alu_add_sub;
+			is_compare:
+				alu_out = alu_out_0;
+			instr_xori || instr_xor:
+				alu_out = reg_op1 ^ reg_op2;
+			instr_ori || instr_or:
+				alu_out = reg_op1 | reg_op2;
+			instr_andi || instr_and:
+				alu_out = reg_op1 & reg_op2;
+		endcase
+	end
 
 	always @(posedge clk) begin
 		trap <= 0;
@@ -778,7 +752,7 @@ module picorv32 #(
 			cpu_state_ld_rs1: begin
 				reg_op1 <= 'bx;
 				reg_op2 <= 'bx;
-				`debug($display("DECODE: 0x%08x %-0s", reg_pc, instruction ? instruction : "UNKNOWN");)
+				`debug($display("DECODE: 0x%08x %-0s", reg_pc, ascii_instr ? ascii_instr : "UNKNOWN");)
 
 				(* parallel_case *)
 				case (1'b1)
