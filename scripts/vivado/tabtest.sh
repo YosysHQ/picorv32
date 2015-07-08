@@ -28,7 +28,8 @@ synth_case() {
 		read_verilog ../../../picorv32.v
 		read_xdc test_${1}.xdc
 		synth_design -flatten_hierarchy full -part ${xl_device} -top top
-		opt_design -sweep -remap
+		opt_design -sweep -remap -propconst
+		opt_design -directive Explore
 		place_design -directive Explore
 		phys_opt_design -retime -rewire -critical_pin_opt -placement_opt -critical_cell_opt
 		route_design -directive Explore

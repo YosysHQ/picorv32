@@ -545,7 +545,7 @@ The following evaluations have been performed with Vivado 2015.1.
 
 #### Timing on Xilinx 7-Series FPGAs
 
-The `picorv32_axi` module with enabled `TWO_CYCLE_COMPARE` has been placed and
+The `picorv32_axi` module with enabled `TWO_CYCLE_ALU` has been placed and
 routed for Xilinx Artix-7T (xc7a15t-fgg484), Xilinx Kintex-7T (xc7k70t-fbg676),
 and Xilinx Virtex-7T (xc7v585t-ffg1761) devices in all speed grades. A binary
 search is used to find the lowest clock period for which the design meets
@@ -555,15 +555,15 @@ See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 
 | Device               | Speedgrade | Clock Period (Freq.) |
 |:-------------------- |:----------:| --------------------:|
-| Xilinx Artix-7T      | -1         |     4.6 ns (217 MHz) |
-| Xilinx Artix-7T      | -2         |     4.0 ns (250 MHz) |
-| Xilinx Artix-7T      | -3         |     3.4 ns (294 MHz) |
-| Xilinx Kintex-7T     | -1         |     3.0 ns (333 MHz) |
-| Xilinx Kintex-7T     | -2         |     2.7 ns (370 MHz) |
-| Xilinx Kintex-7T     | -3         |     2.5 ns (400 MHz) |
-| Xilinx Virtex-7T     | -1         |     3.0 ns (333 MHz) |
-| Xilinx Virtex-7T     | -2         |     2.5 ns (400 MHz) |
-| Xilinx Virtex-7T     | -3         |     2.2 ns (454 MHz) |
+| Xilinx Artix-7T      | -1         |     4.3 ns (232 MHz) |
+| Xilinx Artix-7T      | -2         |     3.4 ns (294 MHz) |
+| Xilinx Artix-7T      | -3         |     3.0 ns (333 MHz) |
+| Xilinx Kintex-7T     | -1         |     2.8 ns (357 MHz) |
+| Xilinx Kintex-7T     | -2         |     2.2 ns (454 MHz) |
+| Xilinx Kintex-7T     | -3         |     2.1 ns (476 MHz) |
+| Xilinx Virtex-7T     | -1         |     2.8 ns (357 MHz) |
+| Xilinx Virtex-7T     | -2         |     2.2 ns (454 MHz) |
+| Xilinx Virtex-7T     | -3         |     2.1 ns (476 MHz) |
 
 #### Utilization on Xilinx 7-Series FPGAs
 
@@ -583,7 +583,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        775 |             48 |             422 |
-| PicoRV32 (regular) |        960 |             48 |             564 |
-| PicoRV32 (large)   |       1684 |             88 |            1002 |
+| PicoRV32 (small)   |        770 |             48 |             422 |
+| PicoRV32 (regular) |        938 |             48 |             564 |
+| PicoRV32 (large)   |       1710 |             88 |            1002 |
 
