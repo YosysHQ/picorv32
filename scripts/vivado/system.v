@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-module soc_top (
+module system (
 	input            clk,
 	input            resetn,
 	output           trap,
@@ -43,7 +43,7 @@ module soc_top (
 	);
 
 	reg [31:0] memory [0:MEM_SIZE-1];
-	// initial $readmemh("firmware.hex", memory);
+	initial $readmemh("firmware.hex", memory);
 
 	assign mem_ready = 1;
 
