@@ -6,6 +6,10 @@ module system_tb;
 
 	reg resetn = 0;
 	initial begin
+		if ($test$plusargs("vcd")) begin
+			$dumpfile("system.vcd");
+			$dumpvars(0, system_tb);
+		end
 		repeat (100) @(posedge clk);
 		resetn <= 1;
 	end
