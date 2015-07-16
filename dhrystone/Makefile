@@ -18,7 +18,7 @@ timing.exe: testbench.v ../picorv32.v
 	chmod -x timing.exe
 
 dhry.hex: dhry.bin ../firmware/makehex.py
-	python3 ../firmware/makehex.py $< > $@
+	python3 ../firmware/makehex.py $< 16384 > $@
 
 dhry.bin: dhry.elf
 	riscv64-unknown-elf-objcopy -O binary $< $@

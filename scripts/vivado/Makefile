@@ -38,9 +38,9 @@ sim_system:
 
 firmware.hex: firmware.S firmware.c firmware.lds
 	$(TOOLCHAIN_PREFIX)gcc -Os -m32 -ffreestanding -nostdlib -o firmware.elf firmware.S firmware.c \
-		 -Wl,-Bstatic,-T,firmware.lds,-Map,firmware.map,--strip-debug -lgcc
+		 --std=gnu99 -Wl,-Bstatic,-T,firmware.lds,-Map,firmware.map,--strip-debug -lgcc
 	$(TOOLCHAIN_PREFIX)objcopy -O binary firmware.elf firmware.bin
-	python3 ../../firmware/makehex.py firmware.bin > firmware.hex
+	python3 ../../firmware/makehex.py firmware.bin 4096 > firmware.hex
 
 tab_%/results.txt:
 	bash tabtest.sh $@
@@ -58,5 +58,5 @@ table.txt:
 clean:
 	rm -rf .Xil/ firmware.bin firmware.elf firmware.hex firmware.map synth_*.log
 	rm -rf synth_*.mmi synth_*.bit synth_system.v table.txt tab_*/ webtalk.jou
-	rm -rf webtalk.log webtalk_*.jou webtalk_*.log xelab.* xsim.* xvlog.*
+	rm -rf webtalk.log webtalk_*.jou webtalk_*.log xelab.* xsim[._]* xvlog.*
 
