@@ -6,4 +6,9 @@ set_io LED4 C5
 set_io LED5 C4
 set_io LED6 B3
 set_io LED7 C3
+
+# on-board oscillator (12.0 MHz)
 set_io clk_pin J3
+
+# external clock on PIO1_01 (pin 4 on 40 pin header)
+#set_io clk_pin R15

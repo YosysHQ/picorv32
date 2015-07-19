@@ -7,18 +7,8 @@ module top (
 	// -------------------------------
 	// Clock Buffer
 
-	wire clk;
+	wire clk = clk_pin;
 
-`ifdef USE_SB_GB_IO
-	SB_GB_IO #(
-		.PIN_TYPE(6'b 0000_01)
-	) clk_gb (
-		.PACKAGE_PIN(clk_pin),
-		.GLOBAL_BUFFER_OUTPUT(clk)
-	);
-`else
-	assign clk = clk_pin;
-`endif
 
 	// -------------------------------
 	// Reset Generator
@@ -30,6 +20,7 @@ module top (
 		if (!resetn)
 			resetn_counter <= resetn_counter + 1;
 	end
+
 
 	// -------------------------------
 	// PicoRV32 Core
@@ -59,6 +50,7 @@ module top (
 		.mem_wstrb(mem_wstrb),
 		.mem_rdata(mem_rdata)
 	);
+
 
 	// -------------------------------
 	// Memory/IO Interface
