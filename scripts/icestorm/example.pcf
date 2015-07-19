@@ -1,0 +1,9 @@
+set_io LED0 B5
+set_io LED1 B4
+set_io LED2 A2
+set_io LED3 A1
+set_io LED4 C5
+set_io LED5 C4
+set_io LED6 B3
+set_io LED7 C3
+set_io clk_pin J3
