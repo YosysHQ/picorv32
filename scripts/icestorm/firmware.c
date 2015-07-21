@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+// use SHIFT_COUNTER_BITS=4 for simulation
 #define SHIFT_COUNTER_BITS 16
 
 void output(uint8_t c)

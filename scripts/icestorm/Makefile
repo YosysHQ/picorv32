@@ -28,16 +28,47 @@ example_tb.exe: example_tb.v example.v firmware.hex
 	iverilog -o example_tb.exe -s testbench example.v example_tb.v ../../picorv32.v
 	chmod -x example_tb.exe
 
-sim: example_tb.exe
-	vvp -N example_tb.exe # +vcd
+example_sim: example_tb.exe
+	vvp -N example_tb.exe
+
+example_sim_vcd: example_tb.exe
+	vvp -N example_tb.exe +vcd
+
+synth_tb.exe: example_tb.v synth.blif
+	iverilog -o synth_tb.exe -s testbench synth.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
+	chmod -x synth_tb.exe
+
+synth_sim: synth_tb.exe
+	vvp -N synth_tb.exe
+
+synth_sim_vcd: synth_tb.exe
+	vvp -N synth_tb.exe +vcd
+
+route.v: example.txt
+	icebox_vlog -L -n top -sp example.pcf example.txt > route.v
+
+route_tb.exe: example_tb.v route.v
+	iverilog -o route_tb.exe -s testbench route.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
+	chmod -x route_tb.exe
+
+route_sim: route_tb.exe
+	vvp -N route_tb.exe
+
+route_sim_vcd: route_tb.exe
+	vvp -N route_tb.exe +vcd
 
 prog_sram:
 	iceprog -S example.bin
 
+view:
+	gtkwave example.vcd example.gtkw
+
 clean:
 	rm -f firmware.elf firmware.map firmware.bin firmware.hex
-	rm -f synth.log synth.v synth.blif example.txt example.bin
-	rm -f example_tb.exe example.vcd
+	rm -f synth.log synth.v synth.blif route.v example.txt example.bin
+	rm -f example_tb.exe synth_tb.exe route_tb.exe example.vcd
 
-.PHONY: all sim prog_sram clean
+.PHONY: all prog_sram view clean
+.PHONY: example_sim synth_sim route_sim
+.PHONY: example_sim_vcd synth_sim_vcd route_sim_vcd
 

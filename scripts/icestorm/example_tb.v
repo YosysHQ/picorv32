@@ -24,7 +24,7 @@ module testbench;
 		end
 
 		$monitor(LED7, LED6, LED5, LED4, LED3, LED2, LED1, LED0);
-		repeat (10000000) @(posedge clk_pin);
+		repeat (10000) @(posedge clk_pin);
 		$finish;
 	end
 endmodule
