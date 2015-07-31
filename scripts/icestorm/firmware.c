@@ -1,22 +1,50 @@
 #include <stdint.h>
 
 // use SHIFT_COUNTER_BITS=4 for simulation
-#define SHIFT_COUNTER_BITS 16
+#define SHIFT_COUNTER_BITS 18
 
 void output(uint8_t c)
 {
 	*(volatile char*)0x10000000 = c;
 }
 
-void output_gray(uint8_t c)
+uint8_t gray_encode_simple(uint8_t c)
 {
-	unsigned int in_buf = c, out_buf = 0;
+	return c ^ (c >> 1);
+}
+
+uint8_t gray_encode_bitwise(uint8_t c)
+{
+	unsigned int in_buf = c, out_buf = 0, bit = 1;
 	for (int i = 0; i < 8; i++) {
-		unsigned int bit = (in_buf & 1) ^ ((in_buf >> 1) & 1);
+		if ((in_buf & 1) ^ ((in_buf >> 1) & 1))
+			out_buf |= bit;
 		in_buf = in_buf >> 1;
-		out_buf = (out_buf << 1) | bit;
+		bit = bit << 1;
 	}
-	output(out_buf);
+	return out_buf;
+}
+
+uint8_t gray_decode(uint8_t c)
+{
+	uint8_t t = c >> 1;
+	while (t) {
+		c = c ^ t;
+		t = t >> 1;
+	}
+	return c;
+}
+
+void gray(uint8_t c)
+{
+	uint8_t gray_simple = gray_encode_simple(c);
+	uint8_t gray_bitwise = gray_encode_bitwise(c);
+	uint8_t gray_decoded = gray_decode(gray_simple);
+
+	if (gray_simple != gray_bitwise || gray_decoded != c)
+		while (1) asm volatile ("sbreak");
+
+	output(gray_simple);
 }
 
 void main()
@@ -24,6 +52,6 @@ void main()
 	for (uint32_t counter = (2+4+32+64) << SHIFT_COUNTER_BITS;; counter++) {
 		asm volatile ("" : : "r"(counter));
 		if ((counter & ~(~0 << SHIFT_COUNTER_BITS)) == 0)
-			output_gray(counter >> SHIFT_COUNTER_BITS);
+			gray(counter >> SHIFT_COUNTER_BITS);
 	}
 }
