@@ -1,3 +1,6 @@
 debug.smt2
 mem_equiv_a.smt2
 mem_equiv_b.smt2
+mem_equiv_tb
+mem_equiv_tb.v
+mem_equiv_tb.vcd

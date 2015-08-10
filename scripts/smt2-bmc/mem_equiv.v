@@ -1,4 +1,7 @@
+`timescale 1 ns / 1 ps
+
 module main (input clk, resetn, domem, output trap);
+	parameter integer MEMORY_WORDS = 2**30;
 	parameter [0:0] ENABLE_REGS_DUALPORT = 1;
 	parameter [0:0] TWO_STAGE_SHIFT = 1;
 	parameter [0:0] TWO_CYCLE_COMPARE = 0;
@@ -28,7 +31,7 @@ module main (input clk, resetn, domem, output trap);
 		.mem_rdata(mem_rdata)
 	);
 
-	reg [31:0] memory [0:2**30-1];
+	reg [31:0] memory [0:MEMORY_WORDS-1];
 
 	assign mem_ready = domem && resetn && mem_valid;
 	assign mem_rdata = memory[mem_addr >> 2];
