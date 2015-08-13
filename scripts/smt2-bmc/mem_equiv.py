@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os, sys, getopt
+from time import time
 import subprocess
 
 steps = 20
@@ -118,6 +119,7 @@ def yices_get_net_bin(mod_name, net_name, state_name):
 # Main Program
 #####################################
 
+start_time = time()
 yices_write("(set-logic QF_AUFBV)")
 
 with open("mem_equiv_a.smt2", "r") as f:
@@ -126,195 +128,207 @@ with open("mem_equiv_a.smt2", "r") as f:
 with open("mem_equiv_b.smt2", "r") as f:
     for line in f: yices_write(line)
 
-# set-up states and transaction, reset for two cycles
-for i in range(steps):
-    yices_write("(declare-fun a%d () main_a_s)" % i)
-    yices_write("(declare-fun b%d () main_b_s)" % i)
-    if i > 0:
-        yices_write("(assert (main_a_t a%d a%d))" % (i-1, i))
-        yices_write("(assert (main_b_t b%d b%d))" % (i-1, i))
-    if i > 1:
-        yices_write("(assert (|main_a_n resetn| a%d))" % i)
-        yices_write("(assert (|main_b_n resetn| b%d))" % i)
+for step in range(steps):
+    yices_write("(declare-fun a%d () main_a_s)" % step)
+    yices_write("(declare-fun b%d () main_b_s)" % step)
+
+    # reset in first two cycles
+    if step < 2:
+        yices_write("(assert (not (|main_a_n resetn| a%d)))" % step)
+        yices_write("(assert (not (|main_b_n resetn| b%d)))" % step)
+
     else:
-        yices_write("(assert (not (|main_a_n resetn| a%d)))" % i)
-        yices_write("(assert (not (|main_b_n resetn| b%d)))" % i)
+        yices_write("(assert (|main_a_n resetn| a%d))" % step)
+        yices_write("(assert (|main_b_n resetn| b%d))" % step)
 
-# start with synced memory and register file
-yices_write("(assert (= (|main_a_m cpu.cpuregs| a0) (|main_b_m cpu.cpuregs| b0)))")
-yices_write("(assert (= (|main_a_m memory| a0) (|main_b_m memory| b0)))")
+    if step == 0:
+        # start with synced memory and register file
+        yices_write("(assert (= (|main_a_m cpu.cpuregs| a0) (|main_b_m cpu.cpuregs| b0)))")
+        yices_write("(assert (= (|main_a_m memory| a0) (|main_b_m memory| b0)))")
 
-# stop with a trap and no pending memory xfer
-yices_write("(assert (not (|main_a_n mem_valid| a%d)))" % (steps-1))
-yices_write("(assert (not (|main_b_n mem_valid| b%d)))" % (steps-1))
-yices_write("(assert (|main_a_n trap| a%d))" % (steps-1))
-yices_write("(assert (|main_b_n trap| b%d))" % (steps-1))
-yices_write("(assert (|main_a_n trap| a%d))" % (steps-2))
-yices_write("(assert (|main_b_n trap| b%d))" % (steps-2))
+    else:
+        yices_write("(assert (main_a_t a%d a%d))" % (step-1, step))
+        yices_write("(assert (main_b_t b%d b%d))" % (step-1, step))
 
-# look for differences in memory or register file
-yices_write(("(assert (or (distinct (|main_a_m cpu.cpuregs| a%d) (|main_b_m cpu.cpuregs| b%d)) " +
-        "(distinct (|main_a_m memory| a%d) (|main_b_m memory| b%d))))") % (steps-1, steps-1, steps-1, steps-1))
+        secs = int(time() - start_time)
+        print("[%3d:%02d:%02d] Checking sequence of length %d.." % (secs // (60*60), (secs // 60) % 60, secs % 60, step))
+        yices_write("(push 1)")
 
-def make_cpu_regs(step):
-    for i in range(1, 32):
-        yices_write("(define-fun a%d_r%d () (_ BitVec 32) (select (|main_a_m cpu.cpuregs| a%d) #b%s))" % (step, i, step, bin(32+i)[3:]))
-        yices_write("(define-fun b%d_r%d () (_ BitVec 32) (select (|main_b_m cpu.cpuregs| b%d) #b%s))" % (step, i, step, bin(32+i)[3:]))
+        # stop with a trap and no pending memory xfer
+        yices_write("(assert (not (|main_a_n mem_valid| a%d)))" % step)
+        yices_write("(assert (not (|main_b_n mem_valid| b%d)))" % step)
+        yices_write("(assert (|main_a_n trap| a%d))" % step)
+        yices_write("(assert (|main_b_n trap| b%d))" % step)
 
-make_cpu_regs(0)
-make_cpu_regs(steps-1)
+        # look for differences in memory or register file
+        yices_write(("(assert (or (distinct (|main_a_m cpu.cpuregs| a%d) (|main_b_m cpu.cpuregs| b%d)) " +
+                "(distinct (|main_a_m memory| a%d) (|main_b_m memory| b%d))))") % (step, step, step, step))
 
-print("checking...")
-yices_write("(check-sat)")
+        yices_write("(check-sat)")
 
-def print_status(mod, step):
-    resetn = yices_get_net_bool("main_" + mod, "resetn", "%s%d" % (mod, step))
-    memvld = yices_get_net_bool("main_" + mod, "mem_valid", "%s%d" % (mod, step))
-    domem  = yices_get_net_bool("main_" + mod, "domem", "%s%d" % (mod, step))
-    memrdy = yices_get_net_bool("main_" + mod, "mem_ready", "%s%d" % (mod, step))
-    trap   = yices_get_net_bool("main_" + mod, "trap", "%s%d" % (mod, step))
-    print("status %5s: resetn=%s, memvld=%s, domem=%s, memrdy=%s, trap=%s" % ("%s[%d]" % (mod, step), resetn, memvld, domem, memrdy, trap))
+        if yices_read() == "sat":
 
-def print_mem_xfer(mod, step):
-    if yices_get("(and (|main_%s_n mem_valid| %s%d) (|main_%s_n mem_ready| %s%d))" % (mod, mod, step, mod, mod, step)) == 'true':
-        mem_addr = yices_get_net_hex("main_" + mod, "mem_addr", "%s%d" % (mod, step))
-        mem_wdata = yices_get_net_hex("main_" + mod, "mem_wdata", "%s%d" % (mod, step))
-        mem_wstrb = yices_get_net_bin("main_" + mod, "mem_wstrb", "%s%d" % (mod, step))
-        mem_rdata = yices_get_net_hex("main_" + mod, "mem_rdata", "%s%d" % (mod, step))
-        print("mem %5s: addr=%s, wdata=%s, wstrb=%s, rdata=%s" % ("%s[%d]" % (mod, step), mem_addr, mem_wdata, mem_wstrb, mem_rdata))
+            secs = int(time() - start_time)
+            print("[%3d:%02d:%02d] Creating model.." % (secs // (60*60), (secs // 60) % 60, secs % 60))
 
-def print_cpu_regs(step):
-    for i in range(1, 32):
-        ra = yices_bv2hex(yices_get("a%d_r%d" % (step, i)))
-        rb = yices_bv2hex(yices_get("b%d_r%d" % (step, i)))
-        print("%3s[%d]: A=%s B=%s%s" % ("x%d" % i, step, ra, rb, " !" if ra != rb else ""))
+            def make_cpu_regs(step):
+                for i in range(1, 32):
+                    yices_write("(define-fun a%d_r%d () (_ BitVec 32) (select (|main_a_m cpu.cpuregs| a%d) #b%s))" % (step, i, step, bin(32+i)[3:]))
+                    yices_write("(define-fun b%d_r%d () (_ BitVec 32) (select (|main_b_m cpu.cpuregs| b%d) #b%s))" % (step, i, step, bin(32+i)[3:]))
 
-if yices_read() == "sat":
-    print("yices returned sat -> model check failed!")
+            make_cpu_regs(0)
+            make_cpu_regs(step)
 
-    print()
-    print_cpu_regs(0)
+            yices_write("(check-sat)")
 
-    print()
-    print_cpu_regs(steps-1)
+            def print_status(mod, step):
+                resetn = yices_get_net_bool("main_" + mod, "resetn", "%s%d" % (mod, step))
+                memvld = yices_get_net_bool("main_" + mod, "mem_valid", "%s%d" % (mod, step))
+                domem  = yices_get_net_bool("main_" + mod, "domem", "%s%d" % (mod, step))
+                memrdy = yices_get_net_bool("main_" + mod, "mem_ready", "%s%d" % (mod, step))
+                trap   = yices_get_net_bool("main_" + mod, "trap", "%s%d" % (mod, step))
+                print("status %5s: resetn=%s, memvld=%s, domem=%s, memrdy=%s, trap=%s" % ("%s[%d]" % (mod, step), resetn, memvld, domem, memrdy, trap))
 
-    print()
-    for i in range(steps):
-        print_status("a", i)
+            def print_mem_xfer(mod, step):
+                if yices_get("(and (|main_%s_n mem_valid| %s%d) (|main_%s_n mem_ready| %s%d))" % (mod, mod, step, mod, mod, step)) == 'true':
+                    mem_addr = yices_get_net_hex("main_" + mod, "mem_addr", "%s%d" % (mod, step))
+                    mem_wdata = yices_get_net_hex("main_" + mod, "mem_wdata", "%s%d" % (mod, step))
+                    mem_wstrb = yices_get_net_bin("main_" + mod, "mem_wstrb", "%s%d" % (mod, step))
+                    mem_rdata = yices_get_net_hex("main_" + mod, "mem_rdata", "%s%d" % (mod, step))
+                    print("mem %5s: addr=%s, wdata=%s, wstrb=%s, rdata=%s" % ("%s[%d]" % (mod, step), mem_addr, mem_wdata, mem_wstrb, mem_rdata))
 
-    print()
-    for i in range(steps):
-        print_status("b", i)
+            def print_cpu_regs(step):
+                for i in range(1, 32):
+                    ra = yices_bv2hex(yices_get("a%d_r%d" % (step, i)))
+                    rb = yices_bv2hex(yices_get("b%d_r%d" % (step, i)))
+                    print("%3s[%d]: A=%s B=%s%s" % ("x%d" % i, step, ra, rb, " !" if ra != rb else ""))
 
-    print()
-    for i in range(1, steps):
-        print_mem_xfer("a", i)
+            assert yices_read() == "sat"
 
-    print()
-    for i in range(1, steps):
-        print_mem_xfer("b", i)
+            print()
+            print_cpu_regs(0)
 
-    with open("mem_equiv_tb.v", "w") as f:
-        print()
-        print("writing verilog test bench...")
+            print()
+            print_cpu_regs(step)
 
-        memory_words = 1
-        memory_datas = { "a": dict(), "b": dict() }
-        for i in range(steps-1, 0, -1):
-            for mod in ["a", "b"]:
-                if yices_get("(and (|main_%s_n mem_valid| %s%d) (|main_%s_n mem_ready| %s%d))" % (mod, mod, i, mod, mod, i)) == 'true':
-                    mem_addr = yices_get_net_hex("main_" + mod, "mem_addr", "%s%d" % (mod, i))
-                    mem_rdata = yices_get_net_hex("main_" + mod, "mem_rdata", "%s%d" % (mod, i))
-                    memory_datas[mod][mem_addr] = mem_rdata
-                    memory_words = max(int(mem_addr, 16)+1, memory_words)
-        memory_data = dict()
-        for k, v in memory_datas["a"].items(): memory_data[k] = v
-        for k, v in memory_datas["b"].items(): memory_data[k] = v
+            print()
+            for i in range(step+1):
+                print_status("a", i)
 
-        print("`timescale 1 ns / 1 ps", file=f)
-        print("", file=f)
-        print("module testbench;", file=f)
-        print("    reg clk = 1, resetn, domem_a, domem_b;", file=f)
-        print("    always #5 clk = ~clk;", file=f)
-        print("", file=f)
-        print("    main #(", file=f)
-        print("        .MEMORY_WORDS(%d)," % memory_words, file=f)
-        print("        .ENABLE_REGS_DUALPORT(0),", file=f)
-        print("        .TWO_STAGE_SHIFT(0),", file=f)
-        print("        .TWO_CYCLE_COMPARE(0),", file=f)
-        print("        .TWO_CYCLE_ALU(0)", file=f)
-        print("    ) main_a (", file=f)
-        print("        .clk(clk),", file=f)
-        print("        .resetn(resetn),", file=f)
-        print("        .domem(domem_a)", file=f)
-        print("    );", file=f)
-        print("", file=f)
-        print("    main #(", file=f)
-        print("        .MEMORY_WORDS(%d)," % memory_words, file=f)
-        print("        .ENABLE_REGS_DUALPORT(1),", file=f)
-        print("        .TWO_STAGE_SHIFT(1),", file=f)
-        print("        .TWO_CYCLE_COMPARE(1),", file=f)
-        print("        .TWO_CYCLE_ALU(1)", file=f)
-        print("    ) main_b (", file=f)
-        print("        .clk(clk),", file=f)
-        print("        .resetn(resetn),", file=f)
-        print("        .domem(domem_b)", file=f)
-        print("    );", file=f)
-        print("", file=f)
-        print("    task check_reg;", file=f)
-        print("        input [4:0] n;", file=f)
-        print("        begin", file=f)
-        print("            if (main_a.cpu.cpuregs[n] != main_b.cpu.cpuregs[n])", file=f)
-        print("                $display(\"Divergent values for reg %1d: A=%08x B=%08x\", n, main_a.cpu.cpuregs[n], main_b.cpu.cpuregs[n]);", file=f)
-        print("        end", file=f)
-        print("    endtask", file=f)
-        print("", file=f)
-        print("    task check_mem;", file=f)
-        print("        input [31:0] n;", file=f)
-        print("        begin", file=f)
-        print("            if (main_a.memory[n] != main_b.memory[n])", file=f)
-        print("                $display(\"Divergent values for memory addr %08x: A=%08x B=%08x\", n, main_a.cpu.cpuregs[n], main_b.cpu.cpuregs[n]);", file=f)
-        print("        end", file=f)
-        print("    endtask", file=f)
-        print("", file=f)
-        print("    initial begin", file=f)
-        print("        $dumpfile(\"mem_equiv_tb.vcd\");", file=f)
-        print("        $dumpvars(0, testbench);", file=f)
-        print("", file=f)
+            print()
+            for i in range(step+1):
+                print_status("b", i)
 
-        for i in range(1, 32):
-            ra = yices_bv2hex(yices_get("a%d_r%d" % (0, i)))
-            rb = yices_bv2hex(yices_get("b%d_r%d" % (0, i)))
-            print("        main_a.cpu.cpuregs[%2d] = 'h %s;  main_b.cpu.cpuregs[%2d] = 'h %s;" % (i, ra, i, rb), file=f)
-        print("", file=f)
+            print()
+            for i in range(1, step+1):
+                print_mem_xfer("a", i)
 
-        for addr, data in memory_data.items():
-            print("        main_a.memory['h %s] = 'h %s;" % (addr, data), file=f)
-            print("        main_b.memory['h %s] = 'h %s;" % (addr, data), file=f)
-        print("", file=f)
+            print()
+            for i in range(1, step+1):
+                print_mem_xfer("b", i)
 
-        for i in range(steps):
-            print("        resetn = %d;" % yices_get_net_bool("main_a", "resetn", "a%d" % i), file=f)
-            print("        domem_a = %d;" % yices_get_net_bool("main_a", "domem", "a%d" % i), file=f)
-            print("        domem_b = %d;" % yices_get_net_bool("main_b", "domem", "b%d" % i), file=f)
-            print("        @(posedge clk);", file=f)
-        print("", file=f)
+            with open("mem_equiv_tb.v", "w") as f:
+                print()
+                print("writing verilog test bench...")
 
-        for i in range(1, 32):
-            print("        check_reg(%d);" % i, file=f)
-        for addr, data in memory_data.items():
-            print("        check_mem('h %s);" % addr, file=f)
-        print("", file=f)
+                memory_words = 1
+                memory_datas = { "a": dict(), "b": dict() }
+                for i in range(step, 0, -1):
+                    for mod in ["a", "b"]:
+                        if yices_get("(and (|main_%s_n mem_valid| %s%d) (|main_%s_n mem_ready| %s%d))" % (mod, mod, i, mod, mod, i)) == 'true':
+                            mem_addr = yices_get_net_hex("main_" + mod, "mem_addr", "%s%d" % (mod, i))
+                            mem_rdata = yices_get_net_hex("main_" + mod, "mem_rdata", "%s%d" % (mod, i))
+                            memory_datas[mod][mem_addr] = mem_rdata
+                            memory_words = max(int(mem_addr, 16)+1, memory_words)
+                memory_data = dict()
+                for k, v in memory_datas["a"].items(): memory_data[k] = v
+                for k, v in memory_datas["b"].items(): memory_data[k] = v
 
-        print("        $finish;", file=f)
-        print("    end", file=f)
-        print("endmodule", file=f)
+                print("`timescale 1 ns / 1 ps", file=f)
+                print("", file=f)
+                print("module testbench;", file=f)
+                print("    reg clk = 1, resetn, domem_a, domem_b;", file=f)
+                print("    always #5 clk = ~clk;", file=f)
+                print("", file=f)
+                print("    main #(", file=f)
+                print("        .MEMORY_WORDS(%d)," % memory_words, file=f)
+                print("        .ENABLE_REGS_DUALPORT(0),", file=f)
+                print("        .TWO_STAGE_SHIFT(0),", file=f)
+                print("        .TWO_CYCLE_COMPARE(0),", file=f)
+                print("        .TWO_CYCLE_ALU(0)", file=f)
+                print("    ) main_a (", file=f)
+                print("        .clk(clk),", file=f)
+                print("        .resetn(resetn),", file=f)
+                print("        .domem(domem_a)", file=f)
+                print("    );", file=f)
+                print("", file=f)
+                print("    main #(", file=f)
+                print("        .MEMORY_WORDS(%d)," % memory_words, file=f)
+                print("        .ENABLE_REGS_DUALPORT(1),", file=f)
+                print("        .TWO_STAGE_SHIFT(1),", file=f)
+                print("        .TWO_CYCLE_COMPARE(1),", file=f)
+                print("        .TWO_CYCLE_ALU(1)", file=f)
+                print("    ) main_b (", file=f)
+                print("        .clk(clk),", file=f)
+                print("        .resetn(resetn),", file=f)
+                print("        .domem(domem_b)", file=f)
+                print("    );", file=f)
+                print("", file=f)
+                print("    task check_reg;", file=f)
+                print("        input [4:0] n;", file=f)
+                print("        begin", file=f)
+                print("            if (main_a.cpu.cpuregs[n] != main_b.cpu.cpuregs[n])", file=f)
+                print("                $display(\"Divergent values for reg %1d: A=%08x B=%08x\", n, main_a.cpu.cpuregs[n], main_b.cpu.cpuregs[n]);", file=f)
+                print("        end", file=f)
+                print("    endtask", file=f)
+                print("", file=f)
+                print("    task check_mem;", file=f)
+                print("        input [31:0] n;", file=f)
+                print("        begin", file=f)
+                print("            if (main_a.memory[n] != main_b.memory[n])", file=f)
+                print("                $display(\"Divergent values for memory addr %08x: A=%08x B=%08x\", n, main_a.cpu.cpuregs[n], main_b.cpu.cpuregs[n]);", file=f)
+                print("        end", file=f)
+                print("    endtask", file=f)
+                print("", file=f)
+                print("    initial begin", file=f)
+                print("        $dumpfile(\"mem_equiv_tb.vcd\");", file=f)
+                print("        $dumpvars(0, testbench);", file=f)
+                print("", file=f)
 
-    print("running verilog test bench...")
-    os.system("iverilog -o mem_equiv_tb -s testbench mem_equiv_tb.v mem_equiv.v ../../picorv32.v && ./mem_equiv_tb")
+                for i in range(1, 32):
+                    ra = yices_bv2hex(yices_get("a%d_r%d" % (0, i)))
+                    rb = yices_bv2hex(yices_get("b%d_r%d" % (0, i)))
+                    print("        main_a.cpu.cpuregs[%2d] = 'h %s;  main_b.cpu.cpuregs[%2d] = 'h %s;" % (i, ra, i, rb), file=f)
+                print("", file=f)
 
-else:
-    print("yices returned unsat -> model check passed.")
+                for addr, data in memory_data.items():
+                    print("        main_a.memory['h %s] = 'h %s;" % (addr, data), file=f)
+                    print("        main_b.memory['h %s] = 'h %s;" % (addr, data), file=f)
+                print("", file=f)
+
+                for i in range(step+1):
+                    print("        resetn = %d;" % yices_get_net_bool("main_a", "resetn", "a%d" % i), file=f)
+                    print("        domem_a = %d;" % yices_get_net_bool("main_a", "domem", "a%d" % i), file=f)
+                    print("        domem_b = %d;" % yices_get_net_bool("main_b", "domem", "b%d" % i), file=f)
+                    print("        @(posedge clk);", file=f)
+                print("", file=f)
+
+                for i in range(1, 32):
+                    print("        check_reg(%d);" % i, file=f)
+                for addr, data in memory_data.items():
+                    print("        check_mem('h %s);" % addr, file=f)
+                print("", file=f)
+
+                print("        $finish;", file=f)
+                print("    end", file=f)
+                print("endmodule", file=f)
+
+                secs = int(time() - start_time)
+                print("[%3d:%02d:%02d] Done." % (secs // (60*60), (secs // 60) % 60, secs % 60))
+                break
+
+        else: # unsat
+            yices_write("(pop 1)")
 
 yices_write("(exit)")
 yices.wait()

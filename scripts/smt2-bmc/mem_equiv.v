@@ -15,6 +15,7 @@ module main (input clk, resetn, domem, output trap);
 	(* keep *) wire [31:0] mem_rdata;
 
 	picorv32 #(
+		.ENABLE_COUNTERS     (                   0),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
 		.TWO_STAGE_SHIFT     (TWO_STAGE_SHIFT     ),
 		.TWO_CYCLE_COMPARE   (TWO_CYCLE_COMPARE   ),
