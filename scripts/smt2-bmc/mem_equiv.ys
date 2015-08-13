@@ -11,7 +11,7 @@ opt
 memory -nordff -nomap
 flatten
 opt
-write_smt2 -bv -mem mem_equiv_a.smt2
+write_smt2 -bv -mem -regs mem_equiv_a.smt2
 design -reset
 
 read_verilog mem_equiv.v
@@ -27,5 +27,5 @@ opt
 memory -nordff -nomap
 flatten
 opt
-write_smt2 -bv -mem mem_equiv_b.smt2
+write_smt2 -bv -mem -regs mem_equiv_b.smt2
 design -reset
