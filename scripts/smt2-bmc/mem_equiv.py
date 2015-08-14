@@ -4,8 +4,9 @@ import os, sys, getopt
 from time import time
 import subprocess
 
-steps = 12
+steps = 15
 words = 0
+solver = "yices"
 allmem = False
 fastmem = False
 initzero = False
@@ -16,8 +17,16 @@ debug_file = open("debug.smt2", "w")
 # Yices Bindings
 #####################################
 
-yices = subprocess.Popen(['yices-smt2', '--incremental'], stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+if solver == "yices":
+    yices = subprocess.Popen(['yices-smt2', '--incremental'], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+elif solver == "z3":
+    yices = subprocess.Popen(['z3', '-smt2', '-in'], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+else:
+    assert False
 
 def yices_write(stmt):
     stmt = stmt.strip()
@@ -128,6 +137,11 @@ def yices_get_net_bin(mod_name, net_name, state_name):
 #####################################
 
 start_time = time()
+
+def timestamp():
+    secs = int(time() - start_time)
+    return "+ %6d [%3d:%02d:%02d] " % (secs, secs // (60*60), (secs // 60) % 60, secs % 60)
+
 yices_write("(set-logic QF_AUFBV)")
 
 regs_a = list()
@@ -183,8 +197,7 @@ for step in range(steps):
         yices_write("(assert (main_a_t a%d a%d))" % (step-1, step))
         yices_write("(assert (main_b_t b%d b%d))" % (step-1, step))
 
-        secs = int(time() - start_time)
-        print("[%3d:%02d:%02d] Checking sequence of length %d.." % (secs // (60*60), (secs // 60) % 60, secs % 60, step))
+        print("%s Checking sequence of length %d.." % (timestamp(), step))
         yices_write("(push 1)")
 
         # stop with a trap and no pending memory xfer
@@ -201,8 +214,7 @@ for step in range(steps):
 
         if yices_read() == "sat":
 
-            secs = int(time() - start_time)
-            print("[%3d:%02d:%02d] Creating model.." % (secs // (60*60), (secs // 60) % 60, secs % 60))
+            print("%s Creating model.." % timestamp())
 
             def make_cpu_regs(step):
                 for i in range(1, 32):
@@ -411,9 +423,6 @@ for step in range(steps):
                 print("    end", file=f)
                 print("endmodule", file=f)
 
-                secs = int(time() - start_time)
-                print("[%3d:%02d:%02d] Done." % (secs // (60*60), (secs // 60) % 60, secs % 60))
-
             if words > 0:
                 print("running verilog test bench...")
                 os.system("iverilog -o mem_equiv_tb -s testbench mem_equiv_tb.v mem_equiv.v ../../picorv32.v && ./mem_equiv_tb")
@@ -423,6 +432,7 @@ for step in range(steps):
         else: # unsat
             yices_write("(pop 1)")
 
+print("%s Done." % timestamp())
 yices_write("(exit)")
 yices.wait()
 
