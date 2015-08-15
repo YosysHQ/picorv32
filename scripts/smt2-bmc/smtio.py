@@ -11,6 +11,12 @@ class smtio:
         if solver == "z3":
             popen_vargs = ['z3', '-smt2', '-in']
 
+        if solver == "cvc4":
+            popen_vargs = ['cvc4', '--incremental']
+
+        if solver == "mathsat":
+            popen_vargs = ['mathsat']
+
         self.debug_print = debug_print
         self.debug_file = debug_file
         self.p = subprocess.Popen(popen_vargs, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
