@@ -4,14 +4,10 @@ import os, sys, getopt
 from time import time
 from smtio import smtio
 
-steps = 12
+steps = 20
 words = 0
 solver = "yices"
 allmem = False
-fastmem = False
-initzero = False
-check_mem = True
-check_regs = True
 debug_print = False
 debug_file = open("debug.smt2", "w")
 
@@ -28,7 +24,7 @@ smt.write("(set-logic QF_AUFBV)")
 regs_a = list()
 regs_b = list()
 
-with open("async_a.smt2", "r") as f:
+with open("sync_a.smt2", "r") as f:
     for line in f:
         if line.startswith("; yosys-smt2-register "):
             line = line.split()
@@ -36,7 +32,7 @@ with open("async_a.smt2", "r") as f:
         else:
             smt.write(line)
 
-with open("async_b.smt2", "r") as f:
+with open("sync_b.smt2", "r") as f:
     for line in f:
         if line.startswith("; yosys-smt2-register "):
             line = line.split()
@@ -48,17 +44,8 @@ for step in range(steps):
     smt.write("(declare-fun a%d () main_a_s)" % step)
     smt.write("(declare-fun b%d () main_b_s)" % step)
 
-    if fastmem:
-        smt.write("(assert (|main_a_n domem| a%d))" % step)
-        smt.write("(assert (|main_b_n domem| b%d))" % step)
-
-    if words > 0:
-        if allmem:
-            smt.write("(assert (bvult (|main_a_n mem_addr| a%d) #x%08x))" % (step, words))
-            smt.write("(assert (bvult (|main_b_n mem_addr| b%d) #x%08x))" % (step, words))
-        else:
-            smt.write("(assert (or (not (|main_a_n mem_valid| a%d)) (bvult (|main_a_n mem_addr| a%d) #x%08x)))" % (step, step, words))
-            smt.write("(assert (or (not (|main_b_n mem_valid| b%d)) (bvult (|main_b_n mem_addr| b%d) #x%08x)))" % (step, step, words))
+    smt.write("(assert (= (|main_a_n domem| a%d) (|main_b_n domem| b%d)))" % (step, step))
+    smt.write("(assert (not (|main_a_n trap| a%d)))" % step)
 
     if step == 0:
         # start with synced memory and register file
@@ -79,23 +66,9 @@ for step in range(steps):
         print("%s Checking sequence of length %d.." % (timestamp(), step))
         smt.write("(push 1)")
 
-        # stop with a trap and no pending memory xfer
-        smt.write("(assert (not (|main_a_n mem_valid| a%d)))" % step)
-        smt.write("(assert (not (|main_b_n mem_valid| b%d)))" % step)
-        smt.write("(assert (|main_a_n trap| a%d))" % step)
-        smt.write("(assert (|main_b_n trap| b%d))" % step)
-
-        # look for differences in memory and/or register file
-        if check_mem and check_regs:
-            smt.write(("(assert (or (distinct (|main_a_m cpu.cpuregs| a%d) (|main_b_m cpu.cpuregs| b%d)) " +
-                    "(distinct (|main_a_m memory| a%d) (|main_b_m memory| b%d))))") % (step, step, step, step))
-        elif check_mem:
-            smt.write(("(assert (distinct (|main_a_m memory| a%d) (|main_b_m memory| b%d)))") % (step, step))
-        elif check_regs:
-            smt.write(("(assert (distinct (|main_a_m cpu.cpuregs| a%d) (|main_b_m cpu.cpuregs| b%d)))") % (step, step))
-        else:
-            assert False
-
+        smt.write(("(assert (or (distinct (|main_a_m cpu.cpuregs| a%d) (|main_b_m cpu.cpuregs| b%d)) " +
+                               "(distinct (|main_a_m memory|      a%d) (|main_b_m memory|      b%d))" +
+                               "(distinct (|main_a_n trap|        a%d) (|main_b_n trap|        b%d))))") % (step, step, step, step, step, step))
         smt.write("(check-sat)")
 
         if smt.read() == "sat":
@@ -111,6 +84,7 @@ for step in range(steps):
             make_cpu_regs(step)
 
             smt.write("(check-sat)")
+            assert smt.read() == "sat"
 
             def print_status(mod, step):
                 resetn = smt.get_net_bool("main_" + mod, "resetn", "%s%d" % (mod, step))
@@ -137,50 +111,6 @@ for step in range(steps):
                     rb = smt.bv2hex(smt.get("b%d_r%d" % (step, i)))
                     print("%3s[%d]: A=%s B=%s%s" % ("x%d" % i, step, ra, rb, " !" if ra != rb else ""))
 
-            assert smt.read() == "sat"
-
-            if initzero:
-                for rn, rs in regs_a:
-                    force_to_zero = True
-                    if smt.get_net_bin("main_a", rn, "a0").count("1") != 0:
-                        print("Looking for a solution with |main_a_n %s| initialized to all zeros.." % rn)
-                        smt.write("(push 1)")
-                        if rs == 1:
-                            smt.write("(assert (not (|main_a_n %s| a0)))" % rn)
-                        else:
-                            smt.write("(assert (= (|main_a_n %s| a0) #b%s))" % (rn, "0" * rs))
-                        smt.write("(check-sat)")
-                        if smt.read() != "sat":
-                            force_to_zero = False
-                        smt.write("(pop 1)")
-                    if force_to_zero:
-                        if rs == 1:
-                            smt.write("(assert (not (|main_a_n %s| a0)))" % rn)
-                        else:
-                            smt.write("(assert (= (|main_a_n %s| a0) #b%s))" % (rn, "0" * rs))
-                    smt.write("(check-sat)")
-                    assert smt.read() == "sat"
-                for rn, rs in regs_b:
-                    force_to_zero = True
-                    if smt.get_net_bin("main_b", rn, "b0").count("1") != 0:
-                        print("Looking for a solution with |main_b_n %s| initialized to all zeros.." % rn)
-                        smt.write("(push 1)")
-                        if rs == 1:
-                            smt.write("(assert (not (|main_b_n %s| b0)))" % rn)
-                        else:
-                            smt.write("(assert (= (|main_b_n %s| b0) #b%s))" % (rn, "0" * rs))
-                        smt.write("(check-sat)")
-                        if smt.read() != "sat":
-                            force_to_zero = False
-                        smt.write("(pop 1)")
-                    if force_to_zero:
-                        if rs == 1:
-                            smt.write("(assert (not (|main_b_n %s| b0)))" % rn)
-                        else:
-                            smt.write("(assert (= (|main_b_n %s| b0) #b%s))" % (rn, "0" * rs))
-                    smt.write("(check-sat)")
-                    assert smt.read() == "sat"
-
             print()
             print_cpu_regs(0)
 
@@ -203,7 +133,7 @@ for step in range(steps):
             for i in range(1, step+1):
                 print_mem_xfer("b", i)
 
-            with open("async_tb.v", "w") as f:
+            with open("sync_tb.v", "w") as f:
                 print()
                 print("writing verilog test bench...")
 
@@ -228,10 +158,7 @@ for step in range(steps):
                 print("", file=f)
                 print("    main #(", file=f)
                 print("        .MEMORY_WORDS(%d)," % memory_words, file=f)
-                print("        .ENABLE_REGS_DUALPORT(0),", file=f)
-                print("        .TWO_STAGE_SHIFT(0),", file=f)
-                print("        .TWO_CYCLE_COMPARE(0),", file=f)
-                print("        .TWO_CYCLE_ALU(0)", file=f)
+                print("        /* FIXME */", file=f)
                 print("    ) main_a (", file=f)
                 print("        .clk(clk),", file=f)
                 print("        .resetn(resetn),", file=f)
@@ -240,10 +167,7 @@ for step in range(steps):
                 print("", file=f)
                 print("    main #(", file=f)
                 print("        .MEMORY_WORDS(%d)," % memory_words, file=f)
-                print("        .ENABLE_REGS_DUALPORT(1),", file=f)
-                print("        .TWO_STAGE_SHIFT(1),", file=f)
-                print("        .TWO_CYCLE_COMPARE(1),", file=f)
-                print("        .TWO_CYCLE_ALU(1)", file=f)
+                print("        /* FIXME */", file=f)
                 print("    ) main_b (", file=f)
                 print("        .clk(clk),", file=f)
                 print("        .resetn(resetn),", file=f)
@@ -267,7 +191,7 @@ for step in range(steps):
                 print("    endtask", file=f)
                 print("", file=f)
                 print("    initial begin", file=f)
-                print("        $dumpfile(\"async_tb.vcd\");", file=f)
+                print("        $dumpfile(\"sync_tb.vcd\");", file=f)
                 print("        $dumpvars(0, testbench);", file=f)
                 print("", file=f)
 
@@ -311,12 +235,16 @@ for step in range(steps):
 
             if words > 0:
                 print("running verilog test bench...")
-                os.system("iverilog -o async_tb -s testbench async_tb.v main.v ../../picorv32.v && ./async_tb")
+                os.system("iverilog -o sync_tb -s testbench sync_tb.v main.v ../../picorv32.v && ./sync_tb")
 
             break
 
         else: # unsat
             smt.write("(pop 1)")
+
+            smt.write("(assert (= (|main_a_m cpu.cpuregs| a%d) (|main_b_m cpu.cpuregs| b%d)))" % (step, step))
+            smt.write("(assert (= (|main_a_m memory|      a%d) (|main_b_m memory|      b%d)))" % (step, step))
+            smt.write("(assert (= (|main_a_n trap|        a%d) (|main_b_n trap|        b%d)))" % (step, step))
 
 print("%s Done." % timestamp())
 smt.write("(exit)")

@@ -1,4 +1,4 @@
-read_verilog async.v
+read_verilog main.v
 read_verilog ../../picorv32.v
 rename main main_a
 chparam -set ENABLE_REGS_DUALPORT 0 \
@@ -14,7 +14,7 @@ opt
 write_smt2 -bv -mem -regs async_a.smt2
 design -reset
 
-read_verilog async.v
+read_verilog main.v
 read_verilog ../../picorv32.v
 rename main main_b
 chparam -set ENABLE_REGS_DUALPORT 1 \

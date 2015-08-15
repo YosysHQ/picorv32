@@ -2,10 +2,19 @@
 
 module main (input clk, resetn, domem, output trap);
 	parameter integer MEMORY_WORDS = 2**30;
+
+	// timing parameters (vary for async test)
 	parameter [0:0] ENABLE_REGS_DUALPORT = 1;
 	parameter [0:0] TWO_STAGE_SHIFT = 1;
 	parameter [0:0] TWO_CYCLE_COMPARE = 0;
 	parameter [0:0] TWO_CYCLE_ALU = 0;
+
+	// isa parameters (vary for sync test)
+	parameter [0:0] ENABLE_COUNTERS = 0;
+	parameter [0:0] CATCH_MISALIGN = 1;
+	parameter [0:0] CATCH_ILLINSN = 1;
+	parameter [0:0] ENABLE_MUL = 0;
+	parameter [0:0] ENABLE_IRQ = 0;
 
 	(* keep *) wire mem_valid;
 	(* keep *) wire mem_ready;
@@ -15,11 +24,18 @@ module main (input clk, resetn, domem, output trap);
 	(* keep *) wire [31:0] mem_rdata;
 
 	picorv32 #(
-		.ENABLE_COUNTERS     (                   0),
+		// timing parameters
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
 		.TWO_STAGE_SHIFT     (TWO_STAGE_SHIFT     ),
 		.TWO_CYCLE_COMPARE   (TWO_CYCLE_COMPARE   ),
-		.TWO_CYCLE_ALU       (TWO_CYCLE_ALU       )
+		.TWO_CYCLE_ALU       (TWO_CYCLE_ALU       ),
+
+		// isa parameters
+		.ENABLE_COUNTERS(ENABLE_COUNTERS),
+		.CATCH_MISALIGN (CATCH_MISALIGN ),
+		.CATCH_ILLINSN  (CATCH_ILLINSN  ),
+		.ENABLE_MUL     (ENABLE_MUL     ),
+		.ENABLE_IRQ     (ENABLE_IRQ     )
 	) cpu (
 		.clk      (clk      ),
 		.resetn   (resetn   ),
