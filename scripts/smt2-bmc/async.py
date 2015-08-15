@@ -4,7 +4,7 @@ import os, sys, getopt
 from time import time
 from smtio import smtio
 
-steps = 15
+steps = 12
 words = 0
 solver = "yices"
 allmem = False
@@ -27,7 +27,7 @@ smt.write("(set-logic QF_AUFBV)")
 regs_a = list()
 regs_b = list()
 
-with open("mem_equiv_a.smt2", "r") as f:
+with open("async_a.smt2", "r") as f:
     for line in f:
         if line.startswith("; yosys-smt2-register "):
             line = line.split()
@@ -35,7 +35,7 @@ with open("mem_equiv_a.smt2", "r") as f:
         else:
             smt.write(line)
 
-with open("mem_equiv_b.smt2", "r") as f:
+with open("async_b.smt2", "r") as f:
     for line in f:
         if line.startswith("; yosys-smt2-register "):
             line = line.split()
@@ -202,7 +202,7 @@ for step in range(steps):
             for i in range(1, step+1):
                 print_mem_xfer("b", i)
 
-            with open("mem_equiv_tb.v", "w") as f:
+            with open("async_tb.v", "w") as f:
                 print()
                 print("writing verilog test bench...")
 
@@ -266,7 +266,7 @@ for step in range(steps):
                 print("    endtask", file=f)
                 print("", file=f)
                 print("    initial begin", file=f)
-                print("        $dumpfile(\"mem_equiv_tb.vcd\");", file=f)
+                print("        $dumpfile(\"async_tb.vcd\");", file=f)
                 print("        $dumpvars(0, testbench);", file=f)
                 print("", file=f)
 
@@ -310,7 +310,7 @@ for step in range(steps):
 
             if words > 0:
                 print("running verilog test bench...")
-                os.system("iverilog -o mem_equiv_tb -s testbench mem_equiv_tb.v mem_equiv.v ../../picorv32.v && ./mem_equiv_tb")
+                os.system("iverilog -o async_tb -s testbench async_tb.v async.v ../../picorv32.v && ./async_tb")
 
             break
 
