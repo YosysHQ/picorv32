@@ -1,0 +1,47 @@
+
+Checking equivalence of different configurations of PicoRV32 using Yosys and
+SMT solvers (Yices, Z3, CVC4, MathSAT).
+
+The PicoRV32 core provides configuration parameters that change the supported
+ISA and/or the timing of the core. This set of scripts uses model checking
+techniques to proof equivalence of cores in different configurations, thus
+transfering the confidence in the cores gained by running test benches on a few
+configurations to the rest of the configurations.
+
+
+async
+-----
+
+The async test compares two cores with different timings (number of clock
+cycles per operation), but same ISA. The SMT problem models the following
+scenario:
+
+The cores start out with identical memory and register file. In cycle 0 the
+reset input is active, in all other cycles the reset input is inactive. The
+trap output must by active in the last cycle for both cores. I.e. whatever
+the program in memory does, it must terminate in a trap and it must do so
+for both cores within the simulated number of clock cycles.
+
+The script searches for a trace that ends in different memory content and/or
+different register file content in the last cycle, i.e. a trace that exposes
+divergent behavior in the two cores.
+
+
+sync
+----
+
+The sync test compares two cores same timings but different ISA. The ISA of the
+2nd code (main_b) must be a superset of the ISA of the first core (main_a), and
+catching illegal instructions and illegal memory transfers must be enabled in
+the first core. The SMT problem models the following scenario:
+
+The cores start out with identical memory and register file. In cycle 0 the
+reset input is active, in all other cycles the reset input is inactive. The
+cores are run in parallel for a number of cycles with the first core not going
+into the trap state. I.e. all traces are limited to the ISA supported by the
+first core.
+
+The script searches for a trace that ends in different memory content and/or
+different register file content in the last cycle, i.e. a trace that exposes
+divergent behavior in the two cores.
+

@@ -9,7 +9,46 @@ words = 0
 solver = "yices"
 allmem = False
 debug_print = False
-debug_file = open("debug.smt2", "w")
+debug_file = None
+
+def usage():
+    print("""
+python3 sync.py [options]
+
+    -s <solver>
+        set SMT solver: yices, z3, cvc4, mathsat
+        default: yices
+
+    -t <steps>
+        default: 20
+
+    -v
+        enable debug output
+
+    -d
+        write smt2 statements to debug.smt2
+""")
+    sys.exit(1)
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "s:t:vd")
+except:
+    usage()
+
+for o, a in opts:
+    if o == "-s":
+        solver = a
+    elif o == "-t":
+        steps = int(a)
+    elif o == "-v":
+        debug_print = True
+    elif o == "-d":
+        debug_file = open("debug.smt2", "w")
+    else:
+        usage()
+
+if len(args) > 0:
+    usage()
 
 start_time = time()
 smt = smtio(solver=solver, debug_print=debug_print, debug_file=debug_file)

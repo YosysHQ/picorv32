@@ -12,7 +12,7 @@ class smtio:
             popen_vargs = ['z3', '-smt2', '-in']
 
         if solver == "cvc4":
-            popen_vargs = ['cvc4', '--incremental']
+            popen_vargs = ['cvc4', '--incremental', '--lang', 'smt2']
 
         if solver == "mathsat":
             popen_vargs = ['mathsat']
