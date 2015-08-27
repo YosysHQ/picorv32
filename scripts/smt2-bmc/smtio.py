@@ -150,3 +150,32 @@ class smtio:
     def wait(self):
         self.p.wait()
 
+
+class mkvcd:
+    def __init__(self, f):
+        self.f = f
+        self.t = -1
+        self.nets = dict()
+
+    def add_net(self, name, width):
+        assert self.t == -1
+        key = "n%d" % len(self.nets)
+        self.nets[name] = (key, width)
+
+    def set_net(self, name, bits):
+        assert name in self.nets
+        assert self.t >= 0
+        print("b%s %s" % (bits, self.nets[name][0]), file=self.f)
+
+    def set_time(self, t):
+        assert t >= self.t
+        if t != self.t:
+            if self.t == -1:
+                for name in sorted(self.nets):
+                    key, width = self.nets[name]
+                    print("$var wire %d %s %s $end" % (width, key, name), file=self.f)
+                print("$enddefinitions $end", file=self.f)
+            self.t = t
+            assert self.t >= 0
+            print("#%d" % self.t, file=self.f)
+
