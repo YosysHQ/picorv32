@@ -3,25 +3,48 @@
 import sys
 import subprocess
 from select import select
+from time import time
 
 class smtio:
-    def __init__(self, solver="yices", debug_print=False, debug_file=None, timeinfo=True):
-        if solver == "yices":
+    def __init__(self, solver=None, debug_print=None, debug_file=None, timeinfo=None, opts=None):
+        if opts is not None:
+            self.solver = opts.solver
+            self.debug_print = opts.debug_print
+            self.debug_file = opts.debug_file
+            self.timeinfo = opts.timeinfo
+
+        else:
+            self.solver = "yices"
+            self.debug_print = False
+            self.debug_file = None
+            self.timeinfo = True
+
+        if solver is not None:
+            self.solver = solver
+
+        if debug_print is not None:
+            self.debug_print = debug_print
+
+        if debug_file is not None:
+            self.debug_file = debug_file
+
+        if timeinfo is not None:
+            self.timeinfo = timeinfo
+
+        if self.solver == "yices":
             popen_vargs = ['yices-smt2', '--incremental']
 
-        if solver == "z3":
+        if self.solver == "z3":
             popen_vargs = ['z3', '-smt2', '-in']
 
-        if solver == "cvc4":
+        if self.solver == "cvc4":
             popen_vargs = ['cvc4', '--incremental', '--lang', 'smt2']
 
-        if solver == "mathsat":
+        if self.solver == "mathsat":
             popen_vargs = ['mathsat']
 
-        self.debug_print = debug_print
-        self.debug_file = debug_file
-        self.timeinfo = timeinfo
         self.p = subprocess.Popen(popen_vargs, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.start_time = time()
 
     def setup(self, logic="ALL", info=None):
         self.write("(set-logic %s)" % logic)
@@ -29,6 +52,10 @@ class smtio:
             self.write("(set-info :source |%s|)" % info)
         self.write("(set-info :smt-lib-version 2.5)")
         self.write("(set-info :category \"industrial\")")
+
+    def timestamp(self):
+        secs = int(time() - self.start_time)
+        return "+ %6d %3d:%02d:%02d " % (secs, secs // (60*60), (secs // 60) % 60, secs % 60)
 
     def write(self, stmt):
         stmt = stmt.strip()
@@ -188,6 +215,43 @@ class smtio:
 
     def wait(self):
         self.p.wait()
+
+
+class smtopts:
+    def __init__(self):
+        self.solver = "yices"
+        self.debug_print = False
+        self.debug_file = None
+        self.timeinfo = True
+
+    def handle(self, o, a):
+        if o == "-s":
+            self.solver = a
+        elif o == "-v":
+            self.debug_print = True
+        elif o == "-p":
+            self.timeinfo = True
+        elif o == "-d":
+            self.debug_file = open(a, "w")
+        else:
+            return False
+        return True
+
+    def helpmsg(self):
+        return """
+    -s <solver>
+        set SMT solver: yices, z3, cvc4, mathsat
+        default: yices
+
+    -v
+        enable debug output
+
+    -p
+        disable timer display during solving
+
+    -d <filename>
+        write smt2 statements to file
+        """
 
 
 class mkvcd:

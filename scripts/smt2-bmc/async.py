@@ -1,41 +1,24 @@
 #!/usr/bin/env python3
 
 import os, sys, getopt
-from time import time
-from smtio import smtio
+from smtio import smtio, smtopts
 
 steps = 12
 words = 0
-solver = "yices"
 allmem = False
 fastmem = False
 initzero = False
 check_mem = True
 check_regs = True
-timeinfo = True
-debug_print = False
-debug_file = None
+so = smtopts()
 
 def usage():
     print("""
 python3 async.py [options]
 
-    -s <solver>
-        set SMT solver: yices, z3, cvc4, mathsat
-        default: yices
-
     -t <steps>
         default: 12
-
-    -v
-        enable debug output
-
-    -p
-        disable timer display during solving
-
-    -d
-        write smt2 statements to debug.smt2
-""")
+""" + so.helpmsg())
     sys.exit(1)
 
 try:
@@ -44,30 +27,19 @@ except:
     usage()
 
 for o, a in opts:
-    if o == "-s":
-        solver = a
-    elif o == "-t":
+    if o == "-t":
         steps = int(a)
-    elif o == "-v":
-        debug_print = True
-    elif o == "-d":
-        debug_file = open("debug.smt2", "w")
-    elif o == "-p":
-        timeinfo = False
+    elif so.handle(o, a):
+        pass
     else:
         usage()
 
 if len(args) > 0:
     usage()
 
-start_time = time()
-smt = smtio(solver=solver, debug_print=debug_print, debug_file=debug_file, timeinfo=timeinfo)
+smt = smtio(opts=so)
 
-def timestamp():
-    secs = int(time() - start_time)
-    return "+ %6d [%3d:%02d:%02d] " % (secs, secs // (60*60), (secs // 60) % 60, secs % 60)
-
-print("Solver: %s" % solver)
+print("Solver: %s" % so.solver)
 smt.setup("QF_AUFBV", "PicoRV32 \"async.py\" BMC script, powered by Yosys")
 
 regs_a = list()
@@ -121,7 +93,7 @@ for step in range(steps):
         smt.write("(assert (|main_a_n resetn| a%d))" % step)
         smt.write("(assert (|main_b_n resetn| b%d))" % step)
 
-        print("%s Checking sequence of length %d.." % (timestamp(), step))
+        print("%s Checking sequence of length %d.." % (smt.timestamp(), step))
         smt.write("(push 1)")
 
         # stop with a trap and no pending memory xfer
@@ -143,7 +115,7 @@ for step in range(steps):
 
         if smt.check_sat() == "sat":
 
-            print("%s Creating model.." % timestamp())
+            print("%s Creating model.." % smt.timestamp())
 
             def make_cpu_regs(step):
                 for i in range(1, 32):
@@ -355,7 +327,7 @@ for step in range(steps):
         else: # unsat
             smt.write("(pop 1)")
 
-print("%s Done." % timestamp())
+print("%s Done." % smt.timestamp())
 smt.write("(exit)")
 smt.wait()
 
