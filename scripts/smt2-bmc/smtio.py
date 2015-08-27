@@ -21,6 +21,13 @@ class smtio:
         self.debug_file = debug_file
         self.p = subprocess.Popen(popen_vargs, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
+    def setup(self, logic="ALL", info=None):
+        self.write("(set-logic %s)" % logic)
+        if info is not None:
+            self.write("(set-info :source |%s|)" % info)
+        self.write("(set-info :smt-lib-version 2.5)")
+        self.write("(set-info :category \"industrial\")")
+
     def write(self, stmt):
         stmt = stmt.strip()
         if self.debug_print:
@@ -54,6 +61,21 @@ class smtio:
             sys.exit(1)
 
         return stmt
+
+    def check_sat(self):
+        if self.debug_print:
+            print("> (check-sat)")
+        if self.debug_file:
+            print("; running check-sat..", file=self.debug_file)
+            self.debug_file.flush()
+        self.p.stdin.write(bytes("(check-sat)\n", "ascii"))
+        self.p.stdin.flush()
+        result = self.read()
+        if self.debug_file:
+            print("(set-info :status %s)" % result, file=self.debug_file)
+            print("(check-sat)", file=self.debug_file)
+            self.debug_file.flush()
+        return result
 
     def parse(self, stmt):
         def worker(stmt):

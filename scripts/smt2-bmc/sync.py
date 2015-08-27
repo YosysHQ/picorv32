@@ -58,7 +58,7 @@ def timestamp():
     return "+ %6d [%3d:%02d:%02d] " % (secs, secs // (60*60), (secs // 60) % 60, secs % 60)
 
 print("Solver: %s" % solver)
-smt.write("(set-logic QF_AUFBV)")
+smt.setup("QF_AUFBV", "PicoRV32 \"sync.py\" BMC script, powered by Yosys")
 
 regs_a = list()
 regs_b = list()
@@ -108,9 +108,8 @@ for step in range(steps):
         smt.write(("(assert (or (distinct (|main_a_m cpu.cpuregs| a%d) (|main_b_m cpu.cpuregs| b%d)) " +
                                "(distinct (|main_a_m memory|      a%d) (|main_b_m memory|      b%d))" +
                                "(distinct (|main_a_n trap|        a%d) (|main_b_n trap|        b%d))))") % (step, step, step, step, step, step))
-        smt.write("(check-sat)")
 
-        if smt.read() == "sat":
+        if smt.check_sat() == "sat":
 
             print("%s Creating model.." % timestamp())
 
@@ -122,8 +121,7 @@ for step in range(steps):
             make_cpu_regs(0)
             make_cpu_regs(step)
 
-            smt.write("(check-sat)")
-            assert smt.read() == "sat"
+            assert smt.sheck_sat() == "sat"
 
             def print_status(mod, step):
                 resetn = smt.get_net_bool("main_" + mod, "resetn", "%s%d" % (mod, step))

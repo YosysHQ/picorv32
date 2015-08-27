@@ -62,7 +62,7 @@ def timestamp():
     return "+ %6d [%3d:%02d:%02d] " % (secs, secs // (60*60), (secs // 60) % 60, secs % 60)
 
 print("Solver: %s" % solver)
-smt.write("(set-logic QF_AUFBV)")
+smt.setup("QF_AUFBV", "PicoRV32 \"async.py\" BMC script, powered by Yosys")
 
 regs_a = list()
 regs_b = list()
@@ -135,9 +135,7 @@ for step in range(steps):
         else:
             assert False
 
-        smt.write("(check-sat)")
-
-        if smt.read() == "sat":
+        if smt.check_sat() == "sat":
 
             print("%s Creating model.." % timestamp())
 
@@ -148,8 +146,6 @@ for step in range(steps):
 
             make_cpu_regs(0)
             make_cpu_regs(step)
-
-            smt.write("(check-sat)")
 
             def print_status(mod, step):
                 resetn = smt.get_net_bool("main_" + mod, "resetn", "%s%d" % (mod, step))
@@ -176,7 +172,7 @@ for step in range(steps):
                     rb = smt.bv2hex(smt.get("b%d_r%d" % (step, i)))
                     print("%3s[%d]: A=%s B=%s%s" % ("x%d" % i, step, ra, rb, " !" if ra != rb else ""))
 
-            assert smt.read() == "sat"
+            assert smt.check_sat() == "sat"
 
             if initzero:
                 for rn, rs in regs_a:
@@ -188,8 +184,7 @@ for step in range(steps):
                             smt.write("(assert (not (|main_a_n %s| a0)))" % rn)
                         else:
                             smt.write("(assert (= (|main_a_n %s| a0) #b%s))" % (rn, "0" * rs))
-                        smt.write("(check-sat)")
-                        if smt.read() != "sat":
+                        if smt.check_sat() != "sat":
                             force_to_zero = False
                         smt.write("(pop 1)")
                     if force_to_zero:
@@ -197,8 +192,7 @@ for step in range(steps):
                             smt.write("(assert (not (|main_a_n %s| a0)))" % rn)
                         else:
                             smt.write("(assert (= (|main_a_n %s| a0) #b%s))" % (rn, "0" * rs))
-                    smt.write("(check-sat)")
-                    assert smt.read() == "sat"
+                    assert smt.check_sat() == "sat"
                 for rn, rs in regs_b:
                     force_to_zero = True
                     if smt.get_net_bin("main_b", rn, "b0").count("1") != 0:
@@ -208,8 +202,7 @@ for step in range(steps):
                             smt.write("(assert (not (|main_b_n %s| b0)))" % rn)
                         else:
                             smt.write("(assert (= (|main_b_n %s| b0) #b%s))" % (rn, "0" * rs))
-                        smt.write("(check-sat)")
-                        if smt.read() != "sat":
+                        if smt.check_sat() != "sat":
                             force_to_zero = False
                         smt.write("(pop 1)")
                     if force_to_zero:
@@ -217,8 +210,7 @@ for step in range(steps):
                             smt.write("(assert (not (|main_b_n %s| b0)))" % rn)
                         else:
                             smt.write("(assert (= (|main_b_n %s| b0) #b%s))" % (rn, "0" * rs))
-                    smt.write("(check-sat)")
-                    assert smt.read() == "sat"
+                    assert smt.check_sat() == "sat"
 
             print()
             print_cpu_regs(0)
