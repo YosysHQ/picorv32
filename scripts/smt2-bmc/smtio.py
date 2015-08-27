@@ -81,28 +81,33 @@ class smtio:
             count = 0
             num_bs = 0
             while select([self.p.stdout], [], [], 0.1) == ([], [], []):
-                if count % 10 == 0:
+                count += 1
+
+                if count < 25:
+                    continue
+
+                if count % 10 == 0 or count == 25:
                     secs = count // 10
 
-                    if secs < 10:
+                    if secs < 60:
                         m = "(%d seconds)" % secs
                     elif secs < 60*60:
                         m = "(%d seconds -- %d:%02d)" % (secs, secs // 60, secs % 60)
                     else:
                         m = "(%d seconds -- %d:%02d:%02d)" % (secs, secs // (60*60), (secs // 60) % 60, secs % 60)
 
-                    print("%s %s %c" % ("\b \b" * num_bs, m, s[i]), end="")
+                    print("%s %s %c" % ("\b \b" * num_bs, m, s[i]), end="", file=sys.stderr)
                     num_bs = len(m) + 3
 
                 else:
-                    print("\b" + s[i], end="")
+                    print("\b" + s[i], end="", file=sys.stderr)
 
-                sys.stdout.flush()
+                sys.stderr.flush()
                 i = (i + 1) % len(s)
-                count += 1
 
-            print("\b \b" * num_bs, end="")
-            sys.stdout.flush()
+            if num_bs != 0:
+                print("\b \b" * num_bs, end="", file=sys.stderr)
+                sys.stderr.flush()
 
         result = self.read()
         if self.debug_file:
