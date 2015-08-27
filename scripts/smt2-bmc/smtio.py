@@ -2,9 +2,10 @@
 
 import sys
 import subprocess
+from select import select
 
 class smtio:
-    def __init__(self, solver="yices", debug_print=False, debug_file=None):
+    def __init__(self, solver="yices", debug_print=False, debug_file=None, timeinfo=True):
         if solver == "yices":
             popen_vargs = ['yices-smt2', '--incremental']
 
@@ -19,6 +20,7 @@ class smtio:
 
         self.debug_print = debug_print
         self.debug_file = debug_file
+        self.timeinfo = timeinfo
         self.p = subprocess.Popen(popen_vargs, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     def setup(self, logic="ALL", info=None):
@@ -68,8 +70,40 @@ class smtio:
         if self.debug_file:
             print("; running check-sat..", file=self.debug_file)
             self.debug_file.flush()
+
         self.p.stdin.write(bytes("(check-sat)\n", "ascii"))
         self.p.stdin.flush()
+
+        if self.timeinfo:
+            i = 0
+            s = "/-\|"
+
+            count = 0
+            num_bs = 0
+            while select([self.p.stdout], [], [], 0.1) == ([], [], []):
+                if count % 10 == 0:
+                    secs = count // 10
+
+                    if secs < 10:
+                        m = "(%d seconds)" % secs
+                    elif secs < 60*60:
+                        m = "(%d seconds -- %d:%02d)" % (secs, secs // 60, secs % 60)
+                    else:
+                        m = "(%d seconds -- %d:%02d:%02d)" % (secs, secs // (60*60), (secs // 60) % 60, secs % 60)
+
+                    print("%s %s %c" % ("\b \b" * num_bs, m, s[i]), end="")
+                    num_bs = len(m) + 3
+
+                else:
+                    print("\b" + s[i], end="")
+
+                sys.stdout.flush()
+                i = (i + 1) % len(s)
+                count += 1
+
+            print("\b \b" * num_bs, end="")
+            sys.stdout.flush()
+
         result = self.read()
         if self.debug_file:
             print("(set-info :status %s)" % result, file=self.debug_file)

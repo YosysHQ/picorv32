@@ -8,6 +8,7 @@ steps = 20
 words = 0
 solver = "yices"
 allmem = False
+timeinfo = True
 debug_print = False
 debug_file = None
 
@@ -25,13 +26,16 @@ python3 sync.py [options]
     -v
         enable debug output
 
+    -p
+        disable timer display during solving
+
     -d
         write smt2 statements to debug.smt2
 """)
     sys.exit(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "s:t:vd")
+    opts, args = getopt.getopt(sys.argv[1:], "s:t:vdp")
 except:
     usage()
 
@@ -44,6 +48,8 @@ for o, a in opts:
         debug_print = True
     elif o == "-d":
         debug_file = open("debug.smt2", "w")
+    elif o == "-p":
+        timeinfo = False
     else:
         usage()
 
@@ -51,7 +57,7 @@ if len(args) > 0:
     usage()
 
 start_time = time()
-smt = smtio(solver=solver, debug_print=debug_print, debug_file=debug_file)
+smt = smtio(solver=solver, debug_print=debug_print, debug_file=debug_file, timeinfo=timeinfo)
 
 def timestamp():
     secs = int(time() - start_time)
