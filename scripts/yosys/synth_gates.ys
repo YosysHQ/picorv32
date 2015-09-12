@@ -1,0 +1,14 @@
+read_verilog synth_gates.v
+read_verilog ../../picorv32.v
+
+hierarchy -top top
+proc; flatten
+
+synth
+
+dfflibmap -prepare -liberty synth_gates.lib
+abc -dff -liberty synth_gates.lib
+dfflibmap -liberty synth_gates.lib
+
+stat
+write_blif synth_gates.blif

@@ -1,0 +1,32 @@
+library(gates) {
+  cell(NOT) {
+    area: 2; // 7404 hex inverter
+    pin(A) { direction: input; }
+    pin(Y) { direction: output;
+              function: "A'"; }
+  }
+  cell(NAND) {
+    area: 3; // 7400 quad 2-input NAND gate
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(Y) { direction: output;
+             function: "(A*B)'"; }
+  }
+  cell(NOR) {
+    area: 3; // 7402 quad 2-input NOR gate
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(Y) { direction: output;
+             function: "(A+B)'"; }
+  }
+  cell(DFF) {
+    area: 6; // 7474 dual D positive edge triggered flip-flop
+    ff(IQ, IQN) { clocked_on: C;
+                  next_state: D; }
+    pin(C) { direction: input;
+                 clock: true; }
+    pin(D) { direction: input; }
+    pin(Q) { direction: output;
+              function: "IQ"; }
+  }
+}
