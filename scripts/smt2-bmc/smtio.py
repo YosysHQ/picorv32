@@ -219,6 +219,7 @@ class smtio:
 
 class smtopts:
     def __init__(self):
+        self.optstr = "s:d:vp"
         self.solver = "yices"
         self.debug_print = False
         self.debug_file = None

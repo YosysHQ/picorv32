@@ -22,7 +22,7 @@ python3 async.py [options]
     sys.exit(1)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "s:t:vdp")
+    opts, args = getopt.getopt(sys.argv[1:], so.optstr + "t:")
 except:
     usage()
 
