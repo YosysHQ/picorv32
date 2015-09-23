@@ -40,7 +40,7 @@ For even smaller size it is possible disable support for registers `x16`..`x31` 
 well as `RDCYCLE[H]`, `RDTIME[H]`, and `RDINSTRET[H]` instructions, turning the
 processor into an RV32E core.
 
-Furthermore it is possible to choose between a single-port and a dual-port
+Furthermore it is possible to choose between a dual-port and a single-port
 register file implementation. The former provides better performance while
 the latter results in a smaller core.
 
