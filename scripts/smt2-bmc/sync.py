@@ -3,7 +3,7 @@
 import os, sys, getopt
 from smtio import smtio, smtopts
 
-steps = 20
+steps = 14
 words = 0
 allmem = False
 so = smtopts()
