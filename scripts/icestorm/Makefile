@@ -1,5 +1,5 @@
 
-TOOLCHAIN_PREFIX = riscv64-unknown-elf-
+TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 
 all: example.bin
 
