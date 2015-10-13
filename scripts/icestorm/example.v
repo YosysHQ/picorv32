@@ -1,15 +1,9 @@
 `timescale 1 ns / 1 ps
 
 module top (
-	input clk_pin,
+	input clk,
 	output reg LED0, LED1, LED2, LED3, LED4, LED5, LED6, LED7
 );
-	// -------------------------------
-	// Clock Buffer
-
-	wire clk = clk_pin;
-
-
 	// -------------------------------
 	// Reset Generator
 
