@@ -15,8 +15,8 @@ firmware.bin: firmware.elf
 firmware.hex: firmware.bin
 	python3 ../../firmware/makehex.py firmware.bin 128 > firmware.hex
 
-synth.blif: example.v firmware.hex
-	yosys -v3 -l synth.log -p 'synth_ice40 -top top -blif synth.blif; write_verilog -attr2comment synth.v' ../../picorv32.v example.v
+synth.blif: example.v ../../picorv32.v firmware.hex
+	yosys -v3 -l synth.log -p 'synth_ice40 -top top -blif $@; write_verilog -attr2comment synth.v' $(filter %.v, $^)
 
 example.txt: synth.blif
 	arachne-pnr -d 8k -o example.txt -p example.pcf synth.blif
