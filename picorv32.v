@@ -1092,6 +1092,26 @@ module picorv32 #(
 		reg_next_pc[1:0] <= 0;
 		current_pc = 'bx;
 	end
+
+
+	// Formal Verification
+`ifdef FORMAL
+	reg [3:0] cycle = 0;
+
+	always @(posedge clk) begin
+		if (~&cycle)
+			cycle <= cycle + 1;
+	end
+
+	always @* begin
+		assume (resetn == |cycle);
+		if (cycle) begin
+			// instruction fetches are read-only
+			if (mem_valid && mem_instr)
+				assert (mem_wstrb == 0);
+		end
+	end
+`endif
 endmodule
 
 

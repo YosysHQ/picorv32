@@ -14,6 +14,15 @@ testbench.vcd: testbench.exe firmware/firmware.hex
 view: testbench.vcd
 	gtkwave $< testbench.gtkw
 
+check: check.smt2
+	# yosys-smtbmc -m picorv32 check.smt2
+	yosys-smtbmc -m picorv32 -t 10 -c check.vcd -i check.smt2
+
+check.smt2: picorv32.v
+	yosys -v2 -p 'read_verilog -formal picorv32.v' \
+	          -p 'prep -top picorv32 -nordff' \
+		  -p 'write_smt2 -bv -mem -wires check.smt2'
+
 test_sp: testbench_sp.exe firmware/firmware.hex
 	vvp -N testbench_sp.exe
 
@@ -69,9 +78,9 @@ toc:
 	gawk '/^-+$$/ { y=tolower(x); gsub("[^a-z0-9]+", "-", y); gsub("-$$", "", y); printf("- [%s](#%s)\n", x, y); } { x=$$0; }' README.md
 
 clean:
-	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) \
+	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
-		synth.v testbench.exe testbench_sp.exe testbench_axi.exe testbench_synth.exe testbench.vcd
+		testbench.exe testbench_sp.exe testbench_axi.exe testbench_synth.exe testbench.vcd
 
 .PHONY: test view test_sp test_axi test_synth toc clean
 

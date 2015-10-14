@@ -20,6 +20,8 @@
 /testbench_synth.exe
 /testbench.gtkw
 /testbench.vcd
+/check.smt2
+/check.vcd
 /synth.log
 /synth.v
 .*.swp
