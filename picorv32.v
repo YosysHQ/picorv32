@@ -27,6 +27,11 @@
   `define debug(debug_command)
 `endif
 
+`ifdef FORMAL
+  `define FORMAL_KEEP (* keep *)
+`else
+  `define FORMAL_KEEP
+`endif
 
 /***************************************************************
  * picorv32
@@ -304,9 +309,9 @@ module picorv32 #(
 	assign is_rdcycle_rdcycleh_rdinstr_rdinstrh = |{instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh};
 
 	reg [63:0] new_ascii_instr;
-	reg [63:0] ascii_instr;
+	`FORMAL_KEEP reg [63:0] ascii_instr;
 
-	always @* begin
+	always @(posedge clk) begin
 		new_ascii_instr = "";
 		if (instr_lui)      new_ascii_instr = "lui";
 		if (instr_auipc)    new_ascii_instr = "auipc";
@@ -363,7 +368,7 @@ module picorv32 #(
 		if (instr_timer)    new_ascii_instr = "timer";
 
 		if (decoder_trigger_q)
-			ascii_instr = new_ascii_instr;
+			ascii_instr <= new_ascii_instr;
 	end
 
 	always @(posedge clk) begin
@@ -402,9 +407,7 @@ module picorv32 #(
 		end
 
 		if (decoder_trigger && !decoder_pseudo_trigger) begin
-			if (WITH_PCPI) begin
-				pcpi_insn <= mem_rdata_q;
-			end
+			pcpi_insn <= WITH_PCPI ? mem_rdata_q : 'bx;
 
 			instr_beq   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b000;
 			instr_bne   <= is_beq_bne_blt_bge_bltu_bgeu && mem_rdata_q[14:12] == 3'b001;
@@ -511,7 +514,7 @@ module picorv32 #(
 	reg [7:0] cpu_state;
 	reg [1:0] irq_state;
 
-	reg [127:0] ascii_state;
+	`FORMAL_KEEP reg [127:0] ascii_state;
 
 	always @* begin
 		ascii_state = "";
@@ -1097,18 +1100,33 @@ module picorv32 #(
 	// Formal Verification
 `ifdef FORMAL
 	reg [3:0] cycle = 0;
+	always @(posedge clk)
+		if (~&cycle) cycle <= cycle + 1;
 
-	always @(posedge clk) begin
-		if (~&cycle)
-			cycle <= cycle + 1;
-	end
+	reg [4:0] last_mem_ready;
+	always @(posedge clk)
+		last_mem_ready <= {last_mem_ready, mem_ready};
+	assume property (|last_mem_ready);
 
+	reg ok;
 	always @* begin
 		assume (resetn == |cycle);
 		if (cycle) begin
 			// instruction fetches are read-only
 			if (mem_valid && mem_instr)
 				assert (mem_wstrb == 0);
+
+			// cpu_state must be valid
+			ok = 0;
+			if (cpu_state == cpu_state_trap)   ok = 1;
+			if (cpu_state == cpu_state_fetch)  ok = 1;
+			if (cpu_state == cpu_state_ld_rs1) ok = 1;
+			if (cpu_state == cpu_state_ld_rs2) ok = ENABLE_REGS_DUALPORT;
+			if (cpu_state == cpu_state_exec)   ok = 1;
+			if (cpu_state == cpu_state_shift)  ok = 1;
+			if (cpu_state == cpu_state_stmem)  ok = 1;
+			if (cpu_state == cpu_state_ldmem)  ok = 1;
+			assert (ok);
 		end
 	end
 `endif

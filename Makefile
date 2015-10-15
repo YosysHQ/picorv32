@@ -15,8 +15,8 @@ view: testbench.vcd
 	gtkwave $< testbench.gtkw
 
 check: check.smt2
-	# yosys-smtbmc -m picorv32 check.smt2
-	yosys-smtbmc -m picorv32 -t 10 -c check.vcd -i check.smt2
+	yosys-smtbmc -t 30 -c check.vcd check.smt2
+	yosys-smtbmc -t 30 -c check.vcd -i check.smt2
 
 check.smt2: picorv32.v
 	yosys -v2 -p 'read_verilog -formal picorv32.v' \
