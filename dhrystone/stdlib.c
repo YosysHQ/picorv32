@@ -3,11 +3,13 @@
 extern long time();
 extern long insn();
 extern char *malloc();
-extern void *memcpy(char *dest, const char *src, int n);
-extern char *strcpy(char *dest, const char *src);
-extern int strcmp(const char *s1, const char *s2);
 extern int printf(const char *format, ...);
 extern int scanf(const char *format, ...);
+
+// implementations are copy&paste from riscv newlib
+extern void *memcpy(void *dest, const void *src, long n);
+extern char *strcpy(char *dest, const char *src);
+extern int strcmp(const char *s1, const char *s2);
 
 char heap_memory[1024];
 int heap_memory_used = 0;
@@ -38,170 +40,200 @@ char *malloc(int size)
 	return p;
 }
 
-#if 0
-void *memcpy(char *dest, const char *src, int n)
+static void printf_c(int c)
 {
-	while (n--)
-		*(dest++) = *(src++);
+	*((volatile int*)0x10000000) = c;
 }
-#else
-/* copy&paste from disassembled libc */
-asm (
-"               .global memcpy;      "
-"  memcpy:      xor     a5,a1,a0;    "
-"               slli    a4,a5,0x1e;  "
-"               add     a7,a0,a2;    "
-"               bnez    a4,.M1;      "
-"               li      a5,3;        "
-"               bleu    a2,a5,.M2;   "
-"               slli    a5,a0,0x1e;  "
-"               bnez    a5,.M3;      "
-"               andi    a6,a7,-4;    "
-"               addi    a5,a6,-32;   "
-"               mv      a4,a0;       "
-"               bltu    a0,a5,.M4;   "
-"  .M9:         mv      a3,a1;       "
-"               mv      a5,a4;       "
-"               bleu    a6,a4,.M5;   "
-"  .M6:         lw      a2,0(a3);    "
-"               addi    a5,a5,4;     "
-"               addi    a3,a3,4;     "
-"               sw      a2,-4(a5);   "
-"               bltu    a5,a6,.M6;   "
-"               not     a5,a4;       "
-"               add     a6,a5,a6;    "
-"               andi    a6,a6,-4;    "
-"               addi    a6,a6,4;     "
-"               add     a4,a4,a6;    "
-"               add     a1,a1,a6;    "
-"  .M5:         bltu    a4,a7,.M7;   "
-"  .M11:        ret;                 "
-"  .M3:         mv      a4,a0;       "
-"  .M8:         lbu     a5,0(a1);    "
-"               addi    a4,a4,1;     "
-"               addi    a1,a1,1;     "
-"               sb      a5,-1(a4);   "
-"               slli    a5,a4,0x1e;  "
-"               bnez    a5,.M8;      "
-"               andi    a6,a7,-4;    "
-"               addi    a5,a6,-32;   "
-"               bleu    a5,a4,.M9;   "
-"  .M4:         lw      t6,0(a1);    "
-"               lw      t5,4(a1);    "
-"               lw      t4,8(a1);    "
-"               lw      t3,12(a1);   "
-"               lw      t2,16(a1);   "
-"               lw      t1,20(a1);   "
-"               lw      t0,24(a1);   "
-"               lw      a2,28(a1);   "
-"               addi    a1,a1,36;    "
-"               addi    a4,a4,36;    "
-"               lw      a3,-4(a1);   "
-"               sw      t6,-36(a4);  "
-"               sw      t5,-32(a4);  "
-"               sw      t4,-28(a4);  "
-"               sw      t3,-24(a4);  "
-"               sw      t2,-20(a4);  "
-"               sw      t1,-16(a4);  "
-"               sw      t0,-12(a4);  "
-"               sw      a2,-8(a4);   "
-"               sw      a3,-4(a4);   "
-"               bltu    a4,a5,.M4;   "
-"               j       .M9;         "
-"  .M1:         mv      a4,a0;       "
-"               bleu    a7,a0,.M10;  "
-"  .M7:         lbu     a5,0(a1);    "
-"               addi    a4,a4,1;     "
-"               addi    a1,a1,1;     "
-"               sb      a5,-1(a4);   "
-"               bltu    a4,a7,.M7;   "
-"  .M12:        ret;                 "
-"  .M2:         mv      a4,a0;       "
-"               bleu    a7,a0,.M11;  "
-"               lbu     a5,0(a1);    "
-"               addi    a4,a4,1;     "
-"               addi    a1,a1,1;     "
-"               sb      a5,-1(a4);   "
-"               bltu    a4,a7,.M7;   "
-"               j       .M12;        "
-"  .M10:        ret;                 "
-);
-#endif
 
-#if 0
-char *strcpy(char *dest, const char *src)
+static void printf_s(char *p)
 {
-	char *ret = dest;
-	// printf("[strcpy()]");
-	do
-		*(dest++) = *src;
-	while (*(src++));
-	return ret;
+	while (*p)
+		*((volatile int*)0x10000000) = *(p++);
 }
-#else
-/* copy&paste from disassembled libc */
-asm (
-"               .global strcpy;      "
-"  strcpy:      or      a5,a0,a1;    "
-"               slli    a4,a5,0x1e;  "
-"               bnez    a4,.S1;      "
-"               lw      a4,0(a1);    "
-"               lui     a3,0x7f7f8;  "
-"               addi    a3,a3,-129;  "
-"               and     a5,a4,a3;    "
-"               add     a5,a5,a3;    "
-"               or      a7,a4,a3;    "
-"               or      a7,a7,a5;    "
-"               li      a5,-1;       "
-"               mv      a2,a0;       "
-"               bne     a7,a5,.S2;   "
-"  .S3:         addi    a2,a2,4;     "
-"               addi    a1,a1,4;     "
-"               sw      a4,-4(a2);   "
-"               lw      a4,0(a1);    "
-"               and     a5,a4,a3;    "
-"               or      a6,a4,a3;    "
-"               add     a5,a5,a3;    "
-"               or      a5,a6,a5;    "
-"               beq     a5,a7,.S3;   "
-"  .S2:         lbu     a5,0(a1);    "
-"               lbu     a4,1(a1);    "
-"               lbu     a3,2(a1);    "
-"               sb      a5,0(a2);    "
-"               beqz    a5,.S4;      "
-"               sb      a4,1(a2);    "
-"               beqz    a4,.S4;      "
-"               sb      a3,2(a2);    "
-"               bnez    a3,.S5;      "
-"  .S4:         ret;                 "
-"  .S5:         sb      zero,3(a2);  "
-"               ret;                 "
-"  .S1:         mv      a5,a0;       "
-"  .S6:         lbu     a4,0(a1);    "
-"               addi    a5,a5,1;     "
-"               addi    a1,a1,1;     "
-"               sb      a4,-1(a5);   "
-"               bnez    a4,.S6;      "
-"               ret;                 "
-);
-#endif
 
-#if 0
-int strcmp(const char *s1, const char *s2)
+static void printf_d(int val)
 {
-	// printf("[strcmp()]");
-	while (1) {
-		if (*s1 == 0 && *s2 == 0)
-			return 0;
-		if (*s1 < *s2)
-			return -1;
-		if (*s1 > *s2)
-			return +1;
-		s1++, s2++;
+	char buffer[32];
+	char *p = buffer;
+	if (val < 0) {
+		printf_c('-');
+		val = -val;
 	}
+	while (val || p == buffer) {
+		*(p++) = '0' + val % 10;
+		val = val / 10;
+	}
+	while (p != buffer)
+		printf_c(*(--p));
 }
-#else
+
+int printf(const char *format, ...)
+{
+	int i;
+	va_list ap;
+
+	va_start(ap, format);
+
+	for (i = 0; format[i]; i++)
+		if (format[i] == '%') {
+			while (format[++i]) {
+				if (format[i] == 'c') {
+					printf_c(va_arg(ap,int));
+					break;
+				}
+				if (format[i] == 's') {
+					printf_s(va_arg(ap,char*));
+					break;
+				}
+				if (format[i] == 'd') {
+					printf_d(va_arg(ap,int));
+					break;
+				}
+			}
+		} else
+			printf_c(format[i]);
+
+	va_end(ap);
+}
+
+int scanf(const char *format, ...)
+{
+	// printf("[scanf(\"%s\")]\n", format);
+	va_list ap;
+	va_start(ap, format);
+	*va_arg(ap,int*) = 100;
+	va_end(ap);
+	return 0;
+}
+
+// -------------------------------------------------------
+// Copy&paste from RISC-V newlib:
+
+void* memcpy(void* aa, const void* bb, long n)
+{
+  #define BODY(a, b, t) { \
+    t tt = *b; \
+    a++, b++; \
+    *(a-1) = tt; \
+  }
+
+  char* a = (char*)aa;
+  const char* b = (const char*)bb;
+  char* end = a+n;
+  unsigned long msk = sizeof(long)-1;
+  if (__builtin_expect(((unsigned long)a & msk) != ((unsigned long)b & msk) || n < sizeof(long), 0))
+  {
+small:
+    if (__builtin_expect(a < end, 1))
+      while (a < end)
+        BODY(a, b, char);
+    return aa;
+  }
+
+  if (__builtin_expect(((unsigned long)a & msk) != 0, 0))
+    while ((unsigned long)a & msk)
+      BODY(a, b, char);
+
+  long* la = (long*)a;
+  const long* lb = (const long*)b;
+  long* lend = (long*)((unsigned long)end & ~msk);
+
+  if (__builtin_expect(la < lend-8, 0))
+  {
+    while (la < lend-8)
+    {
+      long b0 = *lb++;
+      long b1 = *lb++;
+      long b2 = *lb++;
+      long b3 = *lb++;
+      long b4 = *lb++;
+      long b5 = *lb++;
+      long b6 = *lb++;
+      long b7 = *lb++;
+      long b8 = *lb++;
+      *la++ = b0;
+      *la++ = b1;
+      *la++ = b2;
+      *la++ = b3;
+      *la++ = b4;
+      *la++ = b5;
+      *la++ = b6;
+      *la++ = b7;
+      *la++ = b8;
+    }
+  }
+
+  while (la < lend)
+    BODY(la, lb, long);
+
+  a = (char*)la;
+  b = (const char*)lb;
+  if (__builtin_expect(a < end, 0))
+    goto small;
+  return aa;
+}
+
+static inline unsigned long __libc_detect_null(unsigned long w)
+{
+  unsigned long mask = 0x7f7f7f7f;
+  if (sizeof(long) == 8)
+    mask = ((mask << 16) << 16) | mask;
+  return ~(((w & mask) + mask) | w | mask);
+}
+
+char* strcpy(char* dst, const char* src)
+{
+  char* dst0 = dst;
+
+#if !defined(PREFER_SIZE_OVER_SPEED) && !defined(__OPTIMIZE_SIZE__)
+  int misaligned = ((unsigned long)dst | (unsigned long)src) & (sizeof(long)-1);
+  if (__builtin_expect(!misaligned, 1))
+  {
+    long* ldst = (long*)dst;
+    const long* lsrc = (const long*)src;
+
+    while (!__libc_detect_null(*lsrc))
+      *ldst++ = *lsrc++;
+
+    dst = (char*)ldst;
+    src = (const char*)lsrc;
+
+    char c0 = src[0];
+    char c1 = src[1];
+    char c2 = src[2];
+    if (!(*dst++ = c0)) return dst0;
+    if (!(*dst++ = c1)) return dst0;
+    char c3 = src[3];
+    if (!(*dst++ = c2)) return dst0;
+    if (sizeof(long) == 4) goto out;
+    char c4 = src[4];
+    if (!(*dst++ = c3)) return dst0;
+    char c5 = src[5];
+    if (!(*dst++ = c4)) return dst0;
+    char c6 = src[6];
+    if (!(*dst++ = c5)) return dst0;
+    if (!(*dst++ = c6)) return dst0;
+
+out:
+    *dst++ = 0;
+    return dst0;
+  }
+#endif /* not PREFER_SIZE_OVER_SPEED */
+
+  char ch;
+  do
+  {
+    ch = *src;
+    src++;
+    dst++;
+    *(dst-1) = ch;
+  } while(ch);
+
+  return dst0;
+}
+
 /* copy&paste from disassembled libc */
+// strcmp.S: Artisanally coded in California by A. Shell Waterman
 asm (
 "               .global strcmp;      "
 "  strcmp:      or      a4,a0,a1;    "
@@ -274,71 +306,3 @@ asm (
 "               li      a0,0;        "
 "               ret;                 "
 );
-#endif
-
-static void printf_c(int c)
-{
-	*((volatile int*)0x10000000) = c;
-}
-
-static void printf_s(char *p)
-{
-	while (*p)
-		*((volatile int*)0x10000000) = *(p++);
-}
-
-static void printf_d(int val)
-{
-	char buffer[32];
-	char *p = buffer;
-	if (val < 0) {
-		printf_c('-');
-		val = -val;
-	}
-	while (val || p == buffer) {
-		*(p++) = '0' + val % 10;
-		val = val / 10;
-	}
-	while (p != buffer)
-		printf_c(*(--p));
-}
-
-int printf(const char *format, ...)
-{
-	int i;
-	va_list ap;
-
-	va_start(ap, format);
-
-	for (i = 0; format[i]; i++)
-		if (format[i] == '%') {
-			while (format[++i]) {
-				if (format[i] == 'c') {
-					printf_c(va_arg(ap,int));
-					break;
-				}
-				if (format[i] == 's') {
-					printf_s(va_arg(ap,char*));
-					break;
-				}
-				if (format[i] == 'd') {
-					printf_d(va_arg(ap,int));
-					break;
-				}
-			}
-		} else
-			printf_c(format[i]);
-
-	va_end(ap);
-}
-
-int scanf(const char *format, ...)
-{
-	// printf("[scanf(\"%s\")]\n", format);
-	va_list ap;
-	va_start(ap, format);
-	*va_arg(ap,int*) = 100;
-	va_end(ap);
-	return 0;
-}
-
