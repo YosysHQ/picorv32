@@ -7,6 +7,10 @@ binary, for any purpose, commercial or non-commercial, and by any
 means.
 */
 
+MEMORY {
+	mem : ORIGIN = 0x00000000, LENGTH = 0x00010000
+}
+
 SECTIONS {
 	.memory : {
 		. = 0x000000;
@@ -14,5 +18,5 @@ SECTIONS {
 		*(.text);
 		*(*);
 		end = .;
-	}
+	} > mem
 }
