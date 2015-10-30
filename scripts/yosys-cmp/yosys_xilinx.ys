@@ -1,0 +1,2 @@
+read_verilog ../../picorv32.v
+synth_xilinx -top picorv32
