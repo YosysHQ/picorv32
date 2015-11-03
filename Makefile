@@ -3,7 +3,7 @@ TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.o firmware/multest.o firmware/stats.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
-TOOLCHAIN_PREFIX = riscv64-unknown-elf-
+TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 
 test: testbench.exe firmware/firmware.hex
 	vvp -N testbench.exe
@@ -65,13 +65,13 @@ firmware/firmware.elf: $(FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
 	chmod -x $@
 
 firmware/start.o: firmware/start.S
-	$(TOOLCHAIN_PREFIX)gcc -c -m32 -o $@ $<
+	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32IMXcustom -o $@ $<
 
 firmware/%.o: firmware/%.c
 	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32I -Os --std=c99 $(GCC_WARNS) -ffreestanding -nostdlib -o $@ $<
 
 tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
-	$(TOOLCHAIN_PREFIX)gcc -c -m32 -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \
+	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32IM -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
 toc:
