@@ -1,0 +1,8 @@
+firmware.d
+firmware.elf
+firmware.hex
+firmware.o
+syscalls.o
+testbench.exe
+testbench.vcd
+start.elf
