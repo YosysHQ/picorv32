@@ -277,9 +277,9 @@ CPI numbers for a core built without ENABLE_REGS_DUALPORT.
 When `ENABLE_MUL` is activated, then a `MUL` instruction will execute
 in 40 cycles and a `MULH[SU|U]` instruction will execute in 72 cycles.
 
-Dhrystone benchmark results: 0.309 DMIPS/MHz (544 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.311 DMIPS/MHz (547 Dhrystones/Second/MHz)
 
-For the Dhrystone benchmark the average CPI is 4.167.
+For the Dhrystone benchmark the average CPI is 4.144.
 
 
 PicoRV32 Native Memory Interface
@@ -531,7 +531,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout 572033b
+    git checkout b68866f
 
     mkdir build; cd build
     ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i
@@ -541,7 +541,7 @@ The commands will all be named using the prefix `riscv32-unknown-elf-`, which
 makes it easy to install them side-by-side with the regular riscv-tools, which
 are using the name prefix `riscv64-unknown-elf-` by default.
 
-*Note: This instructions are for git rev 572033b (2015-09-14) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev b68866f (2015-11-09) of riscv-gnu-toolchain.*
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
