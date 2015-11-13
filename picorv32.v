@@ -45,6 +45,7 @@ module picorv32 #(
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
 	parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
 	parameter [ 0:0] TWO_CYCLE_ALU = 0,
+	parameter [ 0:0] COMPRESSED_ISA = 0,
 	parameter [ 0:0] CATCH_MISALIGN = 1,
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
@@ -184,7 +185,7 @@ module picorv32 #(
 
 	assign mem_la_write = resetn && !mem_state && mem_do_wdata;
 	assign mem_la_read = resetn && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata);
-	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? next_pc : {reg_op1[31:2], 2'b00};
+	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2], 2'b00} : {reg_op1[31:2], 2'b00};
 
 	wire [31:0] mem_rdata_latched;
 	assign mem_rdata_latched = ((mem_valid && mem_ready) || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
@@ -219,8 +220,33 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (mem_valid && mem_ready)
+		if (mem_valid && mem_ready) begin
 			mem_rdata_q <= mem_rdata_latched;
+
+			if (COMPRESSED_ISA && mem_do_rinst) begin
+				case (mem_rdata_latched[1:0] == 1)
+					2'b00: begin // Quadrant 0
+					end
+					2'b01: begin // Quadrant 1
+						case (mem_rdata_latched[15:13])
+							3'b 000: begin // C.ADDI
+								mem_rdata_q[14:12] <= 3'b000;
+								mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
+							end
+							3'b 011: begin
+								if (mem_rdata_latched[11:7] == 2) begin // C.ADDI16SP
+									mem_rdata_q[14:12] <= 3'b000;
+									mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[4:3],
+											mem_rdata_latched[5], mem_rdata_latched[2], mem_rdata_latched[6], 4'b 0000});
+								end
+							end
+						endcase
+					end
+					2'b10: begin // Quadrant 2
+					end
+				endcase
+			end
+		end
 	end
 
 	always @(posedge clk) begin
@@ -281,6 +307,7 @@ module picorv32 #(
 	reg decoder_trigger;
 	reg decoder_trigger_q;
 	reg decoder_pseudo_trigger;
+	reg compressed_instr;
 
 	reg is_lui_auipc_jal;
 	reg is_lb_lh_lw_lbu_lhu;
@@ -404,6 +431,47 @@ module picorv32 #(
 
 			if (mem_rdata_latched[6:0] == 7'b0001011 && mem_rdata_latched[31:25] == 7'b0000010 && ENABLE_IRQ)
 				decoded_rs1 <= ENABLE_IRQ_QREGS ? irqregs_offset : 3; // instr_retirq
+
+			compressed_instr <= 0;
+			if (COMPRESSED_ISA && mem_rdata_latched[1:0] != 2'b11) begin
+				compressed_instr <= 1;
+				decoded_rd <= 0;
+
+				{ decoded_imm_uj[31:11], decoded_imm_uj[4], decoded_imm_uj[9:8], decoded_imm_uj[10], decoded_imm_uj[6],
+				  decoded_imm_uj[7], decoded_imm_uj[3:1], decoded_imm_uj[5], decoded_imm_uj[0] } <= $signed({mem_rdata_latched[12:2], 1'b0});
+
+				case (mem_rdata_latched[1:0])
+					2'b00: begin // Quadrant 0
+						decoded_rs1 <= 8 + mem_rdata_latched[9:7];
+						decoded_rd <= 8 + mem_rdata_latched[4:2];
+					end
+					2'b01: begin // Quadrant 1
+						case (mem_rdata_latched[15:13])
+							3'b000: begin // C.NOP / C.ADDI
+								is_alu_reg_imm <= 1;
+								decoded_rd <= mem_rdata_latched[11:7];
+								decoded_rs1 <= mem_rdata_latched[11:7];
+							end
+							3'b001: begin // C.JAL
+								instr_jal <= 1;
+								decoded_rd <= 1;
+							end
+							3'b 011: begin
+								if (mem_rdata_latched[11:7] == 2) begin // C.ADDI16SP
+									is_alu_reg_imm <= 1;
+									decoded_rd <= mem_rdata_latched[11:7];
+									decoded_rs1 <= mem_rdata_latched[11:7];
+								end
+							end
+							3'b101: begin // C.J
+								instr_jal <= 1;
+							end
+						endcase
+					end
+					2'b10: begin // Quadrant 2
+					end
+				endcase
+			end
 		end
 
 		if (decoder_trigger && !decoder_pseudo_trigger) begin
@@ -535,6 +603,7 @@ module picorv32 #(
 	reg latched_store;
 	reg latched_stalu;
 	reg latched_branch;
+	reg latched_compr;
 	reg latched_is_lu;
 	reg latched_is_lh;
 	reg latched_is_lb;
@@ -685,8 +754,8 @@ module picorv32 #(
 				case (1'b1)
 					latched_branch: begin
 						current_pc = latched_store ? (latched_stalu ? alu_out_q : reg_out) : reg_next_pc;
-						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + 4, current_pc);)
-						cpuregs[latched_rd] <= reg_pc + 4;
+						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + (latched_compr ? 2 : 4), current_pc);)
+						cpuregs[latched_rd] <= reg_pc + (latched_compr ? 2 : 4);
 					end
 					latched_store && !latched_branch: begin
 						`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? alu_out_q : reg_out);)
@@ -715,6 +784,7 @@ module picorv32 #(
 				latched_is_lh <= 0;
 				latched_is_lb <= 0;
 				latched_rd <= decoded_rd;
+				latched_compr <= compressed_instr;
 
 				if (ENABLE_IRQ && ((decoder_trigger && !irq_active && |(irq_pending & ~irq_mask)) || irq_state)) begin
 					irq_state <=
@@ -729,14 +799,14 @@ module picorv32 #(
 					if (irq_pending) begin
 						latched_store <= 1;
 						reg_out <= irq_pending;
-						reg_next_pc <= current_pc + 4;
+						reg_next_pc <= current_pc + (compressed_instr ? 2 : 4);
 						mem_do_rinst <= 1;
 					end else
 						do_waitirq <= 1;
 				end else
 				if (decoder_trigger) begin
 					`debug($display("-- %-0t", $time);)
-					reg_next_pc <= current_pc + 4;
+					reg_next_pc <= current_pc + (compressed_instr ? 2 : 4);
 					if (ENABLE_COUNTERS)
 						count_instr <= count_instr + 1;
 					if (instr_jal) begin
@@ -1067,7 +1137,7 @@ module picorv32 #(
 					cpu_state <= cpu_state_trap;
 			end
 		end
-		if (CATCH_MISALIGN && resetn && mem_do_rinst && reg_pc[1:0] != 0) begin
+		if (CATCH_MISALIGN && resetn && mem_do_rinst && (COMPRESSED_ISA ? reg_pc[0] : |reg_pc[1:0])) begin
 			`debug($display("MISALIGNED INSTRUCTION: 0x%08x", reg_pc);)
 			if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
 				next_irq_pending[irq_buserror] = 1;
@@ -1091,8 +1161,13 @@ module picorv32 #(
 
 		irq_pending <= next_irq_pending & ~MASKED_IRQ;
 
-		reg_pc[1:0] <= 0;
-		reg_next_pc[1:0] <= 0;
+		if (COMPRESSED_ISA) begin
+			reg_pc[0] <= 0;
+			reg_next_pc[0] <= 0;
+		end else begin
+			reg_pc[1:0] <= 0;
+			reg_next_pc[1:0] <= 0;
+		end
 		current_pc = 'bx;
 	end
 
