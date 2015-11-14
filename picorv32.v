@@ -180,15 +180,22 @@ module picorv32 #(
 	reg mem_do_rdata;
 	reg mem_do_wdata;
 
+	reg mem_la_secondword;
+	wire mem_la_firstword = COMPRESSED_ISA && (mem_do_prefetch || mem_do_rinst) && next_pc[1] && !mem_la_secondword;
+	reg [15:0] mem_16bit_buffer;
+
 	wire mem_busy = |{mem_do_prefetch, mem_do_rinst, mem_do_rdata, mem_do_wdata};
-	wire mem_done = resetn && ((mem_ready && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst));
+	wire mem_done = resetn && ((mem_ready && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst)) && !mem_la_firstword;
 
 	assign mem_la_write = resetn && !mem_state && mem_do_wdata;
-	assign mem_la_read = resetn && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata);
-	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2], 2'b00} : {reg_op1[31:2], 2'b00};
+	assign mem_la_read = resetn && ((!mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata)) || (mem_ready && mem_la_firstword && !mem_la_secondword));
+	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2] + (mem_ready && mem_la_firstword), 2'b00} : {reg_op1[31:2], 2'b00};
+
+	wire [31:0] mem_rdata_latched_noshuffle;
+	assign mem_rdata_latched_noshuffle = ((mem_valid && mem_ready) || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
 
 	wire [31:0] mem_rdata_latched;
-	assign mem_rdata_latched = ((mem_valid && mem_ready) || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
+	assign mem_rdata_latched = COMPRESSED_ISA && mem_la_secondword ? {mem_rdata_latched_noshuffle[15:0], mem_16bit_buffer} : mem_rdata_latched_noshuffle;
 
 	always @* begin
 		(* full_case *)
@@ -221,7 +228,7 @@ module picorv32 #(
 
 	always @(posedge clk) begin
 		if (mem_valid && mem_ready) begin
-			mem_rdata_q <= mem_rdata_latched;
+			mem_rdata_q <= mem_rdata;
 
 			if (COMPRESSED_ISA && mem_do_rinst) begin
 				case (mem_rdata_latched[1:0] == 1)
@@ -253,6 +260,7 @@ module picorv32 #(
 		if (!resetn) begin
 			mem_state <= 0;
 			mem_valid <= 0;
+			mem_la_secondword <= 0;
 		end else case (mem_state)
 			0: begin
 				mem_addr <= mem_la_addr;
@@ -272,8 +280,15 @@ module picorv32 #(
 			end
 			1: begin
 				if (mem_ready) begin
-					mem_valid <= 0;
-					mem_state <= mem_do_rinst || mem_do_rdata ? 0 : 3;
+					if (COMPRESSED_ISA && mem_la_firstword && !mem_la_secondword) begin
+						mem_addr <= mem_la_addr;
+						mem_la_secondword <= 1;
+						mem_16bit_buffer <= mem_rdata[31:16];
+					end else begin
+						mem_valid <= 0;
+						mem_la_secondword <= 0;
+						mem_state <= mem_do_rinst || mem_do_rdata ? 0 : 3;
+					end
 				end
 			end
 			2: begin
@@ -303,7 +318,7 @@ module picorv32 #(
 	wire instr_trap;
 
 	reg [regindex_bits-1:0] decoded_rd, decoded_rs1, decoded_rs2;
-	reg [31:0] decoded_imm, decoded_imm_uj;
+	reg [31:0] decoded_imm, decoded_imm_uj, current_insn;
 	reg decoder_trigger;
 	reg decoder_trigger_q;
 	reg decoder_pseudo_trigger;
@@ -340,6 +355,7 @@ module picorv32 #(
 
 	always @(posedge clk) begin
 		new_ascii_instr = "";
+
 		if (instr_lui)      new_ascii_instr = "lui";
 		if (instr_auipc)    new_ascii_instr = "auipc";
 		if (instr_jal)      new_ascii_instr = "jal";
@@ -394,8 +410,10 @@ module picorv32 #(
 		if (instr_waitirq)  new_ascii_instr = "waitirq";
 		if (instr_timer)    new_ascii_instr = "timer";
 
-		if (decoder_trigger_q)
+		if (decoder_trigger_q) begin
 			ascii_instr <= new_ascii_instr;
+			`debug($display("DECODE: 0x%08x 0x%08x %-0s", reg_pc, current_insn, new_ascii_instr ? new_ascii_instr : "UNKNOWN");)
+		end
 	end
 
 	always @(posedge clk) begin
@@ -407,6 +425,8 @@ module picorv32 #(
 		is_compare <= |{is_beq_bne_blt_bge_bltu_bgeu, instr_slti, instr_slt, instr_sltiu, instr_sltu};
 
 		if (mem_do_rinst && mem_done) begin
+			current_insn  <= mem_rdata_latched;
+
 			instr_lui     <= mem_rdata_latched[6:0] == 7'b0110111;
 			instr_auipc   <= mem_rdata_latched[6:0] == 7'b0010111;
 			instr_jal     <= mem_rdata_latched[6:0] == 7'b1101111;
@@ -810,7 +830,6 @@ module picorv32 #(
 					if (ENABLE_COUNTERS)
 						count_instr <= count_instr + 1;
 					if (instr_jal) begin
-						`debug($display("DECODE: 0x%08x jal", current_pc);)
 						mem_do_rinst <= 1;
 						reg_next_pc <= current_pc + decoded_imm_uj;
 						latched_branch <= 1;
@@ -825,7 +844,6 @@ module picorv32 #(
 			cpu_state_ld_rs1: begin
 				reg_op1 <= 'bx;
 				reg_op2 <= 'bx;
-				`debug($display("DECODE: 0x%08x %-0s", reg_pc, ascii_instr ? ascii_instr : "UNKNOWN");)
 
 				(* parallel_case *)
 				case (1'b1)
@@ -1525,6 +1543,7 @@ module picorv32_axi_adapter (
 	reg ack_awvalid;
 	reg ack_arvalid;
 	reg ack_wvalid;
+	reg xfer_done;
 
 	assign mem_axi_awvalid = mem_valid && |mem_wstrb && !ack_awvalid;
 	assign mem_axi_awaddr = mem_addr;
@@ -1547,13 +1566,14 @@ module picorv32_axi_adapter (
 		if (!resetn) begin
 			ack_awvalid <= 0;
 		end else begin
+			xfer_done <= mem_valid && mem_ready;
 			if (mem_axi_awready && mem_axi_awvalid)
 				ack_awvalid <= 1;
 			if (mem_axi_arready && mem_axi_arvalid)
 				ack_arvalid <= 1;
 			if (mem_axi_wready && mem_axi_wvalid)
 				ack_wvalid <= 1;
-			if (!mem_valid) begin
+			if (xfer_done || !mem_valid) begin
 				ack_awvalid <= 0;
 				ack_arvalid <= 0;
 				ack_wvalid <= 0;
