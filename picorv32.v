@@ -231,7 +231,7 @@ module picorv32 #(
 
 	always @(posedge clk) begin
 		if (mem_valid && mem_ready) begin
-			mem_rdata_q <= mem_rdata;
+			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
 
 			if (COMPRESSED_ISA && mem_do_rinst) begin
 				case (mem_rdata_latched[1:0])
@@ -1456,6 +1456,7 @@ module picorv32_axi #(
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
 	parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
 	parameter [ 0:0] TWO_CYCLE_ALU = 0,
+	parameter [ 0:0] COMPRESSED_ISA = 0,
 	parameter [ 0:0] CATCH_MISALIGN = 1,
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
@@ -1553,6 +1554,7 @@ module picorv32_axi #(
 		.TWO_STAGE_SHIFT     (TWO_STAGE_SHIFT     ),
 		.TWO_CYCLE_COMPARE   (TWO_CYCLE_COMPARE   ),
 		.TWO_CYCLE_ALU       (TWO_CYCLE_ALU       ),
+		.COMPRESSED_ISA      (COMPRESSED_ISA      ),
 		.CATCH_MISALIGN      (CATCH_MISALIGN      ),
 		.CATCH_ILLINSN       (CATCH_ILLINSN       ),
 		.ENABLE_PCPI         (ENABLE_PCPI         ),

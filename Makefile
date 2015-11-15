@@ -4,6 +4,7 @@ FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
 TOOLCHAIN_PREFIX = riscv32-unknown-elf-
+# COMPRESSED_ISA = C
 
 test: testbench.exe firmware/firmware.hex
 	vvp -N testbench.exe
@@ -33,15 +34,15 @@ test_synth: testbench_synth.exe firmware/firmware.hex
 	vvp -N testbench_synth.exe
 
 testbench.exe: testbench.v picorv32.v
-	iverilog -o testbench.exe testbench.v picorv32.v
+	iverilog -o testbench.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) testbench.v picorv32.v
 	chmod -x testbench.exe
 
 testbench_sp.exe: testbench.v picorv32.v
-	iverilog -o testbench_sp.exe -DSP_TEST testbench.v picorv32.v
+	iverilog -o testbench_sp.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) -DSP_TEST testbench.v picorv32.v
 	chmod -x testbench_sp.exe
 
 testbench_axi.exe: testbench.v picorv32.v
-	iverilog -o testbench_axi.exe -DAXI_TEST testbench.v picorv32.v
+	iverilog -o testbench_axi.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) -DAXI_TEST testbench.v picorv32.v
 	chmod -x testbench_axi.exe
 
 testbench_synth.exe: testbench.v synth.v
@@ -65,10 +66,10 @@ firmware/firmware.elf: $(FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
 	chmod -x $@
 
 firmware/start.o: firmware/start.S
-	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32IMXcustom -o $@ $<
+	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32IM$(COMPRESSED_ISA)Xcustom -o $@ $<
 
 firmware/%.o: firmware/%.c
-	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32I -Os --std=c99 $(GCC_WARNS) -ffreestanding -nostdlib -o $@ $<
+	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32I$(COMPRESSED_ISA) -Os --std=c99 $(GCC_WARNS) -ffreestanding -nostdlib -o $@ $<
 
 tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32IM -o $@ -DTEST_FUNC_NAME=$(notdir $(basename $<)) \

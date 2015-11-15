@@ -7,7 +7,6 @@
 
 `timescale 1 ns / 1 ps
 // `define VERBOSE
-// `define AXI_TEST
 
 module testbench;
 
@@ -54,6 +53,9 @@ module testbench;
 	picorv32_axi #(
 `ifdef SP_TEST
 		.ENABLE_REGS_DUALPORT(0),
+`endif
+`ifdef COMPRESSED_ISA
+		.COMPRESSED_ISA(1),
 `endif
 		.ENABLE_MUL(1),
 		.ENABLE_IRQ(1)
