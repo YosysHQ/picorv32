@@ -1,6 +1,7 @@
 firmware.d
 firmware.elf
 firmware.hex
+firmware32.hex
 firmware.o
 syscalls.o
 testbench.exe
