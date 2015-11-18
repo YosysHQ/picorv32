@@ -25,9 +25,8 @@ for line in fileinput.input():
                 data.append(0)
                 ptr -= 1
         else:
-            while ptr < addr:
+            while ptr + len(data) < addr:
                 data.append(0)
-                ptr += 1
     else:
         data += [int(tok, 16) for tok in line.split()]
 
