@@ -236,6 +236,12 @@ module picorv32 #(
 			if (COMPRESSED_ISA && mem_do_rinst) begin
 				case (mem_rdata_latched[1:0])
 					2'b00: begin // Quadrant 0
+						case (mem_rdata_latched[15:13])
+							3'b 110: begin // C.SW
+								{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
+								mem_rdata_q[14:12] <= 3'b 010;
+							end
+						endcase
 					end
 					2'b01: begin // Quadrant 1
 						case (mem_rdata_latched[15:13])
@@ -518,8 +524,13 @@ module picorv32 #(
 
 				case (mem_rdata_latched[1:0])
 					2'b00: begin // Quadrant 0
-						decoded_rs1 <= 8 + mem_rdata_latched[9:7];
-						decoded_rd <= 8 + mem_rdata_latched[4:2];
+						case (mem_rdata_latched[15:13])
+							3'b110: begin // C.SW
+								is_sb_sh_sw <= 1;
+								decoded_rs1 <= 8 + mem_rdata_latched[9:7];
+								decoded_rs2 <= 8 + mem_rdata_latched[4:2];
+							end
+						endcase
 					end
 					2'b01: begin // Quadrant 1
 						case (mem_rdata_latched[15:13])
