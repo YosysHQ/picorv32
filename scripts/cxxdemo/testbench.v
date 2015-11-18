@@ -1,6 +1,7 @@
 `timescale 1 ns / 1 ps
 `undef VERBOSE_MEM
 `undef WRITE_VCD
+`undef MEM8BIT
 
 module testbench;
 	reg clk = 1;
@@ -36,8 +37,13 @@ module testbench;
 	);
 
 	localparam MEM_SIZE = 4*1024*1024;
+`ifdef MEM8BIT
 	reg [7:0] memory [0:MEM_SIZE-1];
 	initial $readmemh("firmware.hex", memory);
+`else
+	reg [31:0] memory [0:MEM_SIZE/4-1];
+	initial $readmemh("firmware32.hex", memory);
+`endif
 
 	always @(posedge clk) begin
 		mem_ready <= 0;
@@ -46,6 +52,7 @@ module testbench;
 			mem_rdata <= 'bx;
 			case (1)
 				mem_addr < MEM_SIZE: begin
+`ifdef MEM8BIT
 					if (|mem_wstrb) begin
 						if (mem_wstrb[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
 						if (mem_wstrb[1]) memory[mem_addr + 1] <= mem_wdata[15: 8];
@@ -54,6 +61,16 @@ module testbench;
 					end else begin
 						mem_rdata <= {memory[mem_addr+3], memory[mem_addr+2], memory[mem_addr+1], memory[mem_addr]};
 					end
+`else
+					if (|mem_wstrb) begin
+						if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
+						if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
+						if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
+						if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
+					end else begin
+						mem_rdata <= memory[mem_addr >> 2];
+					end
+`endif
 				end
 				mem_addr == 32'h 1000_0000: begin
 					$write("%c", mem_wdata[7:0]);
