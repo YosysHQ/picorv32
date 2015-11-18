@@ -277,9 +277,17 @@ module picorv32 #(
 								mem_rdata_q[14:12] <= 3'b 010;
 							end
 							3'b100: begin
+								if (mem_rdata_latched[12] == 0 && mem_rdata_latched[6:2] == 0) begin // C.JR
+									mem_rdata_q[14:12] <= 3'b000;
+									mem_rdata_q[31:20] <= 12'b0;
+								end
 								if (mem_rdata_latched[12] == 0 && mem_rdata_latched[6:2] != 0) begin // C.MV
 									mem_rdata_q[14:12] <= 3'b000;
 									mem_rdata_q[31:25] <= 7'b0000000;
+								end
+								if (mem_rdata_latched[12] != 0 && mem_rdata_latched[11:7] != 0 && mem_rdata_latched[6:2] == 0) begin // C.JALR
+									mem_rdata_q[14:12] <= 3'b000;
+									mem_rdata_q[31:20] <= 12'b0;
 								end
 							end
 							3'b110: begin // C.SWSP
@@ -573,6 +581,11 @@ module picorv32 #(
 									decoded_rd <= mem_rdata_latched[11:7];
 									decoded_rs1 <= 0;
 									decoded_rs2 <= mem_rdata_latched[6:2];
+								end
+								if (mem_rdata_latched[12] != 0 && mem_rdata_latched[11:7] != 0 && mem_rdata_latched[6:2] == 0) begin // C.JALR
+									instr_jalr <= 1;
+									decoded_rd <= 1;
+									decoded_rs1 <= mem_rdata_latched[11:7];
 								end
 							end
 							3'b110: begin // C.SWSP
