@@ -72,7 +72,7 @@ void sieve(void)
 	}
 
 	print_str("checksum: ");
-	print_hex(hash);
+	print_hex(hash, 8);
 
 	if (hash == 0x1772A48F) {
 		print_str(" OK\n");
