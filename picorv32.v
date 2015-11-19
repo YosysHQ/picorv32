@@ -232,92 +232,103 @@ module picorv32 #(
 	always @(posedge clk) begin
 		if (mem_valid && mem_ready) begin
 			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
+		end
 
-			if (COMPRESSED_ISA && mem_do_rinst) begin
-				case (mem_rdata_latched[1:0])
-					2'b00: begin // Quadrant 0
-						case (mem_rdata_latched[15:13])
-							3'b000: begin // C.ADDI4SPN
+		if (COMPRESSED_ISA && mem_done && (mem_do_prefetch || mem_do_rinst)) begin
+			case (mem_rdata_latched[1:0])
+				2'b00: begin // Quadrant 0
+					case (mem_rdata_latched[15:13])
+						3'b000: begin // C.ADDI4SPN
+							mem_rdata_q[14:12] <= 3'b000;
+							mem_rdata_q[31:20] <= {mem_rdata_latched[10:7], mem_rdata_latched[12:11], mem_rdata_latched[5], mem_rdata_latched[6]};
+						end
+						3'b 110: begin // C.SW
+							{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
+							mem_rdata_q[14:12] <= 3'b 010;
+						end
+					endcase
+				end
+				2'b01: begin // Quadrant 1
+					case (mem_rdata_latched[15:13])
+						3'b 000: begin // C.ADDI
+							mem_rdata_q[14:12] <= 3'b000;
+							mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
+						end
+						3'b 010: begin // C.LI
+							mem_rdata_q[14:12] <= 3'b000;
+							mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
+						end
+						3'b 011: begin
+							if (mem_rdata_latched[11:7] == 2) begin // C.ADDI16SP
 								mem_rdata_q[14:12] <= 3'b000;
-								mem_rdata_q[31:20] <= {mem_rdata_latched[10:7], mem_rdata_latched[12:11], mem_rdata_latched[5], mem_rdata_latched[6]};
+								mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[4:3],
+										mem_rdata_latched[5], mem_rdata_latched[2], mem_rdata_latched[6], 4'b 0000});
+							end else begin // C.LUI
+								mem_rdata_q[31:12] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
 							end
-							3'b 110: begin // C.SW
-								{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
-								mem_rdata_q[14:12] <= 3'b 010;
-							end
-						endcase
-					end
-					2'b01: begin // Quadrant 1
-						case (mem_rdata_latched[15:13])
-							3'b 000: begin // C.ADDI
-								mem_rdata_q[14:12] <= 3'b000;
+						end
+						3'b100: begin
+							if (mem_rdata_latched[11:10] == 2'b10) begin // C.ANDI
+								mem_rdata_q[14:12] <= 3'b111;
 								mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
 							end
-							3'b 010: begin // C.LI
+							if (mem_rdata_latched[12:10] == 3'b011) begin // C.SUB, C.XOR, C.OR, C.AND
+								if (mem_rdata_latched[6:5] == 2'b00) mem_rdata_q[14:12] <= 3'b000;
+								if (mem_rdata_latched[6:5] == 2'b01) mem_rdata_q[14:12] <= 3'b100;
+								if (mem_rdata_latched[6:5] == 2'b10) mem_rdata_q[14:12] <= 3'b110;
+								if (mem_rdata_latched[6:5] == 2'b11) mem_rdata_q[14:12] <= 3'b111;
+								mem_rdata_q[31:25] <= mem_rdata_latched[6:5] == 2'b00 ? 7'b0100000 : 7'b0000000;
+							end
+						end
+						3'b 110: begin // C.BEQZ
+							mem_rdata_q[14:12] <= 3'b000;
+							{ mem_rdata_q[31], mem_rdata_q[7], mem_rdata_q[30:25], mem_rdata_q[11:8] } <=
+									$signed({mem_rdata_latched[12], mem_rdata_latched[6:5], mem_rdata_latched[2],
+											mem_rdata_latched[11:10], mem_rdata_latched[4:3]});
+						end
+						3'b 111: begin // C.BNEZ
+							mem_rdata_q[14:12] <= 3'b001;
+							{ mem_rdata_q[31], mem_rdata_q[7], mem_rdata_q[30:25], mem_rdata_q[11:8] } <=
+									$signed({mem_rdata_latched[12], mem_rdata_latched[6:5], mem_rdata_latched[2],
+											mem_rdata_latched[11:10], mem_rdata_latched[4:3]});
+						end
+					endcase
+				end
+				2'b10: begin // Quadrant 2
+					case (mem_rdata_latched[15:13])
+						3'b000: begin // C.SLLI
+							mem_rdata_q[31:25] <= 7'b0000000;
+							mem_rdata_q[14:12] <= 3'b 001;
+						end
+						3'b010: begin // C.LWSP
+							mem_rdata_q[31:20] <= {mem_rdata_latched[3:2], mem_rdata_latched[12], mem_rdata_latched[6:4], 2'b00};
+							mem_rdata_q[14:12] <= 3'b 010;
+						end
+						3'b100: begin
+							if (mem_rdata_latched[12] == 0 && mem_rdata_latched[6:2] == 0) begin // C.JR
 								mem_rdata_q[14:12] <= 3'b000;
-								mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
+								mem_rdata_q[31:20] <= 12'b0;
 							end
-							3'b 011: begin
-								if (mem_rdata_latched[11:7] == 2) begin // C.ADDI16SP
-									mem_rdata_q[14:12] <= 3'b000;
-									mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[4:3],
-											mem_rdata_latched[5], mem_rdata_latched[2], mem_rdata_latched[6], 4'b 0000});
-								end else begin // C.LUI
-									mem_rdata_q[31:12] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
-								end
-							end
-							3'b100: begin
-								if (mem_rdata_latched[11:10] == 2'b10) begin // C.ANDI
-									mem_rdata_q[14:12] <= 3'b111;
-									mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
-								end
-							end
-							3'b 110: begin // C.BEQZ
+							if (mem_rdata_latched[12] == 0 && mem_rdata_latched[6:2] != 0) begin // C.MV
 								mem_rdata_q[14:12] <= 3'b000;
-								{ mem_rdata_q[31], mem_rdata_q[7], mem_rdata_q[30:25], mem_rdata_q[11:8] } <=
-										$signed({mem_rdata_latched[12], mem_rdata_latched[6:5], mem_rdata_latched[2],
-												mem_rdata_latched[11:10], mem_rdata_latched[4:3]});
+								mem_rdata_q[31:25] <= 7'b0000000;
 							end
-							3'b 111: begin // C.BNEZ
-								mem_rdata_q[14:12] <= 3'b001;
-								{ mem_rdata_q[31], mem_rdata_q[7], mem_rdata_q[30:25], mem_rdata_q[11:8] } <=
-										$signed({mem_rdata_latched[12], mem_rdata_latched[6:5], mem_rdata_latched[2],
-												mem_rdata_latched[11:10], mem_rdata_latched[4:3]});
+							if (mem_rdata_latched[12] != 0 && mem_rdata_latched[11:7] != 0 && mem_rdata_latched[6:2] == 0) begin // C.JALR
+								mem_rdata_q[14:12] <= 3'b000;
+								mem_rdata_q[31:20] <= 12'b0;
 							end
-						endcase
-					end
-					2'b10: begin // Quadrant 2
-						case (mem_rdata_latched[15:13])
-							3'b010: begin // C.LWSP
-								mem_rdata_q[31:20] <= {mem_rdata_latched[3:2], mem_rdata_latched[12], mem_rdata_latched[6:4], 2'b00};
-								mem_rdata_q[14:12] <= 3'b 010;
+							if (mem_rdata_latched[12] != 0 && mem_rdata_latched[6:2] != 0) begin // C.ADD
+								mem_rdata_q[14:12] <= 3'b000;
+								mem_rdata_q[31:25] <= 7'b0000000;
 							end
-							3'b100: begin
-								if (mem_rdata_latched[12] == 0 && mem_rdata_latched[6:2] == 0) begin // C.JR
-									mem_rdata_q[14:12] <= 3'b000;
-									mem_rdata_q[31:20] <= 12'b0;
-								end
-								if (mem_rdata_latched[12] == 0 && mem_rdata_latched[6:2] != 0) begin // C.MV
-									mem_rdata_q[14:12] <= 3'b000;
-									mem_rdata_q[31:25] <= 7'b0000000;
-								end
-								if (mem_rdata_latched[12] != 0 && mem_rdata_latched[11:7] != 0 && mem_rdata_latched[6:2] == 0) begin // C.JALR
-									mem_rdata_q[14:12] <= 3'b000;
-									mem_rdata_q[31:20] <= 12'b0;
-								end
-								if (mem_rdata_latched[12] != 0 && mem_rdata_latched[6:2] != 0) begin // C.ADD
-									mem_rdata_q[14:12] <= 3'b000;
-									mem_rdata_q[31:25] <= 7'b0000000;
-								end
-							end
-							3'b110: begin // C.SWSP
-								{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[8:7], mem_rdata_latched[12:9], 2'b00};
-								mem_rdata_q[14:12] <= 3'b 010;
-							end
-						endcase
-					end
-				endcase
-			end
+						end
+						3'b110: begin // C.SWSP
+							{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[8:7], mem_rdata_latched[12:9], 2'b00};
+							mem_rdata_q[14:12] <= 3'b 010;
+						end
+					endcase
+				end
+			endcase
 		end
 	end
 
@@ -584,6 +595,12 @@ module picorv32 #(
 									decoded_rd <= 8 + mem_rdata_latched[9:7];
 									decoded_rs1 <= 8 + mem_rdata_latched[9:7];
 								end
+								if (mem_rdata_latched[12:10] == 3'b011) begin // C.SUB, C.XOR, C.OR, C.AND
+									is_alu_reg_reg <= 1;
+									decoded_rd <= 8 + mem_rdata_latched[9:7];
+									decoded_rs1 <= 8 + mem_rdata_latched[9:7];
+									decoded_rs2 <= 8 + mem_rdata_latched[4:2];
+								end
 							end
 							3'b101: begin // C.J
 								instr_jal <= 1;
@@ -602,6 +619,12 @@ module picorv32 #(
 					end
 					2'b10: begin // Quadrant 2
 						case (mem_rdata_latched[15:13])
+							3'b000: begin // C.SLLI
+								is_alu_reg_imm <= 1;
+								decoded_rd <= mem_rdata_latched[11:7];
+								decoded_rs1 <= mem_rdata_latched[11:7];
+								decoded_rs2 <= {mem_rdata_latched[12], mem_rdata_latched[6:2]};
+							end
 							3'b010: begin // C.LWSP
 								is_lb_lh_lw_lbu_lhu <= 1;
 								decoded_rd <= mem_rdata_latched[11:7];
