@@ -31,7 +31,8 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 	if ((irqs & 6) != 0)
 	{
 		uint32_t pc = regs[0] - 4;
-		uint32_t instr = *(uint32_t*)pc;
+		uint16_t *instr_hwords = (uint16_t*)pc;
+		uint32_t instr = instr_hwords[0] | (instr_hwords[1] << 16);
 
 		print_str("\n");
 		print_str("------------------------------------------------------------\n");
