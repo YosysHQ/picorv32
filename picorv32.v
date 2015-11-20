@@ -242,6 +242,10 @@ module picorv32 #(
 							mem_rdata_q[14:12] <= 3'b000;
 							mem_rdata_q[31:20] <= {mem_rdata_latched[10:7], mem_rdata_latched[12:11], mem_rdata_latched[5], mem_rdata_latched[6]};
 						end
+						3'b010: begin // C.LW
+							mem_rdata_q[31:20] <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
+							mem_rdata_q[14:12] <= 3'b 010;
+						end
 						3'b 110: begin // C.SW
 							{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
 							mem_rdata_q[14:12] <= 3'b 010;
@@ -268,6 +272,14 @@ module picorv32 #(
 							end
 						end
 						3'b100: begin
+							if (mem_rdata_latched[11:10] == 2'b00) begin // C.SRLI
+								mem_rdata_q[31:25] <= 7'b0000000;
+								mem_rdata_q[14:12] <= 3'b 101;
+							end
+							if (mem_rdata_latched[11:10] == 2'b00) begin // C.SRAI
+								mem_rdata_q[31:25] <= 7'b0100000;
+								mem_rdata_q[14:12] <= 3'b 101;
+							end
 							if (mem_rdata_latched[11:10] == 2'b10) begin // C.ANDI
 								mem_rdata_q[14:12] <= 3'b111;
 								mem_rdata_q[31:20] <= $signed({mem_rdata_latched[12], mem_rdata_latched[6:2]});
@@ -555,6 +567,11 @@ module picorv32 #(
 								decoded_rs1 <= 2;
 								decoded_rd <= 8 + mem_rdata_latched[9:7];
 							end
+							3'b010: begin // C.LW
+								is_lb_lh_lw_lbu_lhu <= 1;
+								decoded_rs1 <= 8 + mem_rdata_latched[9:7];
+								decoded_rd <= 8 + mem_rdata_latched[4:2];
+							end
 							3'b110: begin // C.SW
 								is_sb_sh_sw <= 1;
 								decoded_rs1 <= 8 + mem_rdata_latched[9:7];
@@ -590,6 +607,12 @@ module picorv32 #(
 								end
 							end
 							3'b100: begin
+								if (mem_rdata_latched[11] == 1'b0) begin // C.SRLI, C.SRAI
+									is_alu_reg_imm <= 1;
+									decoded_rd <= 8 + mem_rdata_latched[9:7];
+									decoded_rs1 <= 8 + mem_rdata_latched[9:7];
+									decoded_rs2 <= {mem_rdata_latched[12], mem_rdata_latched[6:2]};
+								end
 								if (mem_rdata_latched[11:10] == 2'b10) begin // C.ANDI
 									is_alu_reg_imm <= 1;
 									decoded_rd <= 8 + mem_rdata_latched[9:7];

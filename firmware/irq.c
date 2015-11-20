@@ -38,7 +38,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 		print_str("------------------------------------------------------------\n");
 
 		if ((irqs & 2) != 0) {
-			if (instr == 0x00100073) {
+			if (instr == 0x00100073 || (instr & 0xffff) == 9002) {
 				print_str("SBREAK instruction at 0x");
 				print_hex(pc, 8);
 				print_str("\n");
