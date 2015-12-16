@@ -3,11 +3,61 @@
 #include <vector>
 #include <algorithm>
 
+class ExampleBaseClass
+{
+public:
+	ExampleBaseClass() {
+		std::cout << "ExampleBaseClass()" << std::endl;
+	}
+
+	virtual ~ExampleBaseClass() {
+		std::cout << "~ExampleBaseClass()" << std::endl;
+	}
+
+	virtual void print_something_virt() {
+		std::cout << "ExampleBaseClass::print_something_virt()" << std::endl;
+	}
+
+	void print_something_novirt() {
+		std::cout << "ExampleBaseClass::print_something_novirt()" << std::endl;
+	}
+};
+
+class ExampleSubClass : public ExampleBaseClass
+{
+public:
+	ExampleSubClass() {
+		std::cout << "ExampleSubClass()" << std::endl;
+	}
+
+	virtual ~ExampleSubClass() {
+		std::cout << "~ExampleSubClass()" << std::endl;
+	}
+
+	virtual void print_something_virt() {
+		std::cout << "ExampleSubClass::print_something_virt()" << std::endl;
+	}
+
+	void print_something_novirt() {
+		std::cout << "ExampleSubClass::print_something_novirt()" << std::endl;
+	}
+};
+
 int main()
 {
 	printf("Hello World, C!\n");
 
 	std::cout << "Hello World, C++!" << std::endl;
+
+	ExampleBaseClass *obj = new ExampleBaseClass;
+	obj->print_something_virt();
+	obj->print_something_novirt();
+	delete obj;
+
+	obj = new ExampleSubClass;
+	obj->print_something_virt();
+	obj->print_something_novirt();
+	delete obj;
 
 	std::vector<unsigned int> some_ints;
 	some_ints.push_back(0x48c9b3e4);
