@@ -661,6 +661,7 @@ module picorv32 #(
 			latched_is_lh <= 0;
 			latched_is_lb <= 0;
 			pcpi_valid <= 0;
+			pcpi_timeout <= 0;
 			irq_active <= 0;
 			irq_mask <= ~0;
 			next_irq_pending = 0;
