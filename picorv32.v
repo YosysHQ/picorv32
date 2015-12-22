@@ -231,7 +231,7 @@ module picorv32 #(
 			0: begin
 				mem_addr <= mem_la_addr;
 				mem_wdata <= mem_la_wdata;
-				mem_wstrb <= mem_la_wstrb;
+				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
 				if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
 					mem_valid <= 1;
 					mem_instr <= mem_do_prefetch || mem_do_rinst;
