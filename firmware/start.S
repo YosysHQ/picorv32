@@ -15,6 +15,11 @@
 #  undef ENABLE_RVTST
 #endif
 
+// Only save registers in IRQ wrapper that are to be saved by the caller in
+// the RISC-V ABI, with the excpetion of the stack pointer. The IRQ handler
+// will save the rest if necessary. I.e. skip x3, x4, x8, x9, and x18-x27.
+#undef ENABLE_FASTIRQ
+
 #include "custom_ops.S"
 
 	.section .text
@@ -58,6 +63,23 @@ irq_vec:
 	getq x2, q3
 	sw x2,   2*4(x1)
 
+#ifdef ENABLE_FASTIRQ
+	sw x5,   5*4(x1)
+	sw x6,   6*4(x1)
+	sw x7,   7*4(x1)
+	sw x10, 10*4(x1)
+	sw x11, 11*4(x1)
+	sw x12, 12*4(x1)
+	sw x13, 13*4(x1)
+	sw x14, 14*4(x1)
+	sw x15, 15*4(x1)
+	sw x16, 16*4(x1)
+	sw x17, 17*4(x1)
+	sw x28, 28*4(x1)
+	sw x29, 29*4(x1)
+	sw x30, 30*4(x1)
+	sw x31, 31*4(x1)
+#else
 	sw x3,   3*4(x1)
 	sw x4,   4*4(x1)
 	sw x5,   5*4(x1)
@@ -87,9 +109,30 @@ irq_vec:
 	sw x29, 29*4(x1)
 	sw x30, 30*4(x1)
 	sw x31, 31*4(x1)
+#endif
 
 #else // ENABLE_QREGS
 
+#ifdef ENABLE_FASTIRQ
+	sw gp,   0*4+0x200(zero)
+	sw x1,   1*4+0x200(zero)
+	sw x2,   2*4+0x200(zero)
+	sw x5,   5*4+0x200(zero)
+	sw x6,   6*4+0x200(zero)
+	sw x7,   7*4+0x200(zero)
+	sw x10, 10*4+0x200(zero)
+	sw x11, 11*4+0x200(zero)
+	sw x12, 12*4+0x200(zero)
+	sw x13, 13*4+0x200(zero)
+	sw x14, 14*4+0x200(zero)
+	sw x15, 15*4+0x200(zero)
+	sw x16, 16*4+0x200(zero)
+	sw x17, 17*4+0x200(zero)
+	sw x28, 28*4+0x200(zero)
+	sw x29, 29*4+0x200(zero)
+	sw x30, 30*4+0x200(zero)
+	sw x31, 31*4+0x200(zero)
+#else
 	sw gp,   0*4+0x200(zero)
 	sw x1,   1*4+0x200(zero)
 	sw x2,   2*4+0x200(zero)
@@ -122,6 +165,7 @@ irq_vec:
 	sw x29, 29*4+0x200(zero)
 	sw x30, 30*4+0x200(zero)
 	sw x31, 31*4+0x200(zero)
+#endif
 
 #endif // ENABLE_QREGS
 
@@ -160,6 +204,23 @@ irq_vec:
 	lw x2,   2*4(x1)
 	setq q2, x2
 
+#ifdef ENABLE_FASTIRQ
+	lw x5,   5*4(x1)
+	lw x6,   6*4(x1)
+	lw x7,   7*4(x1)
+	lw x10, 10*4(x1)
+	lw x11, 11*4(x1)
+	lw x12, 12*4(x1)
+	lw x13, 13*4(x1)
+	lw x14, 14*4(x1)
+	lw x15, 15*4(x1)
+	lw x16, 16*4(x1)
+	lw x17, 17*4(x1)
+	lw x28, 28*4(x1)
+	lw x29, 29*4(x1)
+	lw x30, 30*4(x1)
+	lw x31, 31*4(x1)
+#else
 	lw x3,   3*4(x1)
 	lw x4,   4*4(x1)
 	lw x5,   5*4(x1)
@@ -189,6 +250,7 @@ irq_vec:
 	lw x29, 29*4(x1)
 	lw x30, 30*4(x1)
 	lw x31, 31*4(x1)
+#endif
 
 	getq x1, q1
 	getq x2, q2
@@ -201,6 +263,26 @@ irq_vec:
 	sbreak
 1:
 
+#ifdef ENABLE_FASTIRQ
+	lw gp,   0*4+0x200(zero)
+	lw x1,   1*4+0x200(zero)
+	lw x2,   2*4+0x200(zero)
+	lw x5,   5*4+0x200(zero)
+	lw x6,   6*4+0x200(zero)
+	lw x7,   7*4+0x200(zero)
+	lw x10, 10*4+0x200(zero)
+	lw x11, 11*4+0x200(zero)
+	lw x12, 12*4+0x200(zero)
+	lw x13, 13*4+0x200(zero)
+	lw x14, 14*4+0x200(zero)
+	lw x15, 15*4+0x200(zero)
+	lw x16, 16*4+0x200(zero)
+	lw x17, 17*4+0x200(zero)
+	lw x28, 28*4+0x200(zero)
+	lw x29, 29*4+0x200(zero)
+	lw x30, 30*4+0x200(zero)
+	lw x31, 31*4+0x200(zero)
+#else
 	lw gp,   0*4+0x200(zero)
 	lw x1,   1*4+0x200(zero)
 	lw x2,   2*4+0x200(zero)
@@ -233,6 +315,7 @@ irq_vec:
 	lw x29, 29*4+0x200(zero)
 	lw x30, 30*4+0x200(zero)
 	lw x31, 31*4+0x200(zero)
+#endif
 
 #endif // ENABLE_QREGS
 
