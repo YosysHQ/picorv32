@@ -27,14 +27,14 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 Features and Typical Applications
 ---------------------------------
 
-- Small (~1000 LUTs in a 7-Series Xilinx FPGA)
-- High fMAX (~250 MHz on 7-Series Xilinx FPGAs)
+- Small (750-1700 LUTs in 7-Series Xilinx Architecture)
+- High f<sub>max</sub> (250-450 MHz on 7-Series Xilinx FPGAs)
 - Selectable native memory interface or AXI4-Lite master
 - Optional IRQ support (using a simple custom ISA)
 - Optional Co-Processor Interface
 
 This CPU is meant to be used as auxiliary processor in FPGA designs and ASICs. Due
-to its high fMAX it can be integrated in most existing designs without crossing
+to its high f<sub>max</sub> it can be integrated in most existing designs without crossing
 clock domains. When operated on a lower frequency, it will have a lot of timing
 slack and thus can be added to a design without compromising timing closure.
 
@@ -251,7 +251,7 @@ The start address of the interrupt handler.
 Cycles per Instruction Performance
 ----------------------------------
 
-*A short reminder: This core is optimized for size, not performance.*
+*A short reminder: This core is optimized for size and f<sub>max</sub>, not performance.*
 
 Unless stated otherwise, the following numbers apply to a PicoRV32 with
 ENABLE_REGS_DUALPORT active and connected to a memory that can accommodate
