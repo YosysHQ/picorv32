@@ -7,7 +7,6 @@
 
 `timescale 1 ns / 1 ps
 // `define VERBOSE
-// `define AXI_TEST
 
 module testbench;
 

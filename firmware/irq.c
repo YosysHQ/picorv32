@@ -31,30 +31,31 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 	if ((irqs & 6) != 0)
 	{
 		uint32_t pc = regs[0] - 4;
-		uint32_t instr = *(uint32_t*)pc;
+		uint16_t *instr_hwords = (uint16_t*)pc;
+		uint32_t instr = instr_hwords[0] | (instr_hwords[1] << 16);
 
 		print_str("\n");
 		print_str("------------------------------------------------------------\n");
 
 		if ((irqs & 2) != 0) {
-			if (instr == 0x00100073) {
+			if (instr == 0x00100073 || (instr & 0xffff) == 9002) {
 				print_str("SBREAK instruction at 0x");
-				print_hex(pc);
+				print_hex(pc, 8);
 				print_str("\n");
 			} else {
 				print_str("Illegal Instruction at 0x");
-				print_hex(pc);
+				print_hex(pc, 8);
 				print_str(": 0x");
-				print_hex(instr);
+				print_hex(instr, ((instr & 3) == 3) ? 8 : 4);
 				print_str("\n");
 			}
 		}
 
 		if ((irqs & 4) != 0) {
 			print_str("Bus error in Instruction at 0x");
-			print_hex(pc);
+			print_hex(pc, 8);
 			print_str(": 0x");
-			print_hex(instr);
+			print_hex(instr, ((instr & 3) == 3) ? 8 : 4);
 			print_str("\n");
 		}
 
@@ -90,7 +91,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 				print_chr(' ');
 			}
 
-			print_hex(regs[r]);
+			print_hex(regs[r], 8);
 			print_str(k == 3 ? "\n" : "    ");
 		}
 
