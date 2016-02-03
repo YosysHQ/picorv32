@@ -27,14 +27,14 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 Features and Typical Applications
 ---------------------------------
 
-- Small (~1000 LUTs in a 7-Series Xilinx FPGA)
-- High fMAX (~250 MHz on 7-Series Xilinx FPGAs)
+- Small (750-1700 LUTs in 7-Series Xilinx Architecture)
+- High f<sub>max</sub> (250-450 MHz on 7-Series Xilinx FPGAs)
 - Selectable native memory interface or AXI4-Lite master
 - Optional IRQ support (using a simple custom ISA)
 - Optional Co-Processor Interface
 
 This CPU is meant to be used as auxiliary processor in FPGA designs and ASICs. Due
-to its high fMAX it can be integrated in most existing designs without crossing
+to its high f<sub>max</sub> it can be integrated in most existing designs without crossing
 clock domains. When operated on a lower frequency, it will have a lot of timing
 slack and thus can be added to a design without compromising timing closure.
 
@@ -251,16 +251,16 @@ The start address of the interrupt handler.
 Cycles per Instruction Performance
 ----------------------------------
 
-*A short reminder: This core is optimized for size, not performance.*
+*A short reminder: This core is optimized for size and f<sub>max</sub>, not performance.*
 
 Unless stated otherwise, the following numbers apply to a PicoRV32 with
 ENABLE_REGS_DUALPORT active and connected to a memory that can accommodate
 requests within one clock cycle.
 
-The average Cycles per Instruction (CPI) is 4 to 5, depending on the mix of
-instructions in the code. The CPI numbers for the individual instructions
-can be found in the table below. The column "CPI (SP)" contains the
-CPI numbers for a core built without ENABLE_REGS_DUALPORT.
+The average Cycles per Instruction (CPI) is approximately 4, depending on the mix of
+instructions in the code. The CPI numbers for the individual instructions can
+be found in the table below. The column "CPI (SP)" contains the CPI numbers for
+a core built without ENABLE_REGS_DUALPORT.
 
 | Instruction          |  CPI | CPI (SP) |
 | ---------------------| ----:| --------:|
@@ -277,9 +277,9 @@ CPI numbers for a core built without ENABLE_REGS_DUALPORT.
 When `ENABLE_MUL` is activated, then a `MUL` instruction will execute
 in 40 cycles and a `MULH[SU|U]` instruction will execute in 72 cycles.
 
-Dhrystone benchmark results: 0.311 DMIPS/MHz (547 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.327 DMIPS/MHz (575 Dhrystones/Second/MHz)
 
-For the Dhrystone benchmark the average CPI is 4.144.
+For the Dhrystone benchmark the average CPI is 3.945.
 
 
 PicoRV32 Native Memory Interface
@@ -531,7 +531,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout 4bcd4f5
+    git checkout 06c957a
 
     mkdir build; cd build
     ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i
@@ -541,7 +541,7 @@ The commands will all be named using the prefix `riscv32-unknown-elf-`, which
 makes it easy to install them side-by-side with the regular riscv-tools, which
 are using the name prefix `riscv64-unknown-elf-` by default.
 
-*Note: This instructions are for git rev 4bcd4f5 (2015-12-14) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev 06c957a (2016-01-20) of riscv-gnu-toolchain.*
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
