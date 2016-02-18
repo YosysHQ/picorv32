@@ -102,7 +102,12 @@ module picorv32_wrapper #(
 		.irq            (irq            )
 	);
 
-	initial $readmemh("firmware/firmware.hex", mem.memory);
+	reg [1023:0] firmware_file;
+	initial begin
+		if(!$value$plusargs("firmware=%s", firmware_file))
+			firmware_file = "firmware/firmware.hex";
+		$readmemh(firmware_file, mem.memory);
+	end
 
 	integer cycle_counter;
 	always @(posedge clk) begin
