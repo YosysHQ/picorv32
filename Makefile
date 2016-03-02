@@ -27,23 +27,19 @@ check.smt2: picorv32.v
 test_sp: testbench_sp.exe firmware/firmware.hex
 	vvp -N testbench_sp.exe
 
-test_axi: testbench_axi.exe firmware/firmware.hex
-	vvp -N testbench_axi.exe
+test_axi: testbench.exe firmware/firmware.hex
+	vvp -N testbench.exe +axi_test
 
 test_synth: testbench_synth.exe firmware/firmware.hex
 	vvp -N testbench_synth.exe
 
 testbench.exe: testbench.v picorv32.v
-	iverilog -o testbench.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) testbench.v picorv32.v
+	iverilog -o testbench.exe $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) testbench.v picorv32.v
 	chmod -x testbench.exe
 
 testbench_sp.exe: testbench.v picorv32.v
-	iverilog -o testbench_sp.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) -DSP_TEST testbench.v picorv32.v
+	iverilog -o testbench_sp.exe $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST testbench.v picorv32.v
 	chmod -x testbench_sp.exe
-
-testbench_axi.exe: testbench.v picorv32.v
-	iverilog -o testbench_axi.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) -DAXI_TEST testbench.v picorv32.v
-	chmod -x testbench_axi.exe
 
 testbench_synth.exe: testbench.v synth.v
 	iverilog -o testbench_synth.exe testbench.v synth.v
@@ -81,7 +77,7 @@ toc:
 clean:
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
-		testbench.exe testbench_sp.exe testbench_axi.exe testbench_synth.exe testbench.vcd
+		testbench.exe testbench_sp.exe testbench_synth.exe testbench.vcd
 
 .PHONY: test view test_sp test_axi test_synth toc clean
 
