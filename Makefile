@@ -33,12 +33,12 @@ test_axi: testbench.exe firmware/firmware.hex
 test_synth: testbench_synth.exe firmware/firmware.hex
 	vvp -N testbench_synth.exe
 
-testbench.exe: testbench.v picorv32_wrapper.v axi4_memory.v picorv32.v
-	iverilog -o testbench.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) testbench.v picorv32_wrapper.v axi4_memory.v picorv32.v
+testbench.exe: testbench.v picorv32.v
+	iverilog -o testbench.exe $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) testbench.v picorv32.v
 	chmod -x testbench.exe
 
-testbench_sp.exe: testbench.v picorv32_wrapper.v axi4_memory.v picorv32.v
-	iverilog -o testbench_sp.exe $(subst $(COMPRESSED_ISA),C,-DCOMPRESSED_ISA) -DSP_TEST testbench.v picorv32_wrapper.v axi4_memory.v picorv32.v
+testbench_sp.exe: testbench.v picorv32.v
+	iverilog -o testbench_sp.exe $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST testbench.v picorv32.v
 	chmod -x testbench_sp.exe
 
 testbench_synth.exe: testbench.v synth.v
