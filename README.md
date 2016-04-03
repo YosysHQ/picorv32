@@ -299,7 +299,8 @@ that can run one memory transfer at a time:
 
 The core initiates a memory transfer by asserting `mem_valid`. The valid
 signal stays high until the peer asserts `mem_ready`. All core outputs
-are stable over the `mem_valid` period.
+are stable over the `mem_valid` period. If the memory transfer is an
+instruction fetch, the core asserts `mem_instr`.
 
 #### Read Transfer
 
