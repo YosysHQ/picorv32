@@ -299,7 +299,8 @@ that can run one memory transfer at a time:
 
 The core initiates a memory transfer by asserting `mem_valid`. The valid
 signal stays high until the peer asserts `mem_ready`. All core outputs
-are stable over the `mem_valid` period.
+are stable over the `mem_valid` period. If the memory transfer is an
+instruction fetch, the core asserts `mem_instr`.
 
 #### Read Transfer
 
@@ -317,6 +318,11 @@ asynchronously with `mem_ready` going high in the same cycle as `mem_valid`, or
 In a write transfer `mem_wstrb` is not 0 and `mem_rdata` is unused. The memory
 write the data at `mem_wdata` to the address `mem_addr` and acknowledges the
 transfer by asserting `mem_ready`.
+
+The 4 bits of `mem_wstrb` are write enables for the four bytes in the addressed
+word. Only the 8 values `0000`, `1111`, `1100`, `0011`, `1000`, `0100`, `0010`,
+and `0001` are possible, i.e. no write, write 32 bits, write upper 16 bits,
+write lower 16, or write a single byte respectively.
 
 There is no need for an external wait cycle. The memory can acknowledge the
 write immediately  with `mem_ready` going high in the same cycle as
