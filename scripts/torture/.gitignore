@@ -1,0 +1,4 @@
+riscv-fesvr
+riscv-isa-sim
+riscv-torture
+test.*
