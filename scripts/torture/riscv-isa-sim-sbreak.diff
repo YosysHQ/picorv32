@@ -1,0 +1,26 @@
+diff --git a/riscv/insns/c_ebreak.h b/riscv/insns/c_ebreak.h
+index a17200f..af3a7ad 100644
+--- a/riscv/insns/c_ebreak.h
++++ b/riscv/insns/c_ebreak.h
+@@ -1,2 +1,9 @@
+ require_extension('C');
++
++for (int i = 0; i < 16*1024; i += 4) {
++  unsigned int dat = MMU.load_int32(i);
++  printf("%08x\n", dat);
++}
++exit(0);
++
+ throw trap_breakpoint();
+diff --git a/riscv/insns/sbreak.h b/riscv/insns/sbreak.h
+index c22776c..31397dd 100644
+--- a/riscv/insns/sbreak.h
++++ b/riscv/insns/sbreak.h
+@@ -1 +1,7 @@
++for (int i = 0; i < 16*1024; i += 4) {
++  unsigned int dat = MMU.load_int32(i);
++  printf("%08x\n", dat);
++}
++exit(0);
++
+ throw trap_breakpoint();

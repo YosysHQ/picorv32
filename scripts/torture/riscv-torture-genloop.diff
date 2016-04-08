@@ -1,0 +1,40 @@
+diff --git a/generator/src/main/scala/main.scala b/generator/src/main/scala/main.scala
+index 7c78982..1572771 100644
+--- a/generator/src/main/scala/main.scala
++++ b/generator/src/main/scala/main.scala
+@@ -8,7 +8,7 @@ import java.util.Properties
+ import scala.collection.JavaConversions._
+ 
+ case class Options(var outFileName: String = "test",
+-  var confFileName: String = "config/default.config")
++  var confFileName: String = "config/default.config", var numOutFiles: Int = 0)
+ 
+ object Generator extends App
+ {
+@@ -17,15 +17,25 @@ object Generator extends App
+     val parser = new OptionParser[Options]("generator/run") {
+       opt[String]('C', "config") valueName("<file>") text("config file") action {(s: String, c) => c.copy(confFileName = s)}
+       opt[String]('o', "output") valueName("<filename>") text("output filename") action {(s: String, c) => c.copy(outFileName = s)}
++      opt[Int]('n', "numfiles") valueName("<num_files>") text("number of output files") action {(n: Int, c) => c.copy(numOutFiles = n)}
+     }
+     parser.parse(args, Options()) match {
+       case Some(opts) =>
+-        generate(opts.confFileName, opts.outFileName)
++        generate_loop(opts.confFileName, opts.outFileName, opts.numOutFiles)
+       case None =>
+         System.exit(1) //error message printed by parser
+     }
+   }
+ 
++  def generate_loop(confFile: String, outFileName: String, numOutFiles: Int) = {
++    if (numOutFiles > 0) {
++      for (i <- 0 to (numOutFiles-1))
++        generate(confFile, outFileName + ("_%03d" format (i)))
++    } else {
++      generate(confFile, outFileName)
++    }
++  }
++
+   def generate(confFile: String, outFileName: String): String = {
+     val config = new Properties()
+     val in = new FileInputStream(confFile)
