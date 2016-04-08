@@ -537,17 +537,17 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout acfa480
+    git checkout 3134bf4
 
     mkdir build; cd build
-    ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i
+    ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i --disable-float --disable-atomic
     make -j$(nproc)
 
 The commands will all be named using the prefix `riscv32-unknown-elf-`, which
-makes it easy to install them side-by-side with the regular riscv-tools, which
-are using the name prefix `riscv64-unknown-elf-` by default.
+makes it easy to install them side-by-side with the regular riscv-tools (those
+are using the name prefix `riscv64-unknown-elf-` by default).
 
-*Note: This instructions are for git rev acfa480 (2016-04-06) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev 3134bf4 (2016-04-08) of riscv-gnu-toolchain.*
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
