@@ -1,6 +1,6 @@
 
-run_signle_test: riscv-torture/build.ok riscv-isa-sim/build.ok
-	bash run_single_test.sh
+test: riscv-torture/build.ok riscv-isa-sim/build.ok
+	bash test.sh
 
 riscv-torture/build.ok: riscv-torture-rv32.diff
 	rm -rf riscv-torture
@@ -22,7 +22,7 @@ riscv-isa-sim/build.ok: riscv-fesvr/build.ok
 
 clean:
 	rm -rf riscv-torture riscv-fesvr riscv-isa-sim
-	rm -f test.S test.elf test.ref
+	rm -f test.S test.elf test.bin test.hex test.ref test.vvp
 
-.PHONY: run_signle_test clean
+.PHONY: test clean
 
