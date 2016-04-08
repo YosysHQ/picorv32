@@ -19,6 +19,7 @@ module testbench (
 	reg  [31:0] mem_rdata;
 
 	picorv32 #(
+		.COMPRESSED_ISA(1)
 	) uut (
 		.clk         (clk         ),
 		.resetn      (resetn      ),

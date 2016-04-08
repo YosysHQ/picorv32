@@ -41,7 +41,7 @@ tests/test_$(1).S: tests/generated.ok
 	mv riscv-torture/output/test_$(1).S tests/
 
 tests/test_$(1).elf: tests/test_$(1).S
-	riscv32-unknown-elf-gcc -m32 -ffreestanding -nostdlib -Wl,-Bstatic,-T,sections.lds -I. -o tests/test_$(1).elf tests/test_$(1).S
+	riscv32-unknown-elf-gcc -m32 -march=RV32IC -ffreestanding -nostdlib -Wl,-Bstatic,-T,sections.lds -I. -o tests/test_$(1).elf tests/test_$(1).S
 
 tests/test_$(1).bin: tests/test_$(1).elf
 	riscv32-unknown-elf-objcopy -O binary tests/test_$(1).elf tests/test_$(1).bin

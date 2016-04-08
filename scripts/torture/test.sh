@@ -15,7 +15,7 @@ fi
 
 ## Compile test case and create reference
 
-riscv32-unknown-elf-gcc -m32 -ffreestanding -nostdlib -Wl,-Bstatic,-T,sections.lds -o test.elf test.S
+riscv32-unknown-elf-gcc -m32 -march=RV32IC -ffreestanding -nostdlib -Wl,-Bstatic,-T,sections.lds -o test.elf test.S
 LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike test.elf > test.ref
 riscv32-unknown-elf-objcopy -O binary test.elf test.bin
 python3 ../../firmware/makehex.py test.bin 4096 > test.hex
