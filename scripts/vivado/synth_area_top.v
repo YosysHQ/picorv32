@@ -104,6 +104,7 @@ module top_large (
 	output [31:0] eoi
 );
 	picorv32 #(
+		.COMPRESSED_ISA(1),
 		.ENABLE_PCPI(1),
 		.ENABLE_MUL(1),
 		.ENABLE_IRQ(1)
