@@ -547,6 +547,20 @@ The commands will all be named using the prefix `riscv32-unknown-elf-`, which
 makes it easy to install them side-by-side with the regular riscv-tools (those
 are using the name prefix `riscv64-unknown-elf-` by default).
 
+The following make targets build toolchains for `RV32I[M][C]` using this sequence
+of commands (not including installing prerequisites):
+
+| Command                                  | Install Directory  | ISA       |
+|:---------------------------------------- |:------------------ |:--------  |
+| `make -j$(nproc) build-riscv32i-tools`   | `/opt/riscv32i/`   | `RV32I`   |
+| `make -j$(nproc) build-riscv32ic-tools`  | `/opt/riscv32ic/`  | `RV32IC`  |
+| `make -j$(nproc) build-riscv32im-tools`  | `/opt/riscv32im/`  | `RV32IM`  |
+| `make -j$(nproc) build-riscv32imc-tools` | `/opt/riscv32imc/` | `RV32IMC` |
+
+By default calling any of those make targets will (re-)download the toolchain
+sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
+once in advance.
+
 *Note: This instructions are for git rev 3134bf4 (2016-04-08) of riscv-gnu-toolchain.*
 
 
