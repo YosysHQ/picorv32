@@ -31,14 +31,16 @@ tests/testbench.vvp: testbench.v ../../picorv32.v
 	iverilog -o tests/testbench.vvp testbench.v ../../picorv32.v
 
 tests/generated.ok: riscv-torture/build.ok
+	mkdir -p tests
 	rm -f riscv-torture/output/test_*
 	cd riscv-torture && ./sbt 'generator/run -n 1000'
+	sed -i -e '/addi x2, x2, 0/ s/addi/xori/;' riscv-torture/output/test_*.S
 	touch tests/generated.ok
 
 define test_template
 tests/test_$(1).S: tests/generated.ok
-	mkdir -p tests
 	mv riscv-torture/output/test_$(1).S tests/
+	touch tests/test_$(1).S
 
 tests/test_$(1).elf: tests/test_$(1).S
 	riscv32-unknown-elf-gcc -m32 -march=RV32IC -ffreestanding -nostdlib -Wl,-Bstatic,-T,sections.lds -I. -o tests/test_$(1).elf tests/test_$(1).S
