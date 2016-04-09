@@ -48,6 +48,10 @@ module testbench (
 
 		repeat (10) @(posedge clk);
 		resetn <= 1;
+
+		repeat (100000) @(posedge clk);
+		$display("FAILED: Timeout!");
+		$finish;
 	end
 
 	always @(posedge clk) begin

@@ -1,0 +1,16 @@
+diff --git a/riscv/processor.cc b/riscv/processor.cc
+index 3b834c5..e112029 100644
+--- a/riscv/processor.cc
++++ b/riscv/processor.cc
+@@ -201,9 +201,10 @@ void processor_t::set_privilege(reg_t prv)
+ 
+ void processor_t::take_trap(trap_t& t, reg_t epc)
+ {
+-  if (debug)
++  // if (debug)
+     fprintf(stderr, "core %3d: exception %s, epc 0x%016" PRIx64 "\n",
+             id, t.name(), epc);
++  exit(1);
+ 
+   // by default, trap to M-mode, unless delegated to S-mode
+   reg_t bit = t.cause();

@@ -18,7 +18,9 @@ riscv-fesvr/build.ok:
 riscv-isa-sim/build.ok: riscv-fesvr/build.ok
 	rm -rf riscv-isa-sim
 	git clone https://github.com/riscv/riscv-isa-sim.git riscv-isa-sim
-	cd riscv-isa-sim && git checkout 10ae74e && patch -p1 < ../riscv-isa-sim-sbreak.diff
+	cd riscv-isa-sim && git checkout 10ae74e
+	cd riscv-isa-sim && patch -p1 < ../riscv-isa-sim-sbreak.diff
+	cd riscv-isa-sim && patch -p1 < ../riscv-isa-sim-notrap.diff
 	cd riscv-isa-sim && LDFLAGS="-L../riscv-fesvr" ./configure --with-isa=RV32IMC
 	+cd riscv-isa-sim && ln -s ../riscv-fesvr/fesvr . && make && touch build.ok
 
