@@ -276,7 +276,7 @@ module picorv32 #(
 								mem_rdata_q[31:25] <= 7'b0000000;
 								mem_rdata_q[14:12] <= 3'b 101;
 							end
-							if (mem_rdata_latched[11:10] == 2'b00) begin // C.SRAI
+							if (mem_rdata_latched[11:10] == 2'b01) begin // C.SRAI
 								mem_rdata_q[31:25] <= 7'b0100000;
 								mem_rdata_q[14:12] <= 3'b 101;
 							end
