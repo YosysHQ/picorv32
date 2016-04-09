@@ -240,7 +240,7 @@ module picorv32 #(
 					case (mem_rdata_latched[15:13])
 						3'b000: begin // C.ADDI4SPN
 							mem_rdata_q[14:12] <= 3'b000;
-							mem_rdata_q[31:20] <= {mem_rdata_latched[10:7], mem_rdata_latched[12:11], mem_rdata_latched[5], mem_rdata_latched[6]};
+							mem_rdata_q[31:20] <= {mem_rdata_latched[10:7], mem_rdata_latched[12:11], mem_rdata_latched[5], mem_rdata_latched[6], 2'b00};
 						end
 						3'b010: begin // C.LW
 							mem_rdata_q[31:20] <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
@@ -565,7 +565,7 @@ module picorv32 #(
 							3'b000: begin // C.ADDI4SPN
 								is_alu_reg_imm <= |mem_rdata_latched[12:5];
 								decoded_rs1 <= 2;
-								decoded_rd <= 8 + mem_rdata_latched[9:7];
+								decoded_rd <= 8 + mem_rdata_latched[4:2];
 							end
 							3'b010: begin // C.LW
 								is_lb_lh_lw_lbu_lhu <= 1;
