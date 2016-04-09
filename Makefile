@@ -9,7 +9,7 @@ FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
 TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
-# COMPRESSED_ISA = C
+COMPRESSED_ISA = C
 
 test: testbench.exe firmware/firmware.hex
 	vvp -N testbench.exe

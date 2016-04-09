@@ -185,6 +185,11 @@ the ALU.
 *Note: Enabling this parameter will be most effective when retiming (aka
 "register balancing") is enabled in the synthesis flow.*
 
+#### COMPRESSED_ISA (default = 0)
+
+This enables support for the RISC-V Compressed Instruction Set. Currently
+this implements the draft version 1.9 of the compressed ISA specification.
+
 #### CATCH_MISALIGN (default = 1)
 
 Set this to 0 to disable the circuitry for catching misaligned memory
