@@ -38,7 +38,9 @@ module testbench (
 	end
 
 	picorv32 #(
-		.COMPRESSED_ISA(1)
+		.COMPRESSED_ISA(1),
+		.ENABLE_MUL(1),
+		.ENABLE_DIV(1)
 	) uut (
 		.clk         (clk         ),
 		.resetn      (resetn      ),

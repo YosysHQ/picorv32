@@ -1,5 +1,5 @@
 diff --git a/config/default.config b/config/default.config
-index b671223..e6bd131 100644
+index b671223..c0b2bb4 100644
 --- a/config/default.config
 +++ b/config/default.config
 @@ -1,18 +1,18 @@
@@ -7,11 +7,9 @@ index b671223..e6bd131 100644
  torture.generator.memsize   1024
  torture.generator.fprnd     0
 -torture.generator.amo       true
--torture.generator.mul       true
--torture.generator.divider   true
 +torture.generator.amo       false
-+torture.generator.mul       false
-+torture.generator.divider   false
+ torture.generator.mul       true
+ torture.generator.divider   true
  torture.generator.run_twice true
  
  torture.generator.mix.xmem    10
@@ -69,10 +67,10 @@ index a677d2d..ec0745f 100644
    def rand_seglen() = rand_range(0, 7)
    def rand_imm() = rand_range(-2048, 2047)
 diff --git a/generator/src/main/scala/SeqALU.scala b/generator/src/main/scala/SeqALU.scala
-index a1f27a5..e8957bf 100644
+index a1f27a5..18d6d7b 100644
 --- a/generator/src/main/scala/SeqALU.scala
 +++ b/generator/src/main/scala/SeqALU.scala
-@@ -68,15 +68,15 @@ class SeqALU(xregs: HWRegPool, use_mul: Boolean, use_div: Boolean) extends InstS
+@@ -68,17 +68,12 @@ class SeqALU(xregs: HWRegPool, use_mul: Boolean, use_div: Boolean) extends InstS
    candidates += seq_src1_immfn(SRAI, rand_shamt)
    candidates += seq_src1_immfn(ORI, rand_imm)
    candidates += seq_src1_immfn(ANDI, rand_imm)
@@ -80,19 +78,18 @@ index a1f27a5..e8957bf 100644
 -  candidates += seq_src1_immfn(SLLIW, rand_shamtw)
 -  candidates += seq_src1_immfn(SRLIW, rand_shamtw)
 -  candidates += seq_src1_immfn(SRAIW, rand_shamtw)
-+  // candidates += seq_src1_immfn(ADDIW, rand_imm)
-+  // candidates += seq_src1_immfn(SLLIW, rand_shamtw)
-+  // candidates += seq_src1_immfn(SRLIW, rand_shamtw)
-+  // candidates += seq_src1_immfn(SRAIW, rand_shamtw)
  
    val oplist = new ArrayBuffer[Opcode]
  
    oplist += (ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND)
 -  oplist += (ADDW, SUBW, SLLW, SRLW, SRAW)
-+  // oplist += (ADDW, SUBW, SLLW, SRLW, SRAW)
-   if (use_mul) oplist += (MUL, MULH, MULHSU, MULHU, MULW)
-   if (use_div) oplist += (DIV, DIVU, REM, REMU, DIVW, DIVUW, REMW, REMUW)
+-  if (use_mul) oplist += (MUL, MULH, MULHSU, MULHU, MULW)
+-  if (use_div) oplist += (DIV, DIVU, REM, REMU, DIVW, DIVUW, REMW, REMUW)
++  if (use_mul) oplist += (MUL, MULH, MULHSU, MULHU)
++  if (use_div) oplist += (DIV, DIVU, REM, REMU)
  
+   for (op <- oplist)
+   {
 diff --git a/generator/src/main/scala/SeqBranch.scala b/generator/src/main/scala/SeqBranch.scala
 index bba9895..0d257d7 100644
 --- a/generator/src/main/scala/SeqBranch.scala
@@ -116,7 +113,7 @@ index bba9895..0d257d7 100644
      insts += XOR(reg_mask, reg_mask, reg_one)
      insts += AND(reg_dst1, reg_src1, reg_mask)
 diff --git a/generator/src/main/scala/SeqMem.scala b/generator/src/main/scala/SeqMem.scala
-index 3c180ed..1feb1d3 100644
+index 3c180ed..89200f6 100644
 --- a/generator/src/main/scala/SeqMem.scala
 +++ b/generator/src/main/scala/SeqMem.scala
 @@ -51,7 +51,7 @@ class SeqMem(xregs: HWRegPool, mem: Mem, use_amo: Boolean) extends InstSeq
@@ -128,20 +125,17 @@ index 3c180ed..1feb1d3 100644
            if (is_store)
            {
               if      (typ == byte  || typ ==ubyte)  (SB, dw_addr + rand_addr_b(8))
-@@ -110,13 +110,13 @@ class SeqMem(xregs: HWRegPool, mem: Mem, use_amo: Boolean) extends InstSeq
+@@ -110,13 +110,10 @@ class SeqMem(xregs: HWRegPool, mem: Mem, use_amo: Boolean) extends InstSeq
    candidates += seq_load_addrfn(LH, rand_addr_h)
    candidates += seq_load_addrfn(LHU, rand_addr_h)
    candidates += seq_load_addrfn(LW, rand_addr_w)
 -  candidates += seq_load_addrfn(LWU, rand_addr_w)
 -  candidates += seq_load_addrfn(LD, rand_addr_d)
-+  // candidates += seq_load_addrfn(LWU, rand_addr_w)
-+  // candidates += seq_load_addrfn(LD, rand_addr_d)
  
    candidates += seq_store_addrfn(SB, rand_addr_b)
    candidates += seq_store_addrfn(SH, rand_addr_h)
    candidates += seq_store_addrfn(SW, rand_addr_w)
 -  candidates += seq_store_addrfn(SD, rand_addr_d)
-+  // candidates += seq_store_addrfn(SD, rand_addr_d)
  
    if (use_amo) 
    {
