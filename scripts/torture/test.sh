@@ -24,5 +24,5 @@ python3 ../../firmware/makehex.py test.bin 4096 > test.hex
 ## Run test
 
 iverilog -o test.vvp testbench.v ../../picorv32.v
-vvp test.vvp +hex=test.hex +ref=test.ref
+vvp test.vvp +vcd +hex=test.hex +ref=test.ref
 

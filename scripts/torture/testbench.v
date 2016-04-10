@@ -18,19 +18,45 @@ module testbench (
 	wire [3:0]  mem_wstrb;
 	reg  [31:0] mem_rdata;
 
+	wire        mem_la_read;
+	wire        mem_la_write;
+	wire [31:0] mem_la_addr;
+	wire [31:0] mem_la_wdata;
+	wire [3:0]  mem_la_wstrb;
+
+	reg [31:0] x32 = 314159265;
+	reg [31:0] next_x32;
+
+	always @(posedge clk) begin
+		if (resetn) begin
+			next_x32 = x32;
+			next_x32 = next_x32 ^ (next_x32 << 13);
+			next_x32 = next_x32 ^ (next_x32 >> 17);
+			next_x32 = next_x32 ^ (next_x32 << 5);
+			x32 <= next_x32;
+		end
+	end
+
 	picorv32 #(
 		.COMPRESSED_ISA(1)
 	) uut (
 		.clk         (clk         ),
 		.resetn      (resetn      ),
 		.trap        (trap        ),
+
 		.mem_valid   (mem_valid   ),
 		.mem_instr   (mem_instr   ),
 		.mem_ready   (mem_ready   ),
 		.mem_addr    (mem_addr    ),
 		.mem_wdata   (mem_wdata   ),
 		.mem_wstrb   (mem_wstrb   ),
-		.mem_rdata   (mem_rdata   )
+		.mem_rdata   (mem_rdata   ),
+
+		.mem_la_read (mem_la_read ),
+		.mem_la_write(mem_la_write),
+		.mem_la_addr (mem_la_addr ),
+		.mem_la_wdata(mem_la_wdata),
+		.mem_la_wstrb(mem_la_wstrb)
 	);
 
 	localparam integer filename_len = 18;
@@ -45,8 +71,12 @@ module testbench (
 	initial begin
 		if ($value$plusargs("hex=%s", hex_filename)) $readmemh(hex_filename, memory);
 		if ($value$plusargs("ref=%s", ref_filename)) $readmemh(ref_filename, memory_ref);
-		// $dumpfile("testbench.vcd");
-		// $dumpvars(0, testbench);
+`ifndef VERILATOR
+		if ($test$plusargs("vcd")) begin
+			$dumpfile("test.vcd");
+			$dumpvars(0, testbench);
+		end
+`endif
 	end
 
 	always @(posedge clk) begin
@@ -54,15 +84,28 @@ module testbench (
 		mem_rdata <= 'bx;
 
 		if (!trap || !resetn) begin
-			if (mem_valid && !mem_ready && resetn) begin
-				mem_ready <= 1;
-				if (mem_wstrb) begin
-					if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
-					if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
-					if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
-					if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
-				end else begin
-					mem_rdata <= memory[mem_addr >> 2];
+			if (x32[0] && resetn) begin
+				if (mem_la_read) begin
+					mem_ready <= 1;
+					mem_rdata <= memory[mem_la_addr >> 2];
+				end else
+				if (mem_la_write) begin
+					mem_ready <= 1;
+					if (mem_la_wstrb[0]) memory[mem_la_addr >> 2][ 7: 0] <= mem_la_wdata[ 7: 0];
+					if (mem_la_wstrb[1]) memory[mem_la_addr >> 2][15: 8] <= mem_la_wdata[15: 8];
+					if (mem_la_wstrb[2]) memory[mem_la_addr >> 2][23:16] <= mem_la_wdata[23:16];
+					if (mem_la_wstrb[3]) memory[mem_la_addr >> 2][31:24] <= mem_la_wdata[31:24];
+				end else
+				if (mem_valid && !mem_ready) begin
+					mem_ready <= 1;
+					if (mem_wstrb) begin
+						if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
+						if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
+						if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
+						if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
+					end else begin
+						mem_rdata <= memory[mem_addr >> 2];
+					end
 				end
 			end
 		end else begin
@@ -74,9 +117,9 @@ module testbench (
 				end
 			end
 			if (errcount)
-				$display("FAILED: Got %1d errors for %s => %s!", errcount, hex_filename, ref_filename);
+				$display("FAILED: Got %1d errors for %1s => %1s!", errcount, hex_filename, ref_filename);
 			else
-				$display("PASSED %s => %s.", hex_filename, ref_filename);
+				$display("PASSED %1s => %1s.", hex_filename, ref_filename);
 			$finish;
 		end
 
