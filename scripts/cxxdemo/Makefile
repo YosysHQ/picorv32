@@ -1,6 +1,7 @@
-CXX = riscv32-unknown-elf-g++
-CC = riscv32-unknown-elf-gcc
-AS = riscv32-unknown-elf-gcc
+RISCV_TOOLS_PREFIX = /opt/riscv32ic/bin/riscv32-unknown-elf-
+CXX = $(RISCV_TOOLS_PREFIX)g++
+CC = $(RISCV_TOOLS_PREFIX)gcc
+AS = $(RISCV_TOOLS_PREFIX)gcc
 CXXFLAGS = -MD -Os -Wall -std=c++11
 CCFLAGS = -MD -Os -Wall -std=c++11
 LDFLAGS = -Wl,--gc-sections
@@ -14,8 +15,8 @@ testbench.exe: testbench.v ../../picorv32.v
 	chmod -x testbench.exe
 
 firmware32.hex: firmware.elf start.elf hex8tohex32.py
-	riscv32-unknown-elf-objcopy -O verilog start.elf start.tmp
-	riscv32-unknown-elf-objcopy -O verilog firmware.elf firmware.tmp
+	$(RISCV_TOOLS_PREFIX)objcopy -O verilog start.elf start.tmp
+	$(RISCV_TOOLS_PREFIX)objcopy -O verilog firmware.elf firmware.tmp
 	cat start.tmp firmware.tmp > firmware.hex
 	python3 hex8tohex32.py firmware.hex > firmware32.hex
 	rm -f start.tmp firmware.tmp

@@ -23,7 +23,9 @@ module testbench;
 	wire [3:0] mem_wstrb;
 	reg  [31:0] mem_rdata;
 
-	picorv32 uut (
+	picorv32 #(
+		.COMPRESSED_ISA(1)
+	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
 		.trap        (trap       ),
