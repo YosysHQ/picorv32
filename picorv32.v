@@ -1638,7 +1638,7 @@ module picorv32_pcpi_div (
 			running <= 1;
 			dividend <= (instr_div || instr_rem) && pcpi_rs1[31] ? -pcpi_rs1 : pcpi_rs1;
 			divisor <= ((instr_div || instr_rem) && pcpi_rs2[31] ? -pcpi_rs2 : pcpi_rs2) << 31;
-			outsign <= (instr_div && (pcpi_rs1[31] != pcpi_rs2[31])) || (instr_rem && pcpi_rs1[31]);
+			outsign <= (instr_div && (pcpi_rs1[31] != pcpi_rs2[31]) && |pcpi_rs2) || (instr_rem && pcpi_rs1[31]);
 			quotient <= 0;
 			quotient_msk <= 1 << 31;
 		end else
