@@ -617,14 +617,14 @@ for the following three cores:
 
 - **PicoRV32 (regular):** The `picorv32` module in its default configuration.
 
-- **PicoRV32 (large):** The `picorv32` module with enabled PCPI, IRQ and MUL
-  features.
+- **PicoRV32 (large):** The `picorv32` module with enabled PCPI, IRQ, MUL,
+  DIV, and COMPRESSED_ISA features.
 
 See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        743 |             48 |             420 |
-| PicoRV32 (regular) |        897 |             48 |             562 |
-| PicoRV32 (large)   |       1882 |             88 |            1027 |
+| PicoRV32 (small)   |        747 |             48 |             420 |
+| PicoRV32 (regular) |        908 |             48 |             562 |
+| PicoRV32 (large)   |       1907 |             88 |            1027 |
 
