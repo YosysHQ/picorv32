@@ -33,25 +33,20 @@ module testbench (
 		.mem_rdata   (mem_rdata   )
 	);
 
-	reg [1023:0] hex_filename;
-	reg [1023:0] ref_filename;
+	localparam integer filename_len = 18;
+	reg [8*filename_len-1:0] hex_filename;
+	reg [8*filename_len-1:0] ref_filename;
 
 	reg [31:0] memory [0:4095];
 	reg [31:0] memory_ref [0:4095];
 	integer i, errcount;
+	integer cycle = 0;
 
 	initial begin
 		if ($value$plusargs("hex=%s", hex_filename)) $readmemh(hex_filename, memory);
 		if ($value$plusargs("ref=%s", ref_filename)) $readmemh(ref_filename, memory_ref);
 		// $dumpfile("testbench.vcd");
 		// $dumpvars(0, testbench);
-
-		repeat (10) @(posedge clk);
-		resetn <= 1;
-
-		repeat (100000) @(posedge clk);
-		$display("FAILED: Timeout!");
-		$finish;
 	end
 
 	always @(posedge clk) begin
@@ -79,10 +74,18 @@ module testbench (
 				end
 			end
 			if (errcount)
-				$display("FAILED: Got %1d errors for %1s => %1s!", errcount, hex_filename, ref_filename);
+				$display("FAILED: Got %1d errors for %s => %s!", errcount, hex_filename, ref_filename);
 			else
-				$display("PASSED %1s => %1s.", hex_filename, ref_filename);
+				$display("PASSED %s => %s.", hex_filename, ref_filename);
 			$finish;
 		end
+
+		if (cycle > 100000) begin
+			$display("FAILED: Timeout!");
+			$finish;
+		end
+
+		resetn <= cycle > 10;
+		cycle <= cycle + 1;
 	end
 endmodule

@@ -2,6 +2,7 @@
 riscv-fesvr
 riscv-isa-sim
 riscv-torture
+obj_dir
 tests
 test.S
 test.elf

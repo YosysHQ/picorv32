@@ -1,4 +1,10 @@
 
+# Icarus Verilog
+#TESTBENCH_EXE = tests/testbench.vvp
+
+# Verilator
+TESTBENCH_EXE = obj_dir/Vtestbench
+
 test: riscv-torture/build.ok riscv-isa-sim/build.ok
 	bash test.sh
 
@@ -28,6 +34,10 @@ batch_list = $(shell bash -c 'for i in {0..999}; do printf "%03d\n" $$i; done')
 
 batch: $(addprefix tests/test_,$(addsuffix .ok,$(batch_list)))
 
+obj_dir/Vtestbench: testbench.v testbench.cc ../../picorv32.v
+	verilator --exe -Wno-fatal --cc --top-module testbench testbench.v ../../picorv32.v testbench.cc
+	$(MAKE) -C obj_dir -f Vtestbench.mk
+
 tests/testbench.vvp: testbench.v ../../picorv32.v
 	mkdir -p tests
 	iverilog -o tests/testbench.vvp testbench.v ../../picorv32.v
@@ -55,8 +65,8 @@ tests/test_$(1).hex: tests/test_$(1).bin
 tests/test_$(1).ref: tests/test_$(1).elf riscv-isa-sim/build.ok
 	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike tests/test_$(1).elf > tests/test_$(1).ref
 
-tests/test_$(1).ok: tests/testbench.vvp tests/test_$(1).hex tests/test_$(1).ref
-	vvp tests/testbench.vvp +hex=tests/test_$(1).hex +ref=tests/test_$(1).ref | tee tests/test_$(1).out
+tests/test_$(1).ok: $(TESTBENCH_EXE) tests/test_$(1).hex tests/test_$(1).ref
+	$(TESTBENCH_EXE) +hex=tests/test_$(1).hex +ref=tests/test_$(1).ref | tee tests/test_$(1).out
 	grep -q PASSED tests/test_$(1).out
 	mv tests/test_$(1).out tests/test_$(1).ok
 endef
@@ -71,7 +81,7 @@ loop:
 	done
 
 clean:
-	rm -rf riscv-torture riscv-fesvr riscv-isa-sim tests
+	rm -rf riscv-torture riscv-fesvr riscv-isa-sim tests obj_dir
 	rm -f test.S test.elf test.bin test.hex test.ref test.vvp
 
 .PHONY: test batch loop clean
