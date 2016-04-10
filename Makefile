@@ -1,5 +1,5 @@
 
-RISCV_GNU_TOOLCHAIN_REV = 3134bf4
+RISCV_GNU_TOOLCHAIN_REV = 888ae43
 GCC_URL = http://mirrors.kernel.org/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.gz
 NEWLIB_URL = ftp://sourceware.org/pub/newlib/newlib-2.2.0.tar.gz
 BINUTILS_URL = http://mirrors.kernel.org/gnu/binutils/binutils-2.26.tar.gz

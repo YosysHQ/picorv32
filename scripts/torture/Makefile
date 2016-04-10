@@ -36,7 +36,6 @@ tests/generated.ok: riscv-torture/build.ok
 	mkdir -p tests
 	rm -f riscv-torture/output/test_*
 	cd riscv-torture && ./sbt 'generator/run -n 1000'
-	sed -i -e '/addi x2, x2, 0/ s/addi/xori/;' riscv-torture/output/test_*.S
 	touch tests/generated.ok
 
 define test_template

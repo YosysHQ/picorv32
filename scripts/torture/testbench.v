@@ -79,9 +79,9 @@ module testbench (
 				end
 			end
 			if (errcount)
-				$display("FAILED: Got %1d errors for %1s/%1s!", errcount, hex_filename, ref_filename);
+				$display("FAILED: Got %1d errors for %1s => %1s!", errcount, hex_filename, ref_filename);
 			else
-				$display("PASSED %1s/%1s.", hex_filename, ref_filename);
+				$display("PASSED %1s => %1s.", hex_filename, ref_filename);
 			$finish;
 		end
 	end
