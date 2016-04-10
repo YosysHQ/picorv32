@@ -1,6 +1,6 @@
 
 OBJS = start.o dhry_1.o dhry_2.o stdlib.o
-CFLAGS = -MD -O3 -m32 -march=RV32I -ffreestanding -nostdlib -DTIME -DRISCV
+CFLAGS = -MD -O3 -m32 -march=RV32IM -ffreestanding -nostdlib -DTIME -DRISCV
 TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 
 test: testbench.exe dhry.hex
@@ -8,7 +8,7 @@ test: testbench.exe dhry.hex
 
 timing: timing.exe dhry.hex
 	vvp -N timing.exe > timing.txt
-	sed 's,.*## ,,' timing.txt | gawk 'x != "" {print x,$$2-y;} {x=$$1;y=$$2;}' | sort | uniq -c | sort -k3 -n
+	grep '^##' timing.txt | gawk 'x != "" {print x,$$3-y;} {x=$$2;y=$$3;}' | sort | uniq -c | sort -k3 -n
 
 testbench.exe: testbench.v ../picorv32.v
 	iverilog -o testbench.exe testbench.v ../picorv32.v

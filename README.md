@@ -289,9 +289,12 @@ a core built without ENABLE_REGS_DUALPORT.
 When `ENABLE_MUL` is activated, then a `MUL` instruction will execute
 in 40 cycles and a `MULH[SU|U]` instruction will execute in 72 cycles.
 
-Dhrystone benchmark results: 0.327 DMIPS/MHz (575 Dhrystones/Second/MHz)
+When `ENABLE_DIV` is activated, then a `DIV[U]/REM[U]` instruction will
+execute in 40 cycles.
 
-For the Dhrystone benchmark the average CPI is 3.945.
+Dhrystone benchmark results: 0.391 DMIPS/MHz (688 Dhrystones/Second/MHz)
+
+For the Dhrystone benchmark the average CPI is 4.110.
 
 
 PicoRV32 Native Memory Interface

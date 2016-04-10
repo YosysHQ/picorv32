@@ -26,7 +26,10 @@ module testbench;
 	wire [31:0] mem_la_wdata;
 	wire [3:0] mem_la_wstrb;
 
-	picorv32 uut (
+	picorv32 #(
+		.ENABLE_MUL(1),
+		.ENABLE_DIV(1)
+	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
 		.trap        (trap       ),
@@ -88,7 +91,7 @@ module testbench;
 		$finish;
 	end
 	always @(uut.count_instr[0]) begin
-		$display("## %-s %d", uut.instruction, uut.count_cycle);
+		$display("## %-s %d", uut.ascii_instr ? uut.ascii_instr : "x", uut.count_cycle);
 	end
 `endif
 endmodule
