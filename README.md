@@ -67,8 +67,9 @@ fault handlers, or catch instructions from a larger ISA and emulate them in
 software.
 
 The optional Pico Co-Processor Interface (PCPI) can be used to implement
-non-branching instructions in an external coprocessor. An implementation
-of a core that implements the `MUL[H[SU|U]]` instructions is provided.
+non-branching instructions in an external coprocessor. Implementations
+of PCPI cores that implement the M Standard Extension instructions
+`MUL[H[SU|U]]` and `DIV[U]/REM[U]` are included in this package.
 
 
 Files in this Repository
@@ -207,6 +208,12 @@ Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
 
 This parameter internally enables PCPI and instantiates the `picorv32_pcpi_mul`
 core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
+interface only becomes functional when ENABLE_PCPI is set as well.
+
+#### ENABLE_DIV (default = 0)
+
+This parameter internally enables PCPI and instantiates the `picorv32_pcpi_div`
+core that implements the `DIV[U]/REM[U]` instructions. The external PCPI
 interface only becomes functional when ENABLE_PCPI is set as well.
 
 #### ENABLE_IRQ (default = 0)

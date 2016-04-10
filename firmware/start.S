@@ -435,6 +435,11 @@ start:
 	TEST(mulhu)
 	TEST(mul)
 
+	TEST(div)
+	TEST(divu)
+	TEST(rem)
+	TEST(remu)
+
 	TEST(simple)
 
 	/* set stack pointer */
