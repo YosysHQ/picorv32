@@ -106,7 +106,10 @@ build-tools:
 	@echo "This will remove all existing data from /opt/riscv32i, /opt/riscv32ic, /opt/riscv32im, and /opt/riscv32imc."
 	@read -p "Type YES to continue: " reply && [[ "$$reply" == [Yy][Ee][Ss] || "$$reply" == [Yy] ]]
 	sudo bash -c "set -ex; rm -rf /opt/riscv32{i,ic,im,imc}; mkdir -p /opt/riscv32{i,ic,im,imc}; chown $${USER}. /opt/riscv32{i,ic,im,imc}"
-	$(MAKE) build-riscv32i-tools-bh build-riscv32ic-tools-bh build-riscv32im-tools-bh build-riscv32imc-tools-bh
+	$(MAKE) build-riscv32i-tools-bh
+	$(MAKE) build-riscv32ic-tools-bh
+	$(MAKE) build-riscv32im-tools-bh
+	$(MAKE) build-riscv32imc-tools-bh
 
 toc:
 	gawk '/^-+$$/ { y=tolower(x); gsub("[^a-z0-9]+", "-", y); gsub("-$$", "", y); printf("- [%s](#%s)\n", x, y); } { x=$$0; }' README.md
