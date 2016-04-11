@@ -572,6 +572,8 @@ of commands (not including installing prerequisites):
 | `make -j$(nproc) build-riscv32im-tools`  | `/opt/riscv32im/`  | `RV32IM`  |
 | `make -j$(nproc) build-riscv32imc-tools` | `/opt/riscv32imc/` | `RV32IMC` |
 
+Or simply run `make -j$(nproc) build-tools` to build and install all four tool chains.
+
 By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.

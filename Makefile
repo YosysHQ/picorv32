@@ -85,6 +85,9 @@ define build_tools_template
 build-$(1)-tools:
 	@read -p "This will remove all existing data from /opt/$(1). Type YES to continue: " reply && [[ "$$$$reply" == [Yy][Ee][Ss] || "$$$$reply" == [Yy] ]]
 	sudo bash -c "set -ex; rm -rf /opt/$(1); mkdir -p /opt/$(1); chown $$$${USER}. /opt/$(1)"
+	$(MAKE) build-$(1)-tools-bh
+
+build-$(1)-tools-bh:
 	set -ex; if ! test -d riscv-gnu-toolchain-$(1); then git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-$(1); \
 		else cd riscv-gnu-toolchain-$(1); git checkout master; git pull; fi
 	set -ex; cd riscv-gnu-toolchain-$(1); rm -rf build; git checkout $(RISCV_GNU_TOOLCHAIN_REV); mkdir -p build
@@ -98,6 +101,12 @@ $(eval $(call build_tools_template,riscv32i,I))
 $(eval $(call build_tools_template,riscv32ic,IC))
 $(eval $(call build_tools_template,riscv32im,IM))
 $(eval $(call build_tools_template,riscv32imc,IMC))
+
+build-tools:
+	@echo "This will remove all existing data from /opt/riscv32i, /opt/riscv32ic, /opt/riscv32im, and /opt/riscv32imc."
+	@read -p "Type YES to continue: " reply && [[ "$$reply" == [Yy][Ee][Ss] || "$$reply" == [Yy] ]]
+	sudo bash -c "set -ex; rm -rf /opt/riscv32{i,ic,im,imc}; mkdir -p /opt/riscv32{i,ic,im,imc}; chown $${USER}. /opt/riscv32{i,ic,im,imc}"
+	$(MAKE) build-riscv32i-tools-bh build-riscv32ic-tools-bh build-riscv32im-tools-bh build-riscv32imc-tools-bh
 
 toc:
 	gawk '/^-+$$/ { y=tolower(x); gsub("[^a-z0-9]+", "-", y); gsub("-$$", "", y); printf("- [%s](#%s)\n", x, y); } { x=$$0; }' README.md
