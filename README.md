@@ -2,11 +2,13 @@
 PicoRV32 - A Size-Optimized RISC-V CPU
 ======================================
 
-PicoRV32 is a CPU core that implements the [RISC-V RV32I Instruction Set](http://riscv.org/).
+PicoRV32 is a CPU core that implements the [RISC-V RV32IMC Instruction Set](http://riscv.org/).
+It can be configured to be a RV32E, RV32I, RV32IC, RV32IM, or RV32IMC core, and optionally
+contains a built-in interrupt controller.
 
 Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](http://riscv.org/download.html#tab_tools).
-The examples bundled with PicoRV32 (such as the firmware for `make test`) expect a `riscv32-unknown-elf-` toolchain
-installed in `$PATH` (see [build instructions below](#building-a-pure-rv32i-toolchain)).
+The examples bundled with PicoRV32 expect various RV32 toolchains to be installed in `/opt/riscv32i[m][c]`. See
+the [build instructions below](#building-a-pure-rv32i-toolchain) for details.
 
 PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wikipedia.org/wiki/ISC_license)
 (a license that is similar in terms to the MIT license or the 2-clause BSD license).
