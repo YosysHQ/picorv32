@@ -81,8 +81,11 @@ loop:
 	done
 
 clean:
-	rm -rf riscv-torture riscv-fesvr riscv-isa-sim tests obj_dir
+	rm -rf tests obj_dir
 	rm -f test.S test.elf test.bin test.hex test.ref test.vvp test.vcd
 
-.PHONY: test batch loop clean
+mrproper: clean
+	rm -rf riscv-torture riscv-fesvr riscv-isa-sim
+
+.PHONY: test batch loop clean mrproper
 
