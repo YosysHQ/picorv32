@@ -218,17 +218,20 @@ module picorv32 #(
 	reg [15:0] mem_16bit_buffer;
 
 	wire mem_busy = |{mem_do_prefetch, mem_do_rinst, mem_do_rdata, mem_do_wdata};
-	wire mem_done = resetn && ((mem_valid && mem_ready && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst)) && !mem_la_firstword;
+	wire mem_done = resetn && ((mem_valid && mem_ready && |mem_state && (mem_do_rinst || mem_do_rdata || mem_do_wdata)) || (&mem_state && mem_do_rinst)) &&
+			(!mem_la_firstword || (~&mem_rdata[17:16] && mem_valid && mem_ready));
 
 	assign mem_la_write = resetn && !mem_state && mem_do_wdata;
-	assign mem_la_read = resetn && ((!mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata)) || (mem_valid && mem_ready && mem_la_firstword && !mem_la_secondword));
+	assign mem_la_read = resetn && ((!mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata)) ||
+			(COMPRESSED_ISA && mem_valid && mem_ready && mem_la_firstword && !mem_la_secondword && &mem_rdata[17:16]));
 	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2] + (mem_valid && mem_ready && mem_la_firstword), 2'b00} : {reg_op1[31:2], 2'b00};
 
 	wire [31:0] mem_rdata_latched_noshuffle;
 	assign mem_rdata_latched_noshuffle = ((mem_valid && mem_ready) || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
 
 	wire [31:0] mem_rdata_latched;
-	assign mem_rdata_latched = COMPRESSED_ISA && mem_la_secondword ? {mem_rdata_latched_noshuffle[15:0], mem_16bit_buffer} : mem_rdata_latched_noshuffle;
+	assign mem_rdata_latched = COMPRESSED_ISA && mem_la_secondword ? {mem_rdata_latched_noshuffle[15:0], mem_16bit_buffer} :
+			COMPRESSED_ISA && mem_la_firstword ? {16'bx, mem_rdata_latched_noshuffle[31:16]} : mem_rdata_latched_noshuffle;
 
 	always @* begin
 		(* full_case *)
@@ -401,7 +404,7 @@ module picorv32 #(
 			end
 			1: begin
 				if (mem_ready) begin
-					if (COMPRESSED_ISA && mem_la_firstword && !mem_la_secondword) begin
+					if (COMPRESSED_ISA && mem_la_read) begin
 						mem_addr <= mem_la_addr;
 						mem_la_secondword <= 1;
 						mem_16bit_buffer <= mem_rdata[31:16];
