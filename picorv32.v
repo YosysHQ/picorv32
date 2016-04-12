@@ -43,6 +43,7 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
+	parameter [ 0:0] BARREL_SHIFTER = 0,
 	parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
 	parameter [ 0:0] TWO_CYCLE_ALU = 0,
 	parameter [ 0:0] COMPRESSED_ISA = 0,
@@ -889,6 +890,7 @@ module picorv32 #(
 	reg alu_wait, alu_wait_2;
 
 	reg [31:0] alu_add_sub;
+	reg [31:0] alu_shl, alu_shr;
 	reg alu_eq, alu_ltu, alu_lts;
 
 	generate if (TWO_CYCLE_ALU) begin
@@ -897,6 +899,8 @@ module picorv32 #(
 			alu_eq <= reg_op1 == reg_op2;
 			alu_lts <= $signed(reg_op1) < $signed(reg_op2);
 			alu_ltu <= reg_op1 < reg_op2;
+			alu_shl <= reg_op1 << reg_op2[4:0];
+			alu_shr <= $signed({instr_sra || instr_srai ? reg_op1[31] : 1'b0, reg_op1}) >>> reg_op2[4:0];
 		end
 	end else begin
 		always @* begin
@@ -904,6 +908,8 @@ module picorv32 #(
 			alu_eq = reg_op1 == reg_op2;
 			alu_lts = $signed(reg_op1) < $signed(reg_op2);
 			alu_ltu = reg_op1 < reg_op2;
+			alu_shl = reg_op1 << reg_op2[4:0];
+			alu_shr = $signed({instr_sra || instr_srai ? reg_op1[31] : 1'b0, reg_op1}) >>> reg_op2[4:0];
 		end
 	end endgenerate
 
@@ -938,6 +944,10 @@ module picorv32 #(
 				alu_out = reg_op1 | reg_op2;
 			instr_andi || instr_and:
 				alu_out = reg_op1 & reg_op2;
+			BARREL_SHIFTER && (instr_sll || instr_slli):
+				alu_out = alu_shl;
+			BARREL_SHIFTER && (instr_srl || instr_srli || instr_sra || instr_srai):
+				alu_out = alu_shr;
 		endcase
 	end
 
@@ -1208,16 +1218,16 @@ module picorv32 #(
 						cpu_state <= cpu_state_ldmem;
 						mem_do_rinst <= 1;
 					end
-					is_slli_srli_srai: begin
+					is_slli_srli_srai && !BARREL_SHIFTER: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
 						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 						reg_sh <= decoded_rs2;
 						cpu_state <= cpu_state_shift;
 					end
-					is_jalr_addi_slti_sltiu_xori_ori_andi: begin
+					is_jalr_addi_slti_sltiu_xori_ori_andi, is_slli_srli_srai && BARREL_SHIFTER: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
 						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
-						reg_op2 <= decoded_imm;
+						reg_op2 <= is_slli_srli_srai && BARREL_SHIFTER ? decoded_rs2 : decoded_imm;
 						if (TWO_CYCLE_ALU)
 							alu_wait <= 1;
 						else
@@ -1237,7 +1247,7 @@ module picorv32 #(
 									cpu_state <= cpu_state_stmem;
 									mem_do_rinst <= 1;
 								end
-								is_sll_srl_sra: begin
+								is_sll_srl_sra && !BARREL_SHIFTER: begin
 									cpu_state <= cpu_state_shift;
 								end
 								default: begin
@@ -1284,7 +1294,7 @@ module picorv32 #(
 						cpu_state <= cpu_state_stmem;
 						mem_do_rinst <= 1;
 					end
-					is_sll_srl_sra: begin
+					is_sll_srl_sra && !BARREL_SHIFTER: begin
 						cpu_state <= cpu_state_shift;
 					end
 					default: begin
@@ -1299,8 +1309,6 @@ module picorv32 #(
 			end
 
 			cpu_state_exec: begin
-				latched_store <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
-				latched_branch <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
 				reg_out <= reg_pc + decoded_imm;
 				if ((TWO_CYCLE_ALU || TWO_CYCLE_COMPARE) && (alu_wait || alu_wait_2)) begin
 					mem_do_rinst <= mem_do_prefetch && !alu_wait_2;
@@ -1308,6 +1316,8 @@ module picorv32 #(
 				end else
 				if (is_beq_bne_blt_bge_bltu_bgeu) begin
 					latched_rd <= 0;
+					latched_store <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
+					latched_branch <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
 					if (mem_done)
 						cpu_state <= cpu_state_fetch;
 					if (TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0) begin
@@ -1704,6 +1714,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
+	parameter [ 0:0] BARREL_SHIFTER = 0,
 	parameter [ 0:0] TWO_CYCLE_COMPARE = 0,
 	parameter [ 0:0] TWO_CYCLE_ALU = 0,
 	parameter [ 0:0] COMPRESSED_ISA = 0,
@@ -1803,6 +1814,7 @@ module picorv32_axi #(
 		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
 		.TWO_STAGE_SHIFT     (TWO_STAGE_SHIFT     ),
+		.BARREL_SHIFTER      (BARREL_SHIFTER      ),
 		.TWO_CYCLE_COMPARE   (TWO_CYCLE_COMPARE   ),
 		.TWO_CYCLE_ALU       (TWO_CYCLE_ALU       ),
 		.COMPRESSED_ISA      (COMPRESSED_ISA      ),

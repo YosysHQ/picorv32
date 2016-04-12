@@ -27,6 +27,7 @@ module testbench;
 	wire [3:0] mem_la_wstrb;
 
 	picorv32 #(
+		.BARREL_SHIFTER(1),
 		.ENABLE_MUL(1),
 		.ENABLE_DIV(1)
 	) uut (

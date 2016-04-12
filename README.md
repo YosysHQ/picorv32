@@ -3,7 +3,7 @@ PicoRV32 - A Size-Optimized RISC-V CPU
 ======================================
 
 PicoRV32 is a CPU core that implements the [RISC-V RV32IMC Instruction Set](http://riscv.org/).
-It can be configured to be a RV32E, RV32I, RV32IC, RV32IM, or RV32IMC core, and optionally
+It can be configured as RV32E, RV32I, RV32IC, RV32IM, or RV32IMC core, and optionally
 contains a built-in interrupt controller.
 
 Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](http://riscv.org/download.html#tab_tools).
@@ -29,7 +29,7 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 Features and Typical Applications
 ---------------------------------
 
-- Small (750-1700 LUTs in 7-Series Xilinx Architecture)
+- Small (750-2000 LUTs in 7-Series Xilinx Architecture)
 - High f<sub>max</sub> (250-450 MHz on 7-Series Xilinx FPGAs)
 - Selectable native memory interface or AXI4-Lite master
 - Optional IRQ support (using a simple custom ISA)
@@ -170,6 +170,12 @@ of 4 bits and then shift in units of 1 bit. This speeds up shift operations,
 but adds additional hardware. Set this parameter to 0 to disable the two-stage
 shift to further reduce the size of the core.
 
+#### BARREL_SHIFTER (default = 0)
+
+By default shift operations are performed by successively shifting by a
+small amount (see `TWO_STAGE_SHIFT` above). With this option set, a barrel
+shifter is used instead instead.
+
 #### TWO_CYCLE_COMPARE (default = 0)
 
 This relaxes the longest data path a bit by adding an additional FF stage
@@ -294,9 +300,15 @@ in 40 cycles and a `MULH[SU|U]` instruction will execute in 72 cycles.
 When `ENABLE_DIV` is activated, then a `DIV[U]/REM[U]` instruction will
 execute in 40 cycles.
 
-Dhrystone benchmark results: 0.391 DMIPS/MHz (688 Dhrystones/Second/MHz)
+When `BARREL_SHIFTER` is activated, a shift operation takes as long as
+any other ALU operation.
 
-For the Dhrystone benchmark the average CPI is 4.110.
+The following dhrystone benchmark results are for a core with enabled
+`ENABLE_MUL`, `ENABLE_DIV`, and `BARREL_SHIFTER` options.
+
+Dhrystone benchmark results: 0.399 DMIPS/MHz (702 Dhrystones/Second/MHz)
+
+For the Dhrystone benchmark the average CPI is 4.030.
 
 
 PicoRV32 Native Memory Interface
@@ -586,7 +598,7 @@ once in advance.
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
 -----------------------------------------------------------
 
-The following evaluations have been performed with Vivado 2015.1.
+The following evaluations have been performed with Vivado 2015.4.
 
 #### Timing on Xilinx 7-Series FPGAs
 
@@ -622,7 +634,7 @@ for the following three cores:
 - **PicoRV32 (regular):** The `picorv32` module in its default configuration.
 
 - **PicoRV32 (large):** The `picorv32` module with enabled PCPI, IRQ, MUL,
-  DIV, and COMPRESSED_ISA features.
+  DIV, BARREL_SHIFTER, and COMPRESSED_ISA features.
 
 See `make area` in [scripts/vivado/](scripts/vivado/).
 
