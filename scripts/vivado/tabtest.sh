@@ -21,6 +21,14 @@ synth_case() {
 		xc7a) xl_device="xc7a15t-fgg484-${grade}" ;;
 		xc7k) xl_device="xc7k70t-fbg676-${grade}" ;;
 		xc7v) xl_device="xc7v585t-ffg1761-${grade}" ;;
+		xcku) xl_device="xcku035-fbva676-${grade}" ;;
+		xcvu) xl_device="xcvu065-ffvc1517-${grade}" ;;
+	esac
+
+	case "${dev}-${grade}" in
+		xcku-1) xl_device="${xl_device}-c" ;;
+		xcvu-1) xl_device="${xl_device}-i" ;;
+		xcku-?|xcvu-?) xl_device="${xl_device}-e" ;;
 	esac
 
 	cat > test_${1}.tcl <<- EOT

@@ -1,5 +1,5 @@
 
-VIVADO_BASE = /opt/Xilinx/Vivado/2015.1
+VIVADO_BASE = /opt/Xilinx/Vivado/2015.4
 VIVADO = $(VIVADO_BASE)/bin/vivado
 XVLOG = $(VIVADO_BASE)/bin/xvlog
 XELAB = $(VIVADO_BASE)/bin/xelab
@@ -52,6 +52,8 @@ area: synth_area_small synth_area_regular synth_area_large
 table.txt: tab_small_xc7a_1/results.txt tab_small_xc7a_2/results.txt tab_small_xc7a_3/results.txt
 table.txt: tab_small_xc7k_1/results.txt tab_small_xc7k_2/results.txt tab_small_xc7k_3/results.txt
 table.txt: tab_small_xc7v_1/results.txt tab_small_xc7v_2/results.txt tab_small_xc7v_3/results.txt
+table.txt: tab_small_xcku_1/results.txt tab_small_xcku_2/results.txt tab_small_xcku_3/results.txt
+table.txt: tab_small_xcvu_1/results.txt tab_small_xcvu_2/results.txt tab_small_xcvu_3/results.txt
 
 table.txt:
 	bash table.sh > table.txt
