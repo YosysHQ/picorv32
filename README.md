@@ -609,24 +609,29 @@ The following evaluations have been performed with Vivado 2015.4.
 #### Timing on Xilinx 7-Series FPGAs
 
 The `picorv32_axi` module with enabled `TWO_CYCLE_ALU` has been placed and
-routed for Xilinx Artix-7T (xc7a15t-fgg484), Xilinx Kintex-7T (xc7k70t-fbg676),
-and Xilinx Virtex-7T (xc7v585t-ffg1761) devices in all speed grades. A binary
-search is used to find the lowest clock period for which the design meets
-timing.
+routed for Xilinx Artix-7T, Kintex-7T, Virtex-7T, Kintex UltraScale, and Virtex
+UltraScale devices in all speed grades. A binary search is used to find the
+lowest clock period for which the design meets timing.
 
 See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 
-| Device               | Speedgrade | Clock Period (Freq.) |
-|:-------------------- |:----------:| --------------------:|
-| Xilinx Artix-7T      | -1         |     4.2 ns (238 MHz) |
-| Xilinx Artix-7T      | -2         |     3.5 ns (285 MHz) |
-| Xilinx Artix-7T      | -3         |     3.2 ns (312 MHz) |
-| Xilinx Kintex-7T     | -1         |     2.8 ns (357 MHz) |
-| Xilinx Kintex-7T     | -2         |     2.3 ns (434 MHz) |
-| Xilinx Kintex-7T     | -3         |     2.1 ns (476 MHz) |
-| Xilinx Virtex-7T     | -1         |     2.6 ns (384 MHz) |
-| Xilinx Virtex-7T     | -2         |     2.3 ns (434 MHz) |
-| Xilinx Virtex-7T     | -3         |     2.1 ns (476 MHz) |
+| Family                   | Device               | Speedgrade | Clock Period (Freq.) |
+|:------------------------ |:-------------------- |:----------:| --------------------:|
+| Xilinx Artix-7T          | xc7a15t-fgg484-1     | -1         |     4.2 ns (238 MHz) |
+| Xilinx Artix-7T          | xc7a15t-fgg484-2     | -2         |     3.5 ns (285 MHz) |
+| Xilinx Artix-7T          | xc7a15t-fgg484-3     | -3         |     3.2 ns (312 MHz) |
+| Xilinx Kintex-7T         | xc7k70t-fbg676-1     | -1         |     2.8 ns (357 MHz) |
+| Xilinx Kintex-7T         | xc7k70t-fbg676-2     | -2         |     2.3 ns (434 MHz) |
+| Xilinx Kintex-7T         | xc7k70t-fbg676-3     | -3         |     2.1 ns (476 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-1   | -1         |     2.6 ns (384 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-2   | -2         |     2.3 ns (434 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-3   | -3         |     2.1 ns (476 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-1-c  | -1         |     2.6 ns (384 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-2-e  | -2         |     2.3 ns (434 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-3-e  | -3         |     2.1 ns (476 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-1-i | -1         |     2.5 ns (400 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-2-e | -2         |     2.2 ns (454 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-3-e | -3         |     1.9 ns (526 MHz) |
 
 #### Utilization on Xilinx 7-Series FPGAs
 
@@ -646,7 +651,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        754 |             48 |             420 |
-| PicoRV32 (regular) |        904 |             48 |             562 |
-| PicoRV32 (large)   |       1892 |             88 |            1029 |
+| PicoRV32 (small)   |        769 |             48 |             420 |
+| PicoRV32 (regular) |        960 |             48 |             562 |
+| PicoRV32 (large)   |       2105 |             88 |            1022 |
 
