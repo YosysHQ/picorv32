@@ -38,9 +38,7 @@ module testbench (
 	end
 
 	picorv32 #(
-		.COMPRESSED_ISA(1),
-		.ENABLE_MUL(1),
-		.ENABLE_DIV(1)
+`include "config.vh"
 	) uut (
 		.clk         (clk         ),
 		.resetn      (resetn      ),

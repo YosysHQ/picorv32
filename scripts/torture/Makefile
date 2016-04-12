@@ -34,7 +34,10 @@ batch_list = $(shell bash -c 'for i in {0..999}; do printf "%03d\n" $$i; done')
 
 batch: $(addprefix tests/test_,$(addsuffix .ok,$(batch_list)))
 
-obj_dir/Vtestbench: testbench.v testbench.cc ../../picorv32.v
+config.vh: config.py riscv-torture/build.ok
+	python3 config.py
+
+obj_dir/Vtestbench: testbench.v testbench.cc ../../picorv32.v config.vh
 	verilator --exe -Wno-fatal --cc --top-module testbench testbench.v ../../picorv32.v testbench.cc
 	$(MAKE) -C obj_dir -f Vtestbench.mk
 
@@ -42,10 +45,10 @@ tests/testbench.vvp: testbench.v ../../picorv32.v
 	mkdir -p tests
 	iverilog -o tests/testbench.vvp testbench.v ../../picorv32.v
 
-tests/generated.ok: riscv-torture/build.ok
+tests/generated.ok: config.vh riscv-torture/build.ok
 	mkdir -p tests
 	rm -f riscv-torture/output/test_*
-	cd riscv-torture && ./sbt 'generator/run -n 1000'
+	cd riscv-torture && ./sbt 'generator/run -C config/test.config -n 1000'
 	touch tests/generated.ok
 
 define test_template
@@ -54,7 +57,8 @@ tests/test_$(1).S: tests/generated.ok
 	touch tests/test_$(1).S
 
 tests/test_$(1).elf: tests/test_$(1).S
-	riscv32-unknown-elf-gcc -m32 -march=RV32IMC -ffreestanding -nostdlib -Wl,-Bstatic,-T,sections.lds -I. -o tests/test_$(1).elf tests/test_$(1).S
+	riscv32-unknown-elf-gcc -m32 `sed '/march=/ ! d; s,^// ,-,;' config.vh` -ffreestanding -nostdlib \
+			-Wl,-Bstatic,-T,sections.lds -I. -o tests/test_$(1).elf tests/test_$(1).S
 
 tests/test_$(1).bin: tests/test_$(1).elf
 	riscv32-unknown-elf-objcopy -O binary tests/test_$(1).elf tests/test_$(1).bin
@@ -76,13 +80,14 @@ $(foreach id,$(batch_list),$(eval $(call test_template,$(id))))
 loop:
 	date +"%s %Y-%m-%d %H:%M:%S START" >> .looplog
 	+set -ex; while true; do \
-	  rm -rf tests; $(MAKE) batch; \
+	  rm -rf tests obj_dir config.vh; $(MAKE) batch; \
 	  date +"%s %Y-%m-%d %H:%M:%S NEXT" >> .looplog; \
 	done
 
 clean:
 	rm -rf tests obj_dir
-	rm -f test.S test.elf test.bin test.hex test.ref test.vvp test.vcd
+	rm -f config.vh test.S test.elf test.bin
+	rm -f test.hex test.ref test.vvp test.vcd
 
 mrproper: clean
 	rm -rf riscv-torture riscv-fesvr riscv-isa-sim
