@@ -122,6 +122,40 @@ module picorv32 #(
 	reg [31:0] irq_pending;
 	reg [31:0] timer;
 
+	generate if (0) begin:cpuregs_debug
+		wire [31:0] reg_h00_x0  = cpuregs[0];
+		wire [31:0] reg_h01_x1  = cpuregs[1];
+		wire [31:0] reg_h02_x2  = cpuregs[2];
+		wire [31:0] reg_h03_x3  = cpuregs[3];
+		wire [31:0] reg_h04_x4  = cpuregs[4];
+		wire [31:0] reg_h05_x5  = cpuregs[5];
+		wire [31:0] reg_h06_x6  = cpuregs[6];
+		wire [31:0] reg_h07_x7  = cpuregs[7];
+		wire [31:0] reg_h08_x8  = cpuregs[8];
+		wire [31:0] reg_h09_x9  = cpuregs[9];
+		wire [31:0] reg_h0a_x10 = cpuregs[10];
+		wire [31:0] reg_h0b_x11 = cpuregs[11];
+		wire [31:0] reg_h0c_x12 = cpuregs[12];
+		wire [31:0] reg_h0d_x13 = cpuregs[13];
+		wire [31:0] reg_h0e_x14 = cpuregs[14];
+		wire [31:0] reg_h0f_x15 = cpuregs[15];
+		wire [31:0] reg_h10_x16 = cpuregs[16];
+		wire [31:0] reg_h11_x17 = cpuregs[17];
+		wire [31:0] reg_h12_x18 = cpuregs[18];
+		wire [31:0] reg_h13_x19 = cpuregs[19];
+		wire [31:0] reg_h14_x20 = cpuregs[20];
+		wire [31:0] reg_h15_x21 = cpuregs[21];
+		wire [31:0] reg_h16_x22 = cpuregs[22];
+		wire [31:0] reg_h17_x23 = cpuregs[23];
+		wire [31:0] reg_h18_x24 = cpuregs[24];
+		wire [31:0] reg_h19_x25 = cpuregs[25];
+		wire [31:0] reg_h1a_x26 = cpuregs[26];
+		wire [31:0] reg_h1b_x27 = cpuregs[27];
+		wire [31:0] reg_h1c_x28 = cpuregs[28];
+		wire [31:0] reg_h1d_x29 = cpuregs[29];
+		wire [31:0] reg_h1e_x30 = cpuregs[30];
+		wire [31:0] reg_h1f_x31 = cpuregs[31];
+	end endgenerate
 
 	// Internal PCPI Cores
 
