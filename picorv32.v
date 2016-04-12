@@ -39,6 +39,7 @@
 
 module picorv32 #(
 	parameter [ 0:0] ENABLE_COUNTERS = 1,
+	parameter [ 0:0] ENABLE_COUNTERS64 = 1,
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] LATCHED_MEM_RDATA = 0,
@@ -786,9 +787,9 @@ module picorv32 #(
 			instr_rdcycle  <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000000000010) ||
 			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000100000010)) && ENABLE_COUNTERS;
 			instr_rdcycleh <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000000000000010) ||
-			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS;
+			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS && ENABLE_COUNTERS64;
 			instr_rdinstr  <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
-			instr_rdinstrh <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS;
+			instr_rdinstrh <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS && ENABLE_COUNTERS64;
 
 			instr_getq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000000 && ENABLE_IRQ && ENABLE_IRQ_QREGS;
 			instr_setq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000001 && ENABLE_IRQ && ENABLE_IRQ_QREGS;
@@ -985,8 +986,10 @@ module picorv32 #(
 			pcpi_timeout <= !pcpi_timeout_counter;
 		end
 
-		if (ENABLE_COUNTERS)
+		if (ENABLE_COUNTERS) begin
 			count_cycle <= resetn ? count_cycle + 1 : 0;
+			if (!ENABLE_COUNTERS64) count_cycle[63:32] <= 0;
+		end
 
 		next_irq_pending = ENABLE_IRQ ? irq_pending & LATCHED_IRQ : 'bx;
 
@@ -1096,8 +1099,10 @@ module picorv32 #(
 				if (decoder_trigger) begin
 					`debug($display("-- %-0t", $time);)
 					reg_next_pc <= current_pc + (compressed_instr ? 2 : 4);
-					if (ENABLE_COUNTERS)
+					if (ENABLE_COUNTERS) begin
 						count_instr <= count_instr + 1;
+						if (!ENABLE_COUNTERS64) count_instr[63:32] <= 0;
+					end
 					if (instr_jal) begin
 						mem_do_rinst <= 1;
 						reg_next_pc <= current_pc + decoded_imm_uj;
@@ -1157,11 +1162,11 @@ module picorv32 #(
 						case (1'b1)
 							instr_rdcycle:
 								reg_out <= count_cycle[31:0];
-							instr_rdcycleh:
+							instr_rdcycleh && ENABLE_COUNTERS64:
 								reg_out <= count_cycle[63:32];
 							instr_rdinstr:
 								reg_out <= count_instr[31:0];
-							instr_rdinstrh:
+							instr_rdinstrh && ENABLE_COUNTERS64:
 								reg_out <= count_instr[63:32];
 						endcase
 						latched_store <= 1;
@@ -1711,6 +1716,7 @@ endmodule
 
 module picorv32_axi #(
 	parameter [ 0:0] ENABLE_COUNTERS = 1,
+	parameter [ 0:0] ENABLE_COUNTERS64 = 1,
 	parameter [ 0:0] ENABLE_REGS_16_31 = 1,
 	parameter [ 0:0] ENABLE_REGS_DUALPORT = 1,
 	parameter [ 0:0] TWO_STAGE_SHIFT = 1,
@@ -1811,6 +1817,7 @@ module picorv32_axi #(
 
 	picorv32 #(
 		.ENABLE_COUNTERS     (ENABLE_COUNTERS     ),
+		.ENABLE_COUNTERS64   (ENABLE_COUNTERS64   ),
 		.ENABLE_REGS_16_31   (ENABLE_REGS_16_31   ),
 		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
 		.TWO_STAGE_SHIFT     (TWO_STAGE_SHIFT     ),

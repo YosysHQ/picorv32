@@ -141,6 +141,12 @@ instructions are not optional for an RV32I core. But chances are they are not
 going to be missed after the application code has been debugged and profiled.
 This instructions are optional for an RV32E core.*
 
+#### ENABLE_COUNTERS64 (default = 1)
+
+This parameter enables support for the `RDCYCLEH`, `RDTIMEH`, and `RDINSTRETH`
+instructions. If this parameter is set to 0, and `ENABLE_COUNTERS` is set to 1,
+then only the `RDCYCLE`, `RDTIME`, and `RDINSTRET` instructions are available.
+
 #### ENABLE_REGS_16_31 (default = 1)
 
 This parameter enables support for registers the `x16`..`x31`. The RV32E ISA
