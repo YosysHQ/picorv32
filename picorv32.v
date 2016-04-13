@@ -597,13 +597,34 @@ module picorv32 #(
 		if (instr_timer)    new_ascii_instr = "timer";
 	end
 
+	reg [63:0] q_dbg_ascii_instr;
+	reg [31:0] q_dbg_insn_imm;
+	reg [31:0] q_dbg_insn_opcode;
+	reg [4:0] q_dbg_insn_rs1;
+	reg [4:0] q_dbg_insn_rs2;
+	reg [4:0] q_dbg_insn_rd;
+
 	always @(posedge clk) begin
+		q_dbg_ascii_instr <= dbg_ascii_instr;
+		q_dbg_insn_imm <= dbg_insn_imm;
+		q_dbg_insn_opcode <= dbg_insn_opcode;
+		q_dbg_insn_rs1 <= dbg_insn_rs1;
+		q_dbg_insn_rs2 <= dbg_insn_rs2;
+		q_dbg_insn_rd <= dbg_insn_rd;
+
 		if (decoder_trigger && !decoder_pseudo_trigger) begin
 			dbg_insn_addr <= next_pc;
 		end
 	end
 
 	always @* begin
+		dbg_ascii_instr = q_dbg_ascii_instr;
+		dbg_insn_imm = q_dbg_insn_imm;
+		dbg_insn_opcode = q_dbg_insn_opcode;
+		dbg_insn_rs1 = q_dbg_insn_rs1;
+		dbg_insn_rs2 = q_dbg_insn_rs2;
+		dbg_insn_rd = q_dbg_insn_rd;
+
 		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
 			dbg_ascii_instr = new_ascii_instr;
 			if (&mem_rdata_q[1:0])
