@@ -115,6 +115,14 @@ module picorv32 #(
 	reg [31:0] dbg_insn_opcode;
 	reg [31:0] dbg_insn_addr;
 
+	wire dbg_mem_valid = mem_valid;
+	wire dbg_mem_instr = mem_instr;
+	wire dbg_mem_ready = mem_ready;
+	wire [31:0] dbg_mem_addr  = mem_addr;
+	wire [31:0] dbg_mem_wdata = mem_wdata;
+	wire [ 3:0] dbg_mem_wstrb = mem_wstrb;
+	wire [31:0] dbg_mem_rdata = mem_rdata;
+
 	assign pcpi_rs1 = reg_op1;
 	assign pcpi_rs2 = reg_op2;
 
@@ -597,50 +605,81 @@ module picorv32 #(
 		if (instr_timer)    new_ascii_instr = "timer";
 	end
 
-	reg [63:0] q_dbg_ascii_instr;
-	reg [31:0] q_dbg_insn_imm;
-	reg [31:0] q_dbg_insn_opcode;
-	reg [4:0] q_dbg_insn_rs1;
-	reg [4:0] q_dbg_insn_rs2;
-	reg [4:0] q_dbg_insn_rd;
+	reg [63:0] q_ascii_instr;
+	reg [31:0] q_insn_imm;
+	reg [31:0] q_insn_opcode;
+	reg [4:0] q_insn_rs1;
+	reg [4:0] q_insn_rs2;
+	reg [4:0] q_insn_rd;
+	reg dbg_next;
+
+	wire launch_next_insn;
+	reg [63:0] cached_ascii_instr;
+	reg [31:0] cached_insn_imm;
+	reg [31:0] cached_insn_opcode;
+	reg [4:0] cached_insn_rs1;
+	reg [4:0] cached_insn_rs2;
+	reg [4:0] cached_insn_rd;
 
 	always @(posedge clk) begin
-		q_dbg_ascii_instr <= dbg_ascii_instr;
-		q_dbg_insn_imm <= dbg_insn_imm;
-		q_dbg_insn_opcode <= dbg_insn_opcode;
-		q_dbg_insn_rs1 <= dbg_insn_rs1;
-		q_dbg_insn_rs2 <= dbg_insn_rs2;
-		q_dbg_insn_rd <= dbg_insn_rd;
+		q_ascii_instr <= dbg_ascii_instr;
+		q_insn_imm <= dbg_insn_imm;
+		q_insn_opcode <= dbg_insn_opcode;
+		q_insn_rs1 <= dbg_insn_rs1;
+		q_insn_rs2 <= dbg_insn_rs2;
+		q_insn_rd <= dbg_insn_rd;
+		dbg_next <= launch_next_insn;
 
-		if (decoder_trigger && !decoder_pseudo_trigger) begin
+		if (decoder_trigger_q) begin
+			cached_ascii_instr <= new_ascii_instr;
+			cached_insn_imm <= decoded_imm;
+			if (&next_insn_opcode[1:0])
+				cached_insn_opcode <= next_insn_opcode;
+			else
+				cached_insn_opcode <= {16'b0, next_insn_opcode[15:0]};
+			cached_insn_rs1 <= decoded_rs1;
+			cached_insn_rs2 <= decoded_rs2;
+			cached_insn_rd <= decoded_rd;
+		end
+
+		if (launch_next_insn) begin
 			dbg_insn_addr <= next_pc;
 		end
 	end
 
 	always @* begin
-		dbg_ascii_instr = q_dbg_ascii_instr;
-		dbg_insn_imm = q_dbg_insn_imm;
-		dbg_insn_opcode = q_dbg_insn_opcode;
-		dbg_insn_rs1 = q_dbg_insn_rs1;
-		dbg_insn_rs2 = q_dbg_insn_rs2;
-		dbg_insn_rd = q_dbg_insn_rd;
+		dbg_ascii_instr = q_ascii_instr;
+		dbg_insn_imm = q_insn_imm;
+		dbg_insn_opcode = q_insn_opcode;
+		dbg_insn_rs1 = q_insn_rs1;
+		dbg_insn_rs2 = q_insn_rs2;
+		dbg_insn_rd = q_insn_rd;
 
-		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
-			dbg_ascii_instr = new_ascii_instr;
-			if (&mem_rdata_q[1:0])
-				dbg_insn_opcode = next_insn_opcode;
-			else
-				dbg_insn_opcode = {16'b0, next_insn_opcode[15:0]};
-			dbg_insn_imm = decoded_imm;
-			dbg_insn_rs1 = decoded_rs1;
-			dbg_insn_rs2 = decoded_rs2;
-			dbg_insn_rd = decoded_rd;
+		if (dbg_next) begin
+			if (decoder_pseudo_trigger_q) begin
+				dbg_ascii_instr = cached_ascii_instr;
+				dbg_insn_imm = cached_insn_imm;
+				dbg_insn_opcode = cached_insn_opcode;
+				dbg_insn_rs1 = cached_insn_rs1;
+				dbg_insn_rs2 = cached_insn_rs2;
+				dbg_insn_rd = cached_insn_rd;
+			end else begin
+				dbg_ascii_instr = new_ascii_instr;
+				if (&next_insn_opcode[1:0])
+					dbg_insn_opcode = next_insn_opcode;
+				else
+					dbg_insn_opcode = {16'b0, next_insn_opcode[15:0]};
+				dbg_insn_imm = decoded_imm;
+				dbg_insn_rs1 = decoded_rs1;
+				dbg_insn_rs2 = decoded_rs2;
+				dbg_insn_rd = decoded_rd;
+			end
 		end
 	end
 
 `ifdef DEBUGASM
 	always @(posedge clk) begin
-		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
+		if (dbg_next) begin
 			$display("debugasm %x %x %s", dbg_insn_addr, dbg_insn_opcode, dbg_ascii_instr ? dbg_ascii_instr : "*");
 		end
 	end
@@ -648,7 +687,7 @@ module picorv32 #(
 
 `ifdef DEBUG
 	always @(posedge clk) begin
-		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
+		if (dbg_next) begin
 			if (&dbg_insn_opcode[1:0])
 				$display("DECODE: 0x%08x 0x%08x %-0s", dbg_insn_addr, dbg_insn_opcode, dbg_ascii_instr ? dbg_ascii_instr : "UNKNOWN");
 			else
@@ -1053,6 +1092,8 @@ module picorv32 #(
 		if (latched_branch || irq_state || !resetn)
 			clear_prefetched_high_word = COMPRESSED_ISA;
 	end
+
+	assign launch_next_insn = cpu_state == cpu_state_fetch && decoder_trigger && (!ENABLE_IRQ || irq_active || !(irq_pending & ~irq_mask));
 
 	always @(posedge clk) begin
 		trap <= 0;
