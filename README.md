@@ -657,7 +657,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        769 |             48 |             420 |
-| PicoRV32 (regular) |        960 |             48 |             562 |
-| PicoRV32 (large)   |       2105 |             88 |            1022 |
+| PicoRV32 (small)   |        750 |             48 |             431 |
+| PicoRV32 (regular) |        925 |             48 |             562 |
+| PicoRV32 (large)   |       2108 |             88 |            1022 |
 
