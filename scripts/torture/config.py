@@ -18,6 +18,7 @@ with open("config.vh", "w") as f:
     print(".TWO_CYCLE_COMPARE(%d)," % np.random.randint(2), file=f)
     print(".TWO_CYCLE_ALU(%d)," % np.random.randint(2), file=f)
     print(".CATCH_MISALIGN(%d)," % np.random.randint(2), file=f)
+    print(".CATCH_ILLINSN(%d)," % np.random.randint(2), file=f)
     print(".COMPRESSED_ISA(%d)," % compressed_isa, file=f)
     print(".ENABLE_MUL(%d)," % enable_mul, file=f)
     print(".ENABLE_DIV(%d)" % enable_div, file=f)

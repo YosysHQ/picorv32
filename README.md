@@ -215,6 +215,11 @@ accesses.
 
 Set this to 0 to disable the circuitry for catching illegal instructions.
 
+The core will still trap on an `SBREAK` instruction with this option
+set to 0. With IRQs enabled, an `SBREAK` normally triggers an IRQ 1. With
+this option set to 0, an `SBREAK` will trap the processor without
+triggering an interrupt.
+
 #### ENABLE_PCPI (default = 0)
 
 Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
