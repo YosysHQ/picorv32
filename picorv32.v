@@ -620,7 +620,7 @@ module picorv32 #(
 `ifdef DEBUGASM
 	always @(posedge clk) begin
 		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
-			$display("debugasm %x %x %-0s", dbg_insn_addr, dbg_insn_opcode, dbg_ascii_instr ? dbg_ascii_instr : "*");
+			$display("debugasm %x %x %s", dbg_insn_addr, dbg_insn_opcode, dbg_ascii_instr ? dbg_ascii_instr : "*");
 		end
 	end
 `endif
