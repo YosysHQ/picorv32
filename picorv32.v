@@ -420,6 +420,11 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
+		if (mem_la_read || mem_la_write) begin
+			mem_addr <= mem_la_addr;
+			mem_wdata <= mem_la_wdata;
+			mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
+		end
 		if (!resetn) begin
 			mem_state <= 0;
 			mem_valid <= 0;
@@ -427,9 +432,6 @@ module picorv32 #(
 			prefetched_high_word <= 0;
 		end else case (mem_state)
 			0: begin
-				mem_addr <= mem_la_addr;
-				mem_wdata <= mem_la_wdata;
-				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
 				if (mem_do_prefetch || mem_do_rinst) begin
 					current_insn_addr <= next_pc;
 				end
@@ -449,14 +451,13 @@ module picorv32 #(
 				if (mem_xfer) begin
 					if (COMPRESSED_ISA && mem_la_read) begin
 						mem_valid <= 1;
-						mem_addr <= mem_la_addr;
 						mem_la_secondword <= 1;
 						if (!mem_la_use_prefetched_high_word)
 							mem_16bit_buffer <= mem_rdata[31:16];
 					end else begin
 						mem_valid <= 0;
 						mem_la_secondword <= 0;
-						if (!mem_do_rdata) begin
+						if (COMPRESSED_ISA && !mem_do_rdata) begin
 							if (~&mem_rdata[1:0] || mem_la_secondword) begin
 								mem_16bit_buffer <= mem_rdata[31:16];
 								prefetched_high_word <= 1;
