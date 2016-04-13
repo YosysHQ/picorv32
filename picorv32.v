@@ -20,6 +20,7 @@
 `timescale 1 ns / 1 ps
 // `default_nettype none
 // `define DEBUGREGS
+// `define DEBUGASM
 // `define DEBUG
 
 `ifdef DEBUG
@@ -110,8 +111,9 @@ module picorv32 #(
 	reg [31:0] cpuregs [0:regfile_size-1];
 	reg [4:0] reg_sh;
 
-	reg [31:0] current_insn;
-	reg [31:0] current_insn_addr;
+	reg [31:0] next_insn_opcode;
+	reg [31:0] dbg_insn_opcode;
+	reg [31:0] dbg_insn_addr;
 
 	assign pcpi_rs1 = reg_op1;
 	assign pcpi_rs2 = reg_op2;
@@ -124,38 +126,38 @@ module picorv32 #(
 	reg [31:0] timer;
 
 `ifdef DEBUGREGS
-	wire [31:0] reg_x0  = cpuregs[0];
-	wire [31:0] reg_x1  = cpuregs[1];
-	wire [31:0] reg_x2  = cpuregs[2];
-	wire [31:0] reg_x3  = cpuregs[3];
-	wire [31:0] reg_x4  = cpuregs[4];
-	wire [31:0] reg_x5  = cpuregs[5];
-	wire [31:0] reg_x6  = cpuregs[6];
-	wire [31:0] reg_x7  = cpuregs[7];
-	wire [31:0] reg_x8  = cpuregs[8];
-	wire [31:0] reg_x9  = cpuregs[9];
-	wire [31:0] reg_x10 = cpuregs[10];
-	wire [31:0] reg_x11 = cpuregs[11];
-	wire [31:0] reg_x12 = cpuregs[12];
-	wire [31:0] reg_x13 = cpuregs[13];
-	wire [31:0] reg_x14 = cpuregs[14];
-	wire [31:0] reg_x15 = cpuregs[15];
-	wire [31:0] reg_x16 = cpuregs[16];
-	wire [31:0] reg_x17 = cpuregs[17];
-	wire [31:0] reg_x18 = cpuregs[18];
-	wire [31:0] reg_x19 = cpuregs[19];
-	wire [31:0] reg_x20 = cpuregs[20];
-	wire [31:0] reg_x21 = cpuregs[21];
-	wire [31:0] reg_x22 = cpuregs[22];
-	wire [31:0] reg_x23 = cpuregs[23];
-	wire [31:0] reg_x24 = cpuregs[24];
-	wire [31:0] reg_x25 = cpuregs[25];
-	wire [31:0] reg_x26 = cpuregs[26];
-	wire [31:0] reg_x27 = cpuregs[27];
-	wire [31:0] reg_x28 = cpuregs[28];
-	wire [31:0] reg_x29 = cpuregs[29];
-	wire [31:0] reg_x30 = cpuregs[30];
-	wire [31:0] reg_x31 = cpuregs[31];
+	wire [31:0] dbg_reg_x0  = cpuregs[0];
+	wire [31:0] dbg_reg_x1  = cpuregs[1];
+	wire [31:0] dbg_reg_x2  = cpuregs[2];
+	wire [31:0] dbg_reg_x3  = cpuregs[3];
+	wire [31:0] dbg_reg_x4  = cpuregs[4];
+	wire [31:0] dbg_reg_x5  = cpuregs[5];
+	wire [31:0] dbg_reg_x6  = cpuregs[6];
+	wire [31:0] dbg_reg_x7  = cpuregs[7];
+	wire [31:0] dbg_reg_x8  = cpuregs[8];
+	wire [31:0] dbg_reg_x9  = cpuregs[9];
+	wire [31:0] dbg_reg_x10 = cpuregs[10];
+	wire [31:0] dbg_reg_x11 = cpuregs[11];
+	wire [31:0] dbg_reg_x12 = cpuregs[12];
+	wire [31:0] dbg_reg_x13 = cpuregs[13];
+	wire [31:0] dbg_reg_x14 = cpuregs[14];
+	wire [31:0] dbg_reg_x15 = cpuregs[15];
+	wire [31:0] dbg_reg_x16 = cpuregs[16];
+	wire [31:0] dbg_reg_x17 = cpuregs[17];
+	wire [31:0] dbg_reg_x18 = cpuregs[18];
+	wire [31:0] dbg_reg_x19 = cpuregs[19];
+	wire [31:0] dbg_reg_x20 = cpuregs[20];
+	wire [31:0] dbg_reg_x21 = cpuregs[21];
+	wire [31:0] dbg_reg_x22 = cpuregs[22];
+	wire [31:0] dbg_reg_x23 = cpuregs[23];
+	wire [31:0] dbg_reg_x24 = cpuregs[24];
+	wire [31:0] dbg_reg_x25 = cpuregs[25];
+	wire [31:0] dbg_reg_x26 = cpuregs[26];
+	wire [31:0] dbg_reg_x27 = cpuregs[27];
+	wire [31:0] dbg_reg_x28 = cpuregs[28];
+	wire [31:0] dbg_reg_x29 = cpuregs[29];
+	wire [31:0] dbg_reg_x30 = cpuregs[30];
+	wire [31:0] dbg_reg_x31 = cpuregs[31];
 `endif
 
 	// Internal PCPI Cores
@@ -307,6 +309,7 @@ module picorv32 #(
 	always @(posedge clk) begin
 		if (mem_xfer) begin
 			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
+			next_insn_opcode <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
 		end
 
 		if (COMPRESSED_ISA && mem_done && (mem_do_prefetch || mem_do_rinst)) begin
@@ -432,9 +435,6 @@ module picorv32 #(
 			prefetched_high_word <= 0;
 		end else case (mem_state)
 			0: begin
-				if (mem_do_prefetch || mem_do_rinst) begin
-					current_insn_addr <= next_pc;
-				end
 				if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
 					mem_valid <= !mem_la_use_prefetched_high_word;
 					mem_instr <= mem_do_prefetch || mem_do_rinst;
@@ -533,9 +533,13 @@ module picorv32 #(
 	assign is_rdcycle_rdcycleh_rdinstr_rdinstrh = |{instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh};
 
 	reg [63:0] new_ascii_instr;
-	`FORMAL_KEEP reg [63:0] ascii_instr;
+	`FORMAL_KEEP reg [63:0] dbg_ascii_instr;
+	`FORMAL_KEEP reg [31:0] dbg_insn_imm;
+	`FORMAL_KEEP reg [4:0] dbg_insn_rs1;
+	`FORMAL_KEEP reg [4:0] dbg_insn_rs2;
+	`FORMAL_KEEP reg [4:0] dbg_insn_rd;
 
-	always @(posedge clk) begin
+	always @* begin
 		new_ascii_instr = "";
 
 		if (instr_lui)      new_ascii_instr = "lui";
@@ -591,17 +595,46 @@ module picorv32 #(
 		if (instr_maskirq)  new_ascii_instr = "maskirq";
 		if (instr_waitirq)  new_ascii_instr = "waitirq";
 		if (instr_timer)    new_ascii_instr = "timer";
+	end
 
-		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
-			ascii_instr <= new_ascii_instr;
-`ifdef DEBUG
-			if (&current_insn[1:0])
-				$display("DECODE: 0x%08x 0x%08x %-0s", current_insn_addr, current_insn, new_ascii_instr ? new_ascii_instr : "UNKNOWN");
-			else
-				$display("DECODE: 0x%08x     0x%04x %-0s", current_insn_addr, current_insn[15:0], new_ascii_instr ? new_ascii_instr : "UNKNOWN");
-`endif
+	always @(posedge clk) begin
+		if (decoder_trigger && !decoder_pseudo_trigger) begin
+			dbg_insn_addr <= next_pc;
 		end
 	end
+
+	always @* begin
+		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
+			dbg_ascii_instr = new_ascii_instr;
+			if (&mem_rdata_q[1:0])
+				dbg_insn_opcode = next_insn_opcode;
+			else
+				dbg_insn_opcode = {16'b0, next_insn_opcode[15:0]};
+			dbg_insn_imm = decoded_imm;
+			dbg_insn_rs1 = decoded_rs1;
+			dbg_insn_rs2 = decoded_rs2;
+			dbg_insn_rd = decoded_rd;
+		end
+	end
+
+`ifdef DEBUGASM
+	always @(posedge clk) begin
+		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
+			$display("debugasm %x %x %-0s", dbg_insn_addr, dbg_insn_opcode, dbg_ascii_instr ? dbg_ascii_instr : "*");
+		end
+	end
+`endif
+
+`ifdef DEBUG
+	always @(posedge clk) begin
+		if (decoder_trigger_q && !decoder_pseudo_trigger_q) begin
+			if (&dbg_insn_opcode[1:0])
+				$display("DECODE: 0x%08x 0x%08x %-0s", dbg_insn_addr, dbg_insn_opcode, dbg_ascii_instr ? dbg_ascii_instr : "UNKNOWN");
+			else
+				$display("DECODE: 0x%08x     0x%04x %-0s", dbg_insn_addr, dbg_insn_opcode[15:0], dbg_ascii_instr ? dbg_ascii_instr : "UNKNOWN");
+		end
+	end
+`endif
 
 	always @(posedge clk) begin
 		is_lui_auipc_jal <= |{instr_lui, instr_auipc, instr_jal};
@@ -612,8 +645,6 @@ module picorv32 #(
 		is_compare <= |{is_beq_bne_blt_bge_bltu_bgeu, instr_slti, instr_slt, instr_sltiu, instr_sltu};
 
 		if (mem_do_rinst && mem_done) begin
-			current_insn  <= mem_rdata_latched;
-
 			instr_lui     <= mem_rdata_latched[6:0] == 7'b0110111;
 			instr_auipc   <= mem_rdata_latched[6:0] == 7'b0010111;
 			instr_jal     <= mem_rdata_latched[6:0] == 7'b1101111;
@@ -886,18 +917,18 @@ module picorv32 #(
 	reg [7:0] cpu_state;
 	reg [1:0] irq_state;
 
-	`FORMAL_KEEP reg [127:0] ascii_state;
+	`FORMAL_KEEP reg [127:0] dbg_ascii_state;
 
 	always @* begin
-		ascii_state = "";
-		if (cpu_state == cpu_state_trap)   ascii_state = "trap";
-		if (cpu_state == cpu_state_fetch)  ascii_state = "fetch";
-		if (cpu_state == cpu_state_ld_rs1) ascii_state = "ld_rs1";
-		if (cpu_state == cpu_state_ld_rs2) ascii_state = "ld_rs2";
-		if (cpu_state == cpu_state_exec)   ascii_state = "exec";
-		if (cpu_state == cpu_state_shift)  ascii_state = "shift";
-		if (cpu_state == cpu_state_stmem)  ascii_state = "stmem";
-		if (cpu_state == cpu_state_ldmem)  ascii_state = "ldmem";
+		dbg_ascii_state = "";
+		if (cpu_state == cpu_state_trap)   dbg_ascii_state = "trap";
+		if (cpu_state == cpu_state_fetch)  dbg_ascii_state = "fetch";
+		if (cpu_state == cpu_state_ld_rs1) dbg_ascii_state = "ld_rs1";
+		if (cpu_state == cpu_state_ld_rs2) dbg_ascii_state = "ld_rs2";
+		if (cpu_state == cpu_state_exec)   dbg_ascii_state = "exec";
+		if (cpu_state == cpu_state_shift)  dbg_ascii_state = "shift";
+		if (cpu_state == cpu_state_stmem)  dbg_ascii_state = "stmem";
+		if (cpu_state == cpu_state_ldmem)  dbg_ascii_state = "ldmem";
 	end
 
 	reg set_mem_do_rinst;
