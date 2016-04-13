@@ -9,6 +9,7 @@ def match_insns(s1, s2):
     if s1 == "*" or s1 == s2: return True
     if s1 == "jal" and s2.startswith("j"): return True
     if s1 == "addi" and s2 in ["li", "mv"]: return True
+    if s1 == "xori" and s2 == "not": return True
     if s1 == "sub" and s2 == "neg": return True
     if s1.startswith("b") and s2.startswith("b"): return True
     if s1.startswith("s") and s2.startswith("s"): return True
