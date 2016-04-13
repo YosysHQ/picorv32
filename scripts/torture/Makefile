@@ -39,7 +39,7 @@ config.vh: config.py riscv-torture/build.ok
 	python3 config.py
 
 obj_dir/Vtestbench: testbench.v testbench.cc ../../picorv32.v config.vh
-	verilator --exe -Wno-fatal --cc --top-module testbench testbench.v ../../picorv32.v testbench.cc
+	verilator --exe -Wno-fatal -DDEBUGASM --cc --top-module testbench testbench.v ../../picorv32.v testbench.cc
 	$(MAKE) -C obj_dir -f Vtestbench.mk
 
 tests/testbench.vvp: testbench.v ../../picorv32.v
@@ -64,15 +64,19 @@ tests/test_$(1).elf: tests/test_$(1).S
 tests/test_$(1).bin: tests/test_$(1).elf
 	riscv32-unknown-elf-objcopy -O binary tests/test_$(1).elf tests/test_$(1).bin
 
+tests/test_$(1).dmp: tests/test_$(1).elf
+	riscv32-unknown-elf-objdump -d tests/test_$(1).elf > tests/test_$(1).dmp
+
 tests/test_$(1).hex: tests/test_$(1).bin
 	python3 ../../firmware/makehex.py tests/test_$(1).bin 4096 > tests/test_$(1).hex
 
 tests/test_$(1).ref: tests/test_$(1).elf riscv-isa-sim/build.ok
 	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike tests/test_$(1).elf > tests/test_$(1).ref
 
-tests/test_$(1).ok: $(TESTBENCH_EXE) tests/test_$(1).hex tests/test_$(1).ref
-	$(TESTBENCH_EXE) +hex=tests/test_$(1).hex +ref=tests/test_$(1).ref | tee tests/test_$(1).out
-	grep -q PASSED tests/test_$(1).out
+tests/test_$(1).ok: $(TESTBENCH_EXE) tests/test_$(1).hex tests/test_$(1).ref tests/test_$(1).dmp
+	$(TESTBENCH_EXE) +hex=tests/test_$(1).hex +ref=tests/test_$(1).ref > tests/test_$(1).out
+	grep -q PASSED tests/test_$(1).out || { cat tests/test_$(1).out; false; }
+	python3 asmcheck.py tests/test_$(1).out tests/test_$(1).dmp
 	mv tests/test_$(1).out tests/test_$(1).ok
 endef
 
