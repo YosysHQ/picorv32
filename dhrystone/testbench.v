@@ -92,8 +92,8 @@ module testbench;
 		$finish;
 	end
 	always @(posedge clk) begin
-		if (uut.decoder_trigger_q && !uut.decoder_pseudo_trigger_q)
-			$display("## %-s %d", uut.dbg_ascii_instr ? uut.dbg_ascii_instr : "x", uut.count_cycle);
+		if (uut.dbg_next)
+			$display("## %-s %d", uut.dbg_ascii_instr ? uut.dbg_ascii_instr : "pcpi", uut.count_cycle);
 	end
 `endif
 endmodule

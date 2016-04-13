@@ -6,9 +6,12 @@ TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 test: testbench.exe dhry.hex
 	vvp -N testbench.exe
 
-timing: timing.exe dhry.hex
+timing: timing.txt
+	grep '^##' timing.txt | gawk 'x != "" {print x,$$3-y;} {x=$$2;y=$$3;}' | sort | uniq -c | \
+		gawk '{printf("%03d-%-7s %2d %-8s (%d)\n",$$3,$$2,$$3,$$2,$$1);}' | sort | cut -c13-
+
+timing.txt: timing.exe dhry.hex
 	vvp -N timing.exe > timing.txt
-	grep '^##' timing.txt | gawk 'x != "" {print x,$$3-y;} {x=$$2;y=$$3;}' | sort | uniq -c | sort -k3 -n
 
 testbench.exe: testbench.v ../picorv32.v
 	iverilog -o testbench.exe testbench.v ../picorv32.v
