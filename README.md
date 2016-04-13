@@ -634,7 +634,7 @@ See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 | Xilinx Virtex-7T         | xc7v585t-ffg1761-3   | -3         |     2.1 ns (476 MHz) |
 | Xilinx Kintex UltraScale | xcku035-fbva676-1-c  | -1         |     2.6 ns (384 MHz) |
 | Xilinx Kintex UltraScale | xcku035-fbva676-2-e  | -2         |     2.3 ns (434 MHz) |
-| Xilinx Kintex UltraScale | xcku035-fbva676-3-e  | -3         |     2.1 ns (476 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-3-e  | -3         |     1.9 ns (526 MHz) |
 | Xilinx Virtex UltraScale | xcvu065-ffvc1517-1-i | -1         |     2.5 ns (400 MHz) |
 | Xilinx Virtex UltraScale | xcvu065-ffvc1517-2-e | -2         |     2.2 ns (454 MHz) |
 | Xilinx Virtex UltraScale | xcvu065-ffvc1517-3-e | -3         |     1.9 ns (526 MHz) |
