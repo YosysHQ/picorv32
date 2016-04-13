@@ -30,7 +30,8 @@ riscv-isa-sim/build.ok: riscv-fesvr/build.ok
 	cd riscv-isa-sim && LDFLAGS="-L../riscv-fesvr" ./configure --with-isa=RV32IMC
 	+cd riscv-isa-sim && ln -s ../riscv-fesvr/fesvr . && make && touch build.ok
 
-batch_list = $(shell bash -c 'for i in {0..999}; do printf "%03d\n" $$i; done')
+batch_size = 1000
+batch_list = $(shell bash -c 'for i in {0..$(shell expr $(batch_size) - 1)}; do printf "%03d\n" $$i; done')
 
 batch: $(addprefix tests/test_,$(addsuffix .ok,$(batch_list)))
 
@@ -48,7 +49,7 @@ tests/testbench.vvp: testbench.v ../../picorv32.v
 tests/generated.ok: config.vh riscv-torture/build.ok
 	mkdir -p tests
 	rm -f riscv-torture/output/test_*
-	cd riscv-torture && ./sbt 'generator/run -C config/test.config -n 1000'
+	cd riscv-torture && ./sbt 'generator/run -C config/test.config -n $(batch_size)'
 	touch tests/generated.ok
 
 define test_template
