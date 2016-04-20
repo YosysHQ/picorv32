@@ -610,7 +610,7 @@ once in advance.
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
 -----------------------------------------------------------
 
-The following evaluations have been performed with Vivado 2015.4.
+The following evaluations have been performed with Vivado 2016.1.
 
 #### Timing on Xilinx 7-Series FPGAs
 
@@ -623,20 +623,20 @@ See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 
 | Family                   | Device               | Speedgrade | Clock Period (Freq.) |
 |:------------------------ |:-------------------- |:----------:| --------------------:|
-| Xilinx Artix-7T          | xc7a15t-fgg484-1     | -1         |     4.2 ns (238 MHz) |
+| Xilinx Artix-7T          | xc7a15t-fgg484-1     | -1         |     4.1 ns (243 MHz) |
 | Xilinx Artix-7T          | xc7a15t-fgg484-2     | -2         |     3.5 ns (285 MHz) |
-| Xilinx Artix-7T          | xc7a15t-fgg484-3     | -3         |     3.2 ns (312 MHz) |
+| Xilinx Artix-7T          | xc7a15t-fgg484-3     | -3         |     3.1 ns (322 MHz) |
 | Xilinx Kintex-7T         | xc7k70t-fbg676-1     | -1         |     2.8 ns (357 MHz) |
-| Xilinx Kintex-7T         | xc7k70t-fbg676-2     | -2         |     2.3 ns (434 MHz) |
+| Xilinx Kintex-7T         | xc7k70t-fbg676-2     | -2         |     2.2 ns (454 MHz) |
 | Xilinx Kintex-7T         | xc7k70t-fbg676-3     | -3         |     2.1 ns (476 MHz) |
-| Xilinx Virtex-7T         | xc7v585t-ffg1761-1   | -1         |     2.6 ns (384 MHz) |
-| Xilinx Virtex-7T         | xc7v585t-ffg1761-2   | -2         |     2.3 ns (434 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-1   | -1         |     2.7 ns (370 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-2   | -2         |     2.2 ns (454 MHz) |
 | Xilinx Virtex-7T         | xc7v585t-ffg1761-3   | -3         |     2.1 ns (476 MHz) |
-| Xilinx Kintex UltraScale | xcku035-fbva676-1-c  | -1         |     2.6 ns (384 MHz) |
-| Xilinx Kintex UltraScale | xcku035-fbva676-2-e  | -2         |     2.3 ns (434 MHz) |
-| Xilinx Kintex UltraScale | xcku035-fbva676-3-e  | -3         |     1.9 ns (526 MHz) |
-| Xilinx Virtex UltraScale | xcvu065-ffvc1517-1-i | -1         |     2.5 ns (400 MHz) |
-| Xilinx Virtex UltraScale | xcvu065-ffvc1517-2-e | -2         |     2.2 ns (454 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-1-c  | -1         |     2.3 ns (434 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-2-e  | -2         |     2.0 ns (500 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-3-e  | -3         |     1.8 ns (555 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-1-i | -1         |     2.3 ns (434 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-2-e | -2         |     2.1 ns (476 MHz) |
 | Xilinx Virtex UltraScale | xcvu065-ffvc1517-3-e | -3         |     1.9 ns (526 MHz) |
 
 #### Utilization on Xilinx 7-Series FPGAs
@@ -657,7 +657,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        750 |             48 |             431 |
-| PicoRV32 (regular) |        925 |             48 |             562 |
-| PicoRV32 (large)   |       2108 |             88 |            1022 |
+| PicoRV32 (small)   |        725 |             48 |             441 |
+| PicoRV32 (regular) |        874 |             48 |             572 |
+| PicoRV32 (large)   |       2072 |             88 |            1022 |
 
