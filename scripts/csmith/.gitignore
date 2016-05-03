@@ -1,0 +1,9 @@
+output_ref.txt
+output_sim.txt
+platform.info
+start.elf
+test.c
+test.elf
+test.exe
+test.hex
+testbench.exe
