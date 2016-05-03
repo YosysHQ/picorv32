@@ -1,9 +1,12 @@
+riscv-fesvr
+riscv-isa-sim
 output_ref.txt
 output_sim.txt
 platform.info
-start.elf
 test.c
+test.ld
 test.elf
 test.exe
 test.hex
 testbench.exe
+testbench.vcd

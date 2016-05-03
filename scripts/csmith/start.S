@@ -1,8 +1,6 @@
-.section .text
-.global _ftext
-.global _pvstart
+.section .text.start
+.global application_entry_point
 
-_pvstart:
 /* zero-initialize all registers */
 addi x1, zero, 0
 addi x2, zero, 0
@@ -49,4 +47,5 @@ sw zero,8(sp)
 sw zero,12(sp)
 
 /* jump to libc init */
-j _ftext
+j application_entry_point
+

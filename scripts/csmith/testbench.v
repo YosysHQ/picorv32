@@ -40,7 +40,7 @@ module testbench;
 		.mem_rdata   (mem_rdata  )
 	);
 
-	reg [7:0] memory [0:4*1024*1024];
+	reg [7:0] memory [0:4*1024*1024-1];
 	initial $readmemh("test.hex", memory);
 
 	assign mem_ready = 1;
