@@ -1,19 +1,30 @@
 `timescale 1 ns / 1 ps
 
-module testbench;
+module testbench (
+`ifdef VERILATOR
+	input clk
+`endif
+);
+`ifndef VERILATOR
 	reg clk = 1;
-	reg resetn = 0;
-	wire trap;
-
 	always #5 clk = ~clk;
+`endif
+
+	reg resetn = 0;
+	integer resetn_cnt = 0;
+	wire trap;
 
 	initial begin
 		// $dumpfile("testbench.vcd");
 		// $dumpvars(0, testbench);
-		repeat (100) @(posedge clk);
-		resetn <= 1;
 	end
 
+	always @(posedge clk) begin
+		if (resetn_cnt < 100)
+			resetn_cnt <= resetn_cnt + 1;
+		else
+			resetn <= 1;
+	end
 
 	wire mem_valid;
 	wire mem_instr;
@@ -53,7 +64,9 @@ module testbench;
 	always @(posedge clk) begin
 		if (mem_valid && mem_wstrb && mem_addr == 'h10000000) begin
 			$write("%c", mem_wdata[ 7: 0]);
+`ifndef VERILATOR
 			$fflush;
+`endif
 		end else begin
 			if (mem_valid && mem_wstrb[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
 			if (mem_valid && mem_wstrb[1]) memory[mem_addr + 1] <= mem_wdata[15: 8];
@@ -64,7 +77,7 @@ module testbench;
 
 	always @(posedge clk) begin
 		if (resetn && trap) begin
-			repeat (10) @(posedge clk);
+			// repeat (10) @(posedge clk);
 			// $display("TRAP");
 			$finish;
 		end

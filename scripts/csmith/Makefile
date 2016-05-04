@@ -2,16 +2,36 @@ RISCV_TOOLS_DIR = /opt/riscv32imc
 RISCV_TOOLS_PREFIX = $(RISCV_TOOLS_DIR)/bin/riscv32-unknown-elf-
 CSMITH_INCDIR = $(shell ls -d /usr/local/include/csmith-* | head -n1)
 CC = $(RISCV_TOOLS_PREFIX)gcc
+SHELL = /bin/bash
 
-run: test_ref test.hex testbench.vvp
+help:
+	@echo "Usage: make { loop | verilator | iverilog | spike }"
+
+loop:
+	+set -e; x() { echo "$$*" >&2; "$$@"; }; while true; do \
+		echo; echo; rm -f output_ref.txt output_sim.txt; \
+		echo "-----------------------------------------"; \
+		x rm -f test.hex test.elf test.c test_ref test.ld; \
+		x $(MAKE) test_ref test.hex obj_dir/Vtestbench; \
+		x timeout 1 ./test_ref > >( tee output_ref.txt; ) || { echo TIMEOUT; continue; }; \
+		x obj_dir/Vtestbench > >( tee /dev/stderr | grep -v '$$finish' > output_sim.txt; ); \
+		sleep 1; x diff -u output_ref.txt output_sim.txt; echo "OK."; \
+	done
+
+verilator: test_ref test.hex obj_dir/Vtestbench
+	./test_ref | tee output_ref.txt
+	obj_dir/Vtestbench | grep -v '$$finish' | tee output_sim.txt
+	diff -u output_ref.txt output_sim.txt
+
+iverilog: test_ref test.hex testbench.vvp
 	./test_ref | tee output_ref.txt
 	vvp -N testbench.vvp | tee output_sim.txt
 	diff -u output_ref.txt output_sim.txt
 
 spike: riscv-fesvr/build.ok riscv-isa-sim/build.ok test_ref test.elf
 	./test_ref | tee output_ref.txt
-	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike test.elf | tee output_spike.txt
-	diff -u output_ref.txt output_spike.txt
+	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike test.elf | tee output_sim.txt
+	diff -u output_ref.txt output_sim.txt
 
 riscv-fesvr/build.ok:
 	rm -rf riscv-fesvr
@@ -30,6 +50,10 @@ riscv-isa-sim/build.ok: riscv-fesvr/build.ok
 testbench.vvp: testbench.v ../../picorv32.v
 	iverilog -o testbench.vvp testbench.v ../../picorv32.v
 	chmod -x testbench.vvp
+
+obj_dir/Vtestbench: testbench.v testbench.cc ../../picorv32.v
+	verilator --exe -Wno-fatal --cc --top-module testbench testbench.v ../../picorv32.v testbench.cc
+	$(MAKE) -C obj_dir -f Vtestbench.mk
 
 test.hex: test.elf
 	$(RISCV_TOOLS_PREFIX)objcopy -O verilog test.elf test.hex
@@ -53,11 +77,11 @@ test.c:
 	csmith --no-packed-struct -o test.c
 
 clean:
-	rm -f platform.info test.c test.ld test.elf test.hex test_ref testbench.vvp testbench.vcd
-	rm -f output_ref.txt output_sim.txt output_spike.txt
+	rm -rf platform.info test.c test.ld test.elf test.hex test_ref obj_dir
+	rm -rf testbench.vvp testbench.vcd output_ref.txt output_sim.txt
 
 mrproper: clean
 	rm -rf riscv-fesvr riscv-isa-sim
 
-.PHONY: run spike clean mrproper
+.PHONY: help loop verilator iverilog spike clean mrproper
 

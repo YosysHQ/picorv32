@@ -1,3 +1,4 @@
+obj_dir
 riscv-fesvr
 riscv-isa-sim
 output_ref.txt
