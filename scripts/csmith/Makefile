@@ -8,8 +8,10 @@ run: test_ref test.hex testbench.vvp
 	vvp -N testbench.vvp | tee output_sim.txt
 	diff -u output_ref.txt output_sim.txt
 
-spike: riscv-fesvr/build.ok riscv-isa-sim/build.ok test.elf
-	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike test.elf
+spike: riscv-fesvr/build.ok riscv-isa-sim/build.ok test_ref test.elf
+	./test_ref | tee output_ref.txt
+	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike test.elf | tee output_spike.txt
+	diff -u output_ref.txt output_spike.txt
 
 riscv-fesvr/build.ok:
 	rm -rf riscv-fesvr
@@ -48,11 +50,11 @@ test.elf: test.c syscalls.c start.S
 test.c:
 	echo "integer size = 4" > platform.info
 	echo "pointer size = 4" >> platform.info
-	csmith -o test.c
+	csmith --no-packed-struct -o test.c
 
 clean:
-	rm -f platform.info test.c test.ld test.elf test.hex test_ref
-	rm -f testbench.vvp testbench.vcd output_ref.txt output_sim.txt
+	rm -f platform.info test.c test.ld test.elf test.hex test_ref testbench.vvp testbench.vcd
+	rm -f output_ref.txt output_sim.txt output_spike.txt
 
 mrproper: clean
 	rm -rf riscv-fesvr riscv-isa-sim
