@@ -3,9 +3,9 @@ RISCV_TOOLS_PREFIX = $(RISCV_TOOLS_DIR)/bin/riscv32-unknown-elf-
 CSMITH_INCDIR = $(shell ls -d /usr/local/include/csmith-* | head -n1)
 CC = $(RISCV_TOOLS_PREFIX)gcc
 
-run: test.exe test.hex testbench.exe
-	./test.exe | tee output_ref.txt
-	vvp -N testbench.exe | tee output_sim.txt
+run: test_ref test.hex testbench.vvp
+	./test_ref | tee output_ref.txt
+	vvp -N testbench.vvp | tee output_sim.txt
 	diff -u output_ref.txt output_sim.txt
 
 spike: riscv-fesvr/build.ok riscv-isa-sim/build.ok test.elf
@@ -24,9 +24,9 @@ riscv-isa-sim/build.ok: riscv-fesvr/build.ok
 	cd riscv-isa-sim && LDFLAGS="-L../riscv-fesvr" ./configure --with-isa=RV32IMC
 	+cd riscv-isa-sim && ln -s ../riscv-fesvr/fesvr . && make && touch build.ok
 
-testbench.exe: testbench.v ../../picorv32.v
-	iverilog -o testbench.exe testbench.v ../../picorv32.v
-	chmod -x testbench.exe
+testbench.vvp: testbench.v ../../picorv32.v
+	iverilog -o testbench.vvp testbench.v ../../picorv32.v
+	chmod -x testbench.vvp
 
 test.hex: test.elf
 	$(RISCV_TOOLS_PREFIX)objcopy -O verilog test.elf test.hex
@@ -35,8 +35,8 @@ start.elf: start.S start.ld
 	$(CC) -nostdlib -o start.elf start.S -T start.ld
 	chmod -x start.elf
 
-test.exe: test.c
-	gcc -m32 -o test.exe -w -Os -I $(CSMITH_INCDIR) test.c
+test_ref: test.c
+	gcc -m32 -o test_ref -w -Os -I $(CSMITH_INCDIR) test.c
 
 test.elf: test.c syscalls.c start.S
 	sed -e '/SECTIONS/,+1 s/{/{ . = 0x00000000; .start : { *(.text.start) } application_entry_point = 0x00010000;/;' \
@@ -50,8 +50,8 @@ test.c:
 	csmith -o test.c
 
 clean:
-	rm -f platform.info test.c test.ld test.elf test.hex test.exe
-	rm -f testbench.exe testbench.vcd output_ref.txt output_sim.txt
+	rm -f platform.info test.c test.ld test.elf test.hex test_ref
+	rm -f testbench.vvp testbench.vcd output_ref.txt output_sim.txt
 
 mrproper: clean
 	rm -rf riscv-fesvr riscv-isa-sim

@@ -6,7 +6,7 @@ platform.info
 test.c
 test.ld
 test.elf
-test.exe
+test_ref
 test.hex
-testbench.exe
+testbench.vvp
 testbench.vcd

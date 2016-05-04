@@ -11,10 +11,10 @@ GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedanti
 TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
 COMPRESSED_ISA = C
 
-test: testbench.exe firmware/firmware.hex
-	vvp -N testbench.exe
+test: testbench.vvp firmware/firmware.hex
+	vvp -N testbench.vvp
 
-testbench.vcd: testbench.exe firmware/firmware.hex
+testbench.vcd: testbench.vvp firmware/firmware.hex
 	vvp -N $< +vcd
 
 view: testbench.vcd
@@ -29,26 +29,26 @@ check.smt2: picorv32.v
 	          -p 'prep -top picorv32 -nordff' \
 		  -p 'write_smt2 -bv -mem -wires check.smt2'
 
-test_sp: testbench_sp.exe firmware/firmware.hex
-	vvp -N testbench_sp.exe
+test_sp: testbench_sp.vvp firmware/firmware.hex
+	vvp -N testbench_sp.vvp
 
-test_axi: testbench.exe firmware/firmware.hex
-	vvp -N testbench.exe +axi_test
+test_axi: testbench.vvp firmware/firmware.hex
+	vvp -N testbench.vvp +axi_test
 
-test_synth: testbench_synth.exe firmware/firmware.hex
-	vvp -N testbench_synth.exe
+test_synth: testbench_synth.vvp firmware/firmware.hex
+	vvp -N testbench_synth.vvp
 
-testbench.exe: testbench.v picorv32.v
-	iverilog -o testbench.exe $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) testbench.v picorv32.v
-	chmod -x testbench.exe
+testbench.vvp: testbench.v picorv32.v
+	iverilog -o testbench.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) testbench.v picorv32.v
+	chmod -x testbench.vvp
 
-testbench_sp.exe: testbench.v picorv32.v
-	iverilog -o testbench_sp.exe $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST testbench.v picorv32.v
-	chmod -x testbench_sp.exe
+testbench_sp.vvp: testbench.v picorv32.v
+	iverilog -o testbench_sp.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST testbench.v picorv32.v
+	chmod -x testbench_sp.vvp
 
-testbench_synth.exe: testbench.v synth.v
-	iverilog -o testbench_synth.exe testbench.v synth.v
-	chmod -x testbench_synth.exe
+testbench_synth.vvp: testbench.v synth.v
+	iverilog -o testbench_synth.vvp testbench.v synth.v
+	chmod -x testbench_synth.vvp
 
 synth.v: picorv32.v scripts/yosys/synth_sim.ys
 	yosys -qv3 -l synth.log scripts/yosys/synth_sim.ys
@@ -119,7 +119,7 @@ clean:
 		riscv-gnu-toolchain-riscv32im riscv-gnu-toolchain-riscv32imc
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
-		testbench.exe testbench_sp.exe testbench_synth.exe testbench.vcd
+		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench.vcd
 
 .PHONY: test view test_sp test_axi test_synth download-tools toc clean
 

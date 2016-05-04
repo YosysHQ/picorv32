@@ -8,9 +8,9 @@
 /dhrystone/dhry.elf
 /dhrystone/dhry.hex
 /dhrystone/dhry.map
-/dhrystone/testbench.exe
+/dhrystone/testbench.vvp
 /dhrystone/testbench.vcd
-/dhrystone/timing.exe
+/dhrystone/timing.vvp
 /dhrystone/timing.txt
 /dhrystone/*.d
 /dhrystone/*.o
@@ -18,10 +18,9 @@
 /riscv-gnu-toolchain-riscv32ic
 /riscv-gnu-toolchain-riscv32im
 /riscv-gnu-toolchain-riscv32imc
-/testbench.exe
-/testbench_sp.exe
-/testbench_axi.exe
-/testbench_synth.exe
+/testbench.vvp
+/testbench_sp.vvp
+/testbench_synth.vvp
 /testbench.gtkw
 /testbench.vcd
 /check.smt2

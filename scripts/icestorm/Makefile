@@ -24,38 +24,38 @@ example.txt: synth.blif
 example.bin: example.txt
 	icepack example.txt example.bin
 
-example_tb.exe: example_tb.v example.v firmware.hex
-	iverilog -o example_tb.exe -s testbench example.v example_tb.v ../../picorv32.v
-	chmod -x example_tb.exe
+example_tb.vvp: example_tb.v example.v firmware.hex
+	iverilog -o example_tb.vvp -s testbench example.v example_tb.v ../../picorv32.v
+	chmod -x example_tb.vvp
 
-example_sim: example_tb.exe
-	vvp -N example_tb.exe
+example_sim: example_tb.vvp
+	vvp -N example_tb.vvp
 
-example_sim_vcd: example_tb.exe
-	vvp -N example_tb.exe +vcd
+example_sim_vcd: example_tb.vvp
+	vvp -N example_tb.vvp +vcd
 
-synth_tb.exe: example_tb.v synth.blif
-	iverilog -o synth_tb.exe -s testbench synth.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
-	chmod -x synth_tb.exe
+synth_tb.vvp: example_tb.v synth.blif
+	iverilog -o synth_tb.vvp -s testbench synth.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
+	chmod -x synth_tb.vvp
 
-synth_sim: synth_tb.exe
-	vvp -N synth_tb.exe
+synth_sim: synth_tb.vvp
+	vvp -N synth_tb.vvp
 
-synth_sim_vcd: synth_tb.exe
-	vvp -N synth_tb.exe +vcd
+synth_sim_vcd: synth_tb.vvp
+	vvp -N synth_tb.vvp +vcd
 
 route.v: example.txt
 	icebox_vlog -L -n top -sp example.pcf example.txt > route.v
 
-route_tb.exe: example_tb.v route.v
-	iverilog -o route_tb.exe -s testbench route.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
-	chmod -x route_tb.exe
+route_tb.vvp: example_tb.v route.v
+	iverilog -o route_tb.vvp -s testbench route.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
+	chmod -x route_tb.vvp
 
-route_sim: route_tb.exe
-	vvp -N route_tb.exe
+route_sim: route_tb.vvp
+	vvp -N route_tb.vvp
 
-route_sim_vcd: route_tb.exe
-	vvp -N route_tb.exe +vcd
+route_sim_vcd: route_tb.vvp
+	vvp -N route_tb.vvp +vcd
 
 prog_sram:
 	iceprog -S example.bin
@@ -66,7 +66,7 @@ view:
 clean:
 	rm -f firmware.elf firmware.map firmware.bin firmware.hex
 	rm -f synth.log synth.v synth.blif route.v example.txt example.bin
-	rm -f example_tb.exe synth_tb.exe route_tb.exe example.vcd
+	rm -f example_tb.vvp synth_tb.vvp route_tb.vvp example.vcd
 
 .PHONY: all prog_sram view clean
 .PHONY: example_sim synth_sim route_sim

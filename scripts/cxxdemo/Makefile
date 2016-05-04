@@ -7,12 +7,12 @@ CCFLAGS = -MD -Os -Wall -std=c++11
 LDFLAGS = -Wl,--gc-sections
 LDLIBS = -lstdc++
 
-test: testbench.exe firmware32.hex
-	vvp -N testbench.exe
+test: testbench.vvp firmware32.hex
+	vvp -N testbench.vvp
 
-testbench.exe: testbench.v ../../picorv32.v
-	iverilog -o testbench.exe testbench.v ../../picorv32.v
-	chmod -x testbench.exe
+testbench.vvp: testbench.v ../../picorv32.v
+	iverilog -o testbench.vvp testbench.v ../../picorv32.v
+	chmod -x testbench.vvp
 
 firmware32.hex: firmware.elf start.elf hex8tohex32.py
 	$(RISCV_TOOLS_PREFIX)objcopy -O verilog start.elf start.tmp
@@ -32,7 +32,7 @@ start.elf: start.S start.ld
 clean:
 	rm -f *.o *.d *.tmp start.elf
 	rm -f firmware.elf firmware.hex firmware32.hex
-	rm -f testbench.exe testbench.vcd
+	rm -f testbench.vvp testbench.vcd
 
 -include *.d
 .PHONY: test clean
