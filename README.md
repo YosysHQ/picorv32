@@ -318,9 +318,9 @@ any other ALU operation.
 The following dhrystone benchmark results are for a core with enabled
 `ENABLE_MUL`, `ENABLE_DIV`, and `BARREL_SHIFTER` options.
 
-Dhrystone benchmark results: 0.399 DMIPS/MHz (702 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.395 DMIPS/MHz (695 Dhrystones/Second/MHz)
 
-For the Dhrystone benchmark the average CPI is 4.030.
+For the Dhrystone benchmark the average CPI is 4.047.
 
 
 PicoRV32 Native Memory Interface
