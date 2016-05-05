@@ -7,30 +7,28 @@ SHELL = /bin/bash
 help:
 	@echo "Usage: make { loop | verilator | iverilog | spike }"
 
-loop:
-	+set -e; x() { echo "$$*" >&2; "$$@"; }; while true; do \
-		echo; echo; rm -f output_ref.txt output_sim.txt; \
-		echo "-----------------------------------------"; \
-		x rm -f test.hex test.elf test.c test_ref test.ld; \
-		x $(MAKE) test_ref test.hex obj_dir/Vtestbench; \
-		x timeout 1 ./test_ref > >( tee output_ref.txt; ) || { echo TIMEOUT; continue; }; \
-		x obj_dir/Vtestbench > >( tee /dev/stderr | grep -v '$$finish' > output_sim.txt; ); \
-		sleep 1; x diff -u output_ref.txt output_sim.txt; echo "OK."; \
+loop: riscv-fesvr/build.ok riscv-isa-sim/build.ok obj_dir/Vtestbench
+	+set -e; x() { echo "$$*" >&2; "$$@"; }; i=1; j=1; while true; do echo; echo; \
+		echo "---------------- $$((i++)) ($$j) ----------------"; \
+		x rm -f test.hex test.elf test.c test_ref test.ld output_ref.txt output_sim.txt; \
+		x make spike test.hex || { echo SKIP; continue; }; x rm -f output_sim.txt; \
+		x obj_dir/Vtestbench | grep -v '$$finish' > output_sim.txt; \
+		x diff -u output_ref.txt output_sim.txt; echo OK; ! ((j++)); \
 	done
 
 verilator: test_ref test.hex obj_dir/Vtestbench
-	./test_ref | tee output_ref.txt
-	obj_dir/Vtestbench | grep -v '$$finish' | tee output_sim.txt
+	timeout 2 ./test_ref > output_ref.txt && cat output_ref.txt
+	obj_dir/Vtestbench | grep -v '$$finish' > output_sim.txt
 	diff -u output_ref.txt output_sim.txt
 
 iverilog: test_ref test.hex testbench.vvp
-	./test_ref | tee output_ref.txt
-	vvp -N testbench.vvp | tee output_sim.txt
+	timeout 2 ./test_ref > output_ref.txt && cat output_ref.txt
+	vvp -N testbench.vvp > output_sim.txt
 	diff -u output_ref.txt output_sim.txt
 
 spike: riscv-fesvr/build.ok riscv-isa-sim/build.ok test_ref test.elf
-	./test_ref | tee output_ref.txt
-	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike test.elf | tee output_sim.txt
+	timeout 2 ./test_ref > output_ref.txt && cat output_ref.txt
+	LD_LIBRARY_PATH="./riscv-isa-sim:./riscv-fesvr" ./riscv-isa-sim/spike test.elf > output_sim.txt
 	diff -u output_ref.txt output_sim.txt
 
 riscv-fesvr/build.ok:
@@ -42,8 +40,7 @@ riscv-isa-sim/build.ok: riscv-fesvr/build.ok
 	rm -rf riscv-isa-sim
 	git clone https://github.com/riscv/riscv-isa-sim.git riscv-isa-sim
 	cd riscv-isa-sim && git checkout 10ae74e
-	cd riscv-isa-sim && patch -p1 < ../riscv-isa-sim-exit.diff
-	cd riscv-isa-sim && patch -p1 < ../riscv-isa-sim-console.diff
+	cd riscv-isa-sim && patch -p1 < ../riscv-isa-sim.diff
 	cd riscv-isa-sim && LDFLAGS="-L../riscv-fesvr" ./configure --with-isa=RV32IMC
 	+cd riscv-isa-sim && ln -s ../riscv-fesvr/fesvr . && make && touch build.ok
 
@@ -75,6 +72,7 @@ test.c:
 	echo "integer size = 4" > platform.info
 	echo "pointer size = 4" >> platform.info
 	csmith --no-packed-struct -o test.c
+	gawk '/Seed:/ {print$$2,$$3;}' test.c
 
 clean:
 	rm -rf platform.info test.c test.ld test.elf test.hex test_ref obj_dir
