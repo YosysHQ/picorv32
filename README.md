@@ -578,7 +578,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout 888ae43
+    git checkout 34db4e0
 
     mkdir build; cd build
     ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i --disable-float --disable-atomic
@@ -604,7 +604,7 @@ By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.
 
-*Note: This instructions are for git rev 888ae43 (2016-04-10) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev 34db4e0 (2016-05-05) of riscv-gnu-toolchain.*
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
