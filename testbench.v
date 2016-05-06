@@ -187,7 +187,7 @@ module axi4_memory #(
 	input [31:0]     mem_axi_araddr,
 	input [ 2:0]     mem_axi_arprot,
 
-	output            mem_axi_rvalid = 0,
+	output reg        mem_axi_rvalid = 0,
 	input             mem_axi_rready,
 	output reg [31:0] mem_axi_rdata
 );
