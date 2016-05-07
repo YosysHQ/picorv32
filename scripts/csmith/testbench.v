@@ -34,6 +34,19 @@ module testbench (
 	wire [3:0] mem_wstrb;
 	wire [31:0] mem_rdata;
 
+	reg [31:0] x32 = 314159265;
+	reg [31:0] next_x32;
+
+	always @(posedge clk) begin
+		if (resetn) begin
+			next_x32 = x32;
+			next_x32 = next_x32 ^ (next_x32 << 13);
+			next_x32 = next_x32 ^ (next_x32 >> 17);
+			next_x32 = next_x32 ^ (next_x32 << 5);
+			x32 <= next_x32;
+		end
+	end
+
 	picorv32 #(
 		.COMPRESSED_ISA(1),
 		.ENABLE_MUL(1),
@@ -54,7 +67,7 @@ module testbench (
 	reg [7:0] memory [0:4*1024*1024-1];
 	initial $readmemh("test.hex", memory);
 
-	assign mem_ready = 1;
+	assign mem_ready = x32[0] && mem_valid;
 
 	assign mem_rdata[ 7: 0] = memory[mem_addr + 0];
 	assign mem_rdata[15: 8] = memory[mem_addr + 1];
@@ -62,16 +75,18 @@ module testbench (
 	assign mem_rdata[31:24] = memory[mem_addr + 3];
 
 	always @(posedge clk) begin
-		if (mem_valid && mem_wstrb && mem_addr == 'h10000000) begin
-			$write("%c", mem_wdata[ 7: 0]);
+		if (mem_valid && mem_ready) begin
+			if (mem_wstrb && mem_addr == 'h10000000) begin
+				$write("%c", mem_wdata[ 7: 0]);
 `ifndef VERILATOR
-			$fflush;
+				$fflush;
 `endif
-		end else begin
-			if (mem_valid && mem_wstrb[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
-			if (mem_valid && mem_wstrb[1]) memory[mem_addr + 1] <= mem_wdata[15: 8];
-			if (mem_valid && mem_wstrb[2]) memory[mem_addr + 2] <= mem_wdata[23:16];
-			if (mem_valid && mem_wstrb[3]) memory[mem_addr + 3] <= mem_wdata[31:24];
+			end else begin
+				if (mem_wstrb[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
+				if (mem_wstrb[1]) memory[mem_addr + 1] <= mem_wdata[15: 8];
+				if (mem_wstrb[2]) memory[mem_addr + 2] <= mem_wdata[23:16];
+				if (mem_wstrb[3]) memory[mem_addr + 3] <= mem_wdata[31:24];
+			end
 		end
 	end
 
