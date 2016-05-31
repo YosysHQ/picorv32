@@ -30,15 +30,27 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 
 	if ((irqs & 6) != 0)
 	{
-		uint32_t pc = regs[0] - 4;
+		uint32_t pc = regs[0] - 2;
 		uint16_t *instr_hwords = (uint16_t*)pc;
-		uint32_t instr = instr_hwords[0] | (instr_hwords[1] << 16);
+		uint32_t instr = *(uint16_t*)pc;
+
+		if ((*instr_hwords & 3) == 3) {
+			pc -= 2;
+			instr = (instr << 16) | *(uint16_t*)pc;
+		} else {
+			int cnt_3 = 0;
+			while ((*(--instr_hwords) & 3) == 3 && cnt_3 < 20) cnt_3++;
+			if ((cnt_3 & 1) != 0) {
+				pc -= 2;
+				instr = (instr << 16) | *(uint16_t*)pc;
+			}
+		}
 
 		print_str("\n");
 		print_str("------------------------------------------------------------\n");
 
 		if ((irqs & 2) != 0) {
-			if (instr == 0x00100073 || (instr & 0xffff) == 9002) {
+			if (instr == 0x00100073 || instr == 0x9002) {
 				print_str("SBREAK instruction at 0x");
 				print_hex(pc, 8);
 				print_str("\n");
