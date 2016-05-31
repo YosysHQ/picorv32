@@ -1270,6 +1270,7 @@ module picorv32 #(
 									cpu_state <= cpu_state_fetch;
 								end else
 								if (CATCH_ILLINSN && pcpi_timeout) begin
+								    pcpi_valid <= 0;
 									`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
 									if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
 										next_irq_pending[irq_sbreak] = 1;
@@ -1419,6 +1420,7 @@ module picorv32 #(
 							cpu_state <= cpu_state_fetch;
 						end else
 						if (CATCH_ILLINSN && pcpi_timeout) begin
+							pcpi_valid <= 0;
 							`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
 							if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
 								next_irq_pending[irq_sbreak] = 1;
