@@ -1,5 +1,5 @@
 
-RISCV_GNU_TOOLCHAIN_REV = 34db4e0
+RISCV_GNU_TOOLCHAIN_REV = 13f52d2
 GCC_URL = http://mirrors.kernel.org/gnu/gcc/gcc-6.1.0/gcc-6.1.0.tar.gz
 NEWLIB_URL = ftp://sourceware.org/pub/newlib/newlib-2.2.0.tar.gz
 BINUTILS_URL = http://mirrors.kernel.org/gnu/binutils/binutils-2.26.tar.gz
@@ -91,16 +91,16 @@ build-$(1)-tools-bh:
 	set -ex; if ! test -d riscv-gnu-toolchain-$(1); then git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-$(1); \
 		else cd riscv-gnu-toolchain-$(1); git checkout master; git pull; fi
 	set -ex; cd riscv-gnu-toolchain-$(1); rm -rf build; git checkout $(RISCV_GNU_TOOLCHAIN_REV); mkdir -p build
-	set -ex; cd riscv-gnu-toolchain-$(1)/build; ../configure --with-xlen=32 --with-arch=$(2) --prefix=/opt/$(1) --disable-float --disable-atomic
+	set -ex; cd riscv-gnu-toolchain-$(1)/build; ../configure --with-arch=$(2) --prefix=/opt/$(1)
 	+set -ex; cd riscv-gnu-toolchain-$(1)/build; make
 
 .PHONY: build-$(1)-tools
 endef
 
-$(eval $(call build_tools_template,riscv32i,I))
-$(eval $(call build_tools_template,riscv32ic,IC))
-$(eval $(call build_tools_template,riscv32im,IM))
-$(eval $(call build_tools_template,riscv32imc,IMC))
+$(eval $(call build_tools_template,riscv32i,RV32I))
+$(eval $(call build_tools_template,riscv32ic,RV32IC))
+$(eval $(call build_tools_template,riscv32im,RV32IM))
+$(eval $(call build_tools_template,riscv32imc,RV32IMC))
 
 build-tools:
 	@echo "This will remove all existing data from /opt/riscv32i, /opt/riscv32ic, /opt/riscv32im, and /opt/riscv32imc."

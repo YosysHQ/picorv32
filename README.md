@@ -318,9 +318,9 @@ any other ALU operation.
 The following dhrystone benchmark results are for a core with enabled
 `ENABLE_MUL`, `ENABLE_DIV`, and `BARREL_SHIFTER` options.
 
-Dhrystone benchmark results: 0.395 DMIPS/MHz (695 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.406 DMIPS/MHz (715 Dhrystones/Second/MHz)
 
-For the Dhrystone benchmark the average CPI is 4.047.
+For the Dhrystone benchmark the average CPI is 4.072.
 
 
 PicoRV32 Native Memory Interface
@@ -578,10 +578,10 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout 34db4e0
+    git checkout 13f52d2
 
     mkdir build; cd build
-    ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i --disable-float --disable-atomic
+    ../configure --with-arch=RV32I --prefix=/opt/riscv32i
     make -j$(nproc)
 
 The commands will all be named using the prefix `riscv32-unknown-elf-`, which
@@ -604,7 +604,7 @@ By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.
 
-*Note: This instructions are for git rev 34db4e0 (2016-05-05) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev 13f52d2 (2016-05-31) of riscv-gnu-toolchain.*
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
