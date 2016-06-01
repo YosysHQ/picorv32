@@ -502,7 +502,7 @@ module picorv32 #(
 	reg instr_lb, instr_lh, instr_lw, instr_lbu, instr_lhu, instr_sb, instr_sh, instr_sw;
 	reg instr_addi, instr_slti, instr_sltiu, instr_xori, instr_ori, instr_andi, instr_slli, instr_srli, instr_srai;
 	reg instr_add, instr_sub, instr_sll, instr_slt, instr_sltu, instr_xor, instr_srl, instr_sra, instr_or, instr_and;
-	reg instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh, instr_sbreak;
+	reg instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh, instr_scall_sbreak;
 	reg instr_getq, instr_setq, instr_retirq, instr_maskirq, instr_waitirq, instr_timer;
 	wire instr_trap;
 
@@ -918,7 +918,7 @@ module picorv32 #(
 			instr_rdinstr  <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
 			instr_rdinstrh <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS && ENABLE_COUNTERS64;
 
-			instr_sbreak <= !CATCH_ILLINSN && ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:7] == 'b0000000000010000000000000) ||
+			instr_scall_sbreak <= ((mem_rdata_q[6:0] == 7'b1110011 && !mem_rdata_q[31:21] && !mem_rdata_q[19:7]) ||
 					(COMPRESSED_ISA && mem_rdata_q[15:0] == 16'h9002));
 
 			instr_getq    <= mem_rdata_q[6:0] == 7'b0001011 && mem_rdata_q[31:25] == 7'b0000000 && ENABLE_IRQ && ENABLE_IRQ_QREGS;
@@ -1269,8 +1269,8 @@ module picorv32 #(
 									latched_store <= pcpi_int_wr;
 									cpu_state <= cpu_state_fetch;
 								end else
-								if (CATCH_ILLINSN && pcpi_timeout) begin
-								    pcpi_valid <= 0;
+								if (CATCH_ILLINSN && (pcpi_timeout || instr_scall_sbreak)) begin
+									pcpi_valid <= 0;
 									`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
 									if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
 										next_irq_pending[irq_sbreak] = 1;
@@ -1419,7 +1419,7 @@ module picorv32 #(
 							latched_store <= pcpi_int_wr;
 							cpu_state <= cpu_state_fetch;
 						end else
-						if (CATCH_ILLINSN && pcpi_timeout) begin
+						if (CATCH_ILLINSN && (pcpi_timeout || instr_scall_sbreak)) begin
 							pcpi_valid <= 0;
 							`debug($display("SBREAK OR UNSUPPORTED INSN AT 0x%08x", reg_pc);)
 							if (ENABLE_IRQ && !irq_mask[irq_sbreak] && !irq_active) begin
@@ -1570,7 +1570,7 @@ module picorv32 #(
 			end else
 				cpu_state <= cpu_state_trap;
 		end
-		if (!CATCH_ILLINSN && decoder_trigger_q && !decoder_pseudo_trigger_q && instr_sbreak) begin
+		if (!CATCH_ILLINSN && decoder_trigger_q && !decoder_pseudo_trigger_q && instr_scall_sbreak) begin
 			cpu_state <= cpu_state_trap;
 		end
 
