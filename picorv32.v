@@ -128,6 +128,7 @@ module picorv32 #(
 
 	wire [31:0] next_pc;
 
+	reg irq_delay;
 	reg irq_active;
 	reg [31:0] irq_mask;
 	reg [31:0] irq_pending;
@@ -1093,7 +1094,7 @@ module picorv32 #(
 			clear_prefetched_high_word = COMPRESSED_ISA;
 	end
 
-	assign launch_next_insn = cpu_state == cpu_state_fetch && decoder_trigger && (!ENABLE_IRQ || irq_active || !(irq_pending & ~irq_mask));
+	assign launch_next_insn = cpu_state == cpu_state_fetch && decoder_trigger && (!ENABLE_IRQ || irq_delay || irq_active || !(irq_pending & ~irq_mask));
 
 	always @(posedge clk) begin
 		trap <= 0;
@@ -1155,6 +1156,7 @@ module picorv32 #(
 			pcpi_valid <= 0;
 			pcpi_timeout <= 0;
 			irq_active <= 0;
+			irq_delay <= 0;
 			irq_mask <= ~0;
 			next_irq_pending = 0;
 			irq_state <= 0;
@@ -1186,7 +1188,7 @@ module picorv32 #(
 						cpuregs[latched_rd] <= latched_stalu ? alu_out_q : reg_out;
 					end
 					ENABLE_IRQ && irq_state[0]: begin
-						cpuregs[latched_rd] <= current_pc;
+						cpuregs[latched_rd] <= current_pc | latched_compr;
 						current_pc = PROGADDR_IRQ;
 						irq_active <= 1;
 						mem_do_rinst <= 1;
@@ -1210,10 +1212,11 @@ module picorv32 #(
 				latched_rd <= decoded_rd;
 				latched_compr <= compressed_instr;
 
-				if (ENABLE_IRQ && ((decoder_trigger && !irq_active && |(irq_pending & ~irq_mask)) || irq_state)) begin
+				if (ENABLE_IRQ && ((decoder_trigger && !irq_active && !irq_delay && |(irq_pending & ~irq_mask)) || irq_state)) begin
 					irq_state <=
 						irq_state == 2'b00 ? 2'b01 :
 						irq_state == 2'b01 ? 2'b10 : 2'b00;
+					latched_compr <= latched_compr;
 					if (ENABLE_IRQ_QREGS)
 						latched_rd <= irqregs_offset | irq_state[0];
 					else
@@ -1230,6 +1233,7 @@ module picorv32 #(
 				end else
 				if (decoder_trigger) begin
 					`debug($display("-- %-0t", $time);)
+					irq_delay <= irq_active;
 					reg_next_pc <= current_pc + (compressed_instr ? 2 : 4);
 					if (ENABLE_COUNTERS) begin
 						count_instr <= count_instr + 1;

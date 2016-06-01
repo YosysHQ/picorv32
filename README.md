@@ -463,6 +463,10 @@ address and `q1` contains a bitmask of all IRQs to be handled. This means one
 call to the interrupt handler needs to service more than one IRQ when more than
 one bit is set in `q1`.
 
+When support for compressed instructions is enabled, then the LSB of q0 is set
+when the interrupted instruction is a compressed instruction. This can be used if
+the IRQ handler wants to decode the interrupted instruction.
+
 Registers `q2` and `q3` are uninitialized and can be used as temporary storage
 when saving/restoring register values in the IRQ handler.
 
