@@ -75,7 +75,7 @@ void multest(void)
 
 		if (s_mul != h_mul || s_mulh != h_mulh || s_mulhsu != h_mulhsu || s_mulhu != h_mulhu) {
 			print_str("ERROR!\n");
-			__asm__ volatile ("sbreak");
+			__asm__ volatile ("ebreak");
 			return;
 		}
 

@@ -78,7 +78,7 @@ void sieve(void)
 		print_str(" OK\n");
 	} else {
 		print_str(" ERROR\n");
-		__asm__ volatile ("sbreak");
+		__asm__ volatile ("ebreak");
 	}
 }
 

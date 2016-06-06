@@ -9,4 +9,4 @@ addi sp, sp, %lo(512)
 jal ra, main
 
 /* break */
-sbreak
+ebreak

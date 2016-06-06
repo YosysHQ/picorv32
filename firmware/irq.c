@@ -30,7 +30,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 			else
 				print_hex(instr, 4);
 			print_str("\n");
-			__asm__ volatile ("sbreak");
+			__asm__ volatile ("ebreak");
 		}
 	}
 
@@ -62,7 +62,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 
 		if ((irqs & 2) != 0) {
 			if (instr == 0x00100073 || instr == 0x9002) {
-				print_str("SBREAK instruction at 0x");
+				print_str("EBREAK instruction at 0x");
 				print_hex(pc, 8);
 				print_str("\n");
 			} else {
@@ -132,7 +132,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 		print_dec(timer_irq_count);
 		print_str("\n");
 
-		__asm__ volatile ("sbreak");
+		__asm__ volatile ("ebreak");
 	}
 
 	return regs;

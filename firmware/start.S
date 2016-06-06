@@ -260,7 +260,7 @@ irq_vec:
 	// new irq_regs address returned from C code in a0
 	addi a1, zero, 0x200
 	beq a0, a1, 1f
-	sbreak
+	ebreak
 1:
 
 #ifdef ENABLE_FASTIRQ
@@ -478,8 +478,8 @@ start:
 	sw a4,0(a0)
 	sw a5,0(a0)
 
-	/* break */
-	sbreak
+	/* trap */
+	ebreak
 
 
 /* Hard mul functions for multest.c

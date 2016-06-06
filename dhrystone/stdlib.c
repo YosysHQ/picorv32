@@ -36,7 +36,7 @@ char *malloc(int size)
 	// printf("[malloc(%d) -> %d (%d..%d)]", size, (int)p, heap_memory_used, heap_memory_used + size);
 	heap_memory_used += size;
 	if (heap_memory_used > 1024)
-		asm("sbreak");
+		asm("ebreak");
 	return p;
 }
 

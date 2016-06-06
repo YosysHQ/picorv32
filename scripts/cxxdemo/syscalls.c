@@ -44,7 +44,7 @@ void unimplemented_syscall()
 	const char *p = "Unimplemented system call called!\n";
 	while (*p)
 		*(volatile int*)0x10000000 = *(p++);
-	asm volatile ("sbreak");
+	asm volatile ("ebreak");
 	__builtin_unreachable();
 }
 
@@ -89,7 +89,7 @@ void *sbrk(ptrdiff_t incr)
 
 void _exit(int exit_status)
 {
-	asm volatile ("sbreak");
+	asm volatile ("ebreak");
 	__builtin_unreachable();
 }
 

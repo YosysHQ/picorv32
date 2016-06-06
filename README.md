@@ -215,9 +215,9 @@ accesses.
 
 Set this to 0 to disable the circuitry for catching illegal instructions.
 
-The core will still trap on an `SBREAK` instruction with this option
-set to 0. With IRQs enabled, an `SBREAK` normally triggers an IRQ 1. With
-this option set to 0, an `SBREAK` will trap the processor without
+The core will still trap on `EBREAK` instructions with this option
+set to 0. With IRQs enabled, an `EBREAK` normally triggers an IRQ 1. With
+this option set to 0, an `EBREAK` will trap the processor without
 triggering an interrupt.
 
 #### ENABLE_PCPI (default = 0)
@@ -448,11 +448,11 @@ interrupt handler returns.
 
 The IRQs 0-2 can be triggered internally by the following built-in interrupt sources:
 
-| IRQ | Interrupt Source                   |
-| ---:| -----------------------------------|
-|   0 | Timer Interrupt                    |
-|   1 | SBREAK or Illegal Instruction      |
-|   2 | BUS Error (Unalign Memory Access)  |
+| IRQ | Interrupt Source                    |
+| ---:| ------------------------------------|
+|   0 | Timer Interrupt                     |
+|   1 | EBREAK/ECALL or Illegal Instruction |
+|   2 | BUS Error (Unalign Memory Access)   |
 
 This interrupts can also be triggered by external sources, such as co-processors
 connected via PCPI.

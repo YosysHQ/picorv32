@@ -7,7 +7,7 @@
 #define RVTEST_DATA_BEGIN
 #define RVTEST_DATA_END
 
-#define RVTEST_FAIL sbreak
-#define RVTEST_PASS sbreak
+#define RVTEST_FAIL ebreak
+#define RVTEST_PASS ebreak
 
 #endif

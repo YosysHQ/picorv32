@@ -46,6 +46,6 @@ start:
 	sw a4,0(a0)
 	sw a5,0(a0)
 
-	/* break */
-	sbreak
+	/* trap */
+	ebreak
 
