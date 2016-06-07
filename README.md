@@ -279,6 +279,14 @@ The start address of the program.
 
 The start address of the interrupt handler.
 
+#### STACKADDR (default = 32'h ffff_ffff)
+
+When this parameter has a value different from 0xffffffff, then register `x2` (the
+stack pointer) is initialized to this value on reset. (All other registers remain
+uninitialized.) Note that the RISC-V calling convention requires the stack pointer
+to be aligned on 16 bytes boundaries (4 bytes for the RV32I soft float calling
+convention).
+
 
 Cycles per Instruction Performance
 ----------------------------------

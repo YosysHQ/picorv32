@@ -61,7 +61,8 @@ module picorv32 #(
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
-	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010
+	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010,
+	parameter [31:0] STACKADDR = 32'h ffff_ffff
 ) (
 	input clk, resetn,
 	output reg trap,
@@ -1162,6 +1163,11 @@ module picorv32 #(
 			irq_state <= 0;
 			eoi <= 0;
 			timer <= 0;
+			if (~STACKADDR) begin
+				latched_store <= 1;
+				latched_rd <= 2;
+				reg_out <= STACKADDR;
+			end
 			cpu_state <= cpu_state_fetch;
 		end else
 		(* parallel_case, full_case *)
