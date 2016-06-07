@@ -1,18 +1,27 @@
+// This is free and unencumbered software released into the public domain.
+//
+// Anyone is free to copy, modify, publish, use, compile, sell, or
+// distribute this software, either in source code form or as a compiled
+// binary, for any purpose, commercial or non-commercial, and by any
+// means.
+
 #include <stdarg.h>
+#include <stdint.h>
 
 extern long time();
 extern long insn();
+
+#ifdef USE_MYSTDLIB
 extern char *malloc();
 extern int printf(const char *format, ...);
-extern int scanf(const char *format, ...);
 
-// implementations are copy&paste from riscv newlib
 extern void *memcpy(void *dest, const void *src, long n);
 extern char *strcpy(char *dest, const char *src);
 extern int strcmp(const char *s1, const char *s2);
 
 char heap_memory[1024];
 int heap_memory_used = 0;
+#endif
 
 long time()
 {
@@ -30,6 +39,7 @@ long insn()
 	return insns;
 }
 
+#ifdef USE_MYSTDLIB
 char *malloc(int size)
 {
 	char *p = heap_memory + heap_memory_used;
@@ -96,213 +106,105 @@ int printf(const char *format, ...)
 	va_end(ap);
 }
 
-int scanf(const char *format, ...)
+void *memcpy(void *aa, const void *bb, long n)
 {
-	// printf("[scanf(\"%s\")]\n", format);
-	va_list ap;
-	va_start(ap, format);
-	*va_arg(ap,int*) = 100;
-	va_end(ap);
-	return 0;
+	// printf("**MEMCPY**\n");
+	char *a = aa;
+	const char *b = bb;
+	while (n--) *(a++) = *(b++);
+	return aa;
 }
 
-// -------------------------------------------------------
-// Copy&paste from RISC-V newlib:
-
-void* memcpy(void* aa, const void* bb, long n)
+char *strcpy(char* dst, const char* src)
 {
-  #define BODY(a, b, t) { \
-    t tt = *b; \
-    a++, b++; \
-    *(a-1) = tt; \
-  }
+	char *r = dst;
 
-  char* a = (char*)aa;
-  const char* b = (const char*)bb;
-  char* end = a+n;
-  unsigned long msk = sizeof(long)-1;
-  if (__builtin_expect(((unsigned long)a & msk) != ((unsigned long)b & msk) || n < sizeof(long), 0))
-  {
-small:
-    if (__builtin_expect(a < end, 1))
-      while (a < end)
-        BODY(a, b, char);
-    return aa;
-  }
+	while ((((uint32_t)dst | (uint32_t)src) & 3) != 0)
+	{
+		char c = *(src++);
+		*(dst++) = c;
+		if (!c) return r;
+	}
 
-  if (__builtin_expect(((unsigned long)a & msk) != 0, 0))
-    while ((unsigned long)a & msk)
-      BODY(a, b, char);
+	while (1)
+	{
+		uint32_t v = *(uint32_t*)src;
 
-  long* la = (long*)a;
-  const long* lb = (const long*)b;
-  long* lend = (long*)((unsigned long)end & ~msk);
+		if (__builtin_expect((((v) - 0x01010101UL) & ~(v) & 0x80808080UL), 0))
+		{
+			dst[0] = v & 0xff;
+			if ((v & 0xff) == 0)
+				return r;
+			v = v >> 8;
 
-  if (__builtin_expect(la < lend-8, 0))
-  {
-    while (la < lend-8)
-    {
-      long b0 = *lb++;
-      long b1 = *lb++;
-      long b2 = *lb++;
-      long b3 = *lb++;
-      long b4 = *lb++;
-      long b5 = *lb++;
-      long b6 = *lb++;
-      long b7 = *lb++;
-      long b8 = *lb++;
-      *la++ = b0;
-      *la++ = b1;
-      *la++ = b2;
-      *la++ = b3;
-      *la++ = b4;
-      *la++ = b5;
-      *la++ = b6;
-      *la++ = b7;
-      *la++ = b8;
-    }
-  }
+			dst[1] = v & 0xff;
+			if ((v & 0xff) == 0)
+				return r;
+			v = v >> 8;
 
-  while (la < lend)
-    BODY(la, lb, long);
+			dst[2] = v & 0xff;
+			if ((v & 0xff) == 0)
+				return r;
+			v = v >> 8;
 
-  a = (char*)la;
-  b = (const char*)lb;
-  if (__builtin_expect(a < end, 0))
-    goto small;
-  return aa;
+			dst[3] = v & 0xff;
+			return r;
+		}
+
+		*(uint32_t*)dst = v;
+		src += 4;
+		dst += 4;
+	}
 }
 
-static inline unsigned long __libc_detect_null(unsigned long w)
+int strcmp(const char *s1, const char *s2)
 {
-  unsigned long mask = 0x7f7f7f7f;
-  if (sizeof(long) == 8)
-    mask = ((mask << 16) << 16) | mask;
-  return ~(((w & mask) + mask) | w | mask);
+	while ((((uint32_t)s1 | (uint32_t)s2) & 3) != 0)
+	{
+		char c1 = *(s1++);
+		char c2 = *(s2++);
+
+		if (c1 != c2)
+			return c1 < c2 ? -1 : +1;
+		else if (!c1)
+			return 0;
+	}
+
+	while (1)
+	{
+		uint32_t v1 = *(uint32_t*)s1;
+		uint32_t v2 = *(uint32_t*)s2;
+
+		if (__builtin_expect(v1 != v2, 0))
+		{
+			char c1, c2;
+
+			c1 = v1 & 0xff, c2 = v2 & 0xff;
+			if (c1 != c2) return c1 < c2 ? -1 : +1;
+			if (!c1) return 0;
+			v1 = v1 >> 8, v2 = v2 >> 8;
+
+			c1 = v1 & 0xff, c2 = v2 & 0xff;
+			if (c1 != c2) return c1 < c2 ? -1 : +1;
+			if (!c1) return 0;
+			v1 = v1 >> 8, v2 = v2 >> 8;
+
+			c1 = v1 & 0xff, c2 = v2 & 0xff;
+			if (c1 != c2) return c1 < c2 ? -1 : +1;
+			if (!c1) return 0;
+			v1 = v1 >> 8, v2 = v2 >> 8;
+
+			c1 = v1 & 0xff, c2 = v2 & 0xff;
+			if (c1 != c2) return c1 < c2 ? -1 : +1;
+			return 0;
+		}
+
+		if (__builtin_expect((((v1) - 0x01010101UL) & ~(v1) & 0x80808080UL), 0))
+			return 0;
+
+		s1 += 4;
+		s2 += 4;
+	}
 }
+#endif
 
-char* strcpy(char* dst, const char* src)
-{
-  char* dst0 = dst;
-
-#if !defined(PREFER_SIZE_OVER_SPEED) && !defined(__OPTIMIZE_SIZE__)
-  int misaligned = ((unsigned long)dst | (unsigned long)src) & (sizeof(long)-1);
-  if (__builtin_expect(!misaligned, 1))
-  {
-    long* ldst = (long*)dst;
-    const long* lsrc = (const long*)src;
-
-    while (!__libc_detect_null(*lsrc))
-      *ldst++ = *lsrc++;
-
-    dst = (char*)ldst;
-    src = (const char*)lsrc;
-
-    char c0 = src[0];
-    char c1 = src[1];
-    char c2 = src[2];
-    if (!(*dst++ = c0)) return dst0;
-    if (!(*dst++ = c1)) return dst0;
-    char c3 = src[3];
-    if (!(*dst++ = c2)) return dst0;
-    if (sizeof(long) == 4) goto out;
-    char c4 = src[4];
-    if (!(*dst++ = c3)) return dst0;
-    char c5 = src[5];
-    if (!(*dst++ = c4)) return dst0;
-    char c6 = src[6];
-    if (!(*dst++ = c5)) return dst0;
-    if (!(*dst++ = c6)) return dst0;
-
-out:
-    *dst++ = 0;
-    return dst0;
-  }
-#endif /* not PREFER_SIZE_OVER_SPEED */
-
-  char ch;
-  do
-  {
-    ch = *src;
-    src++;
-    dst++;
-    *(dst-1) = ch;
-  } while(ch);
-
-  return dst0;
-}
-
-/* copy&paste from disassembled libc */
-// strcmp.S: Artisanally coded in California by A. Shell Waterman
-asm (
-"               .global strcmp;      "
-"  strcmp:      or      a4,a0,a1;    "
-"               li      t2,-1;       "
-"               andi    a4,a4,3;     "
-"               bnez    a4,.K1;      "
-"               lui     t3,0x7f7f8;  "
-"               addi    t3,t3,-129;  "
-"  .K6:         lw      a2,0(a0);    "
-"               lw      a3,0(a1);    "
-"               and     t0,a2,t3;    "
-"               or      t1,a2,t3;    "
-"               add     t0,t0,t3;    "
-"               or      t0,t0,t1;    "
-"               bne     t0,t2,.K2;   "
-"               bne     a2,a3,.K3;   "
-"               lw      a2,4(a0);    "
-"               lw      a3,4(a1);    "
-"               and     t0,a2,t3;    "
-"               or      t1,a2,t3;    "
-"               add     t0,t0,t3;    "
-"               or      t0,t0,t1;    "
-"               bne     t0,t2,.K4;   "
-"               bne     a2,a3,.K3;   "
-"               lw      a2,8(a0);    "
-"               lw      a3,8(a1);    "
-"               and     t0,a2,t3;    "
-"               or      t1,a2,t3;    "
-"               add     t0,t0,t3;    "
-"               or      t0,t0,t1;    "
-"               bne     t0,t2,.K5;   "
-"               addi    a0,a0,12;    "
-"               addi    a1,a1,12;    "
-"               beq     a2,a3,.K6;   "
-"  .K3:         slli    a4,a2,0x10;  "
-"               slli    a5,a3,0x10;  "
-"               bne     a4,a5,.K7;   "
-"               srli    a4,a2,0x10;  "
-"               srli    a5,a3,0x10;  "
-"               sub     a0,a4,a5;    "
-"               andi    a1,a0,255;   "
-"               bnez    a1,.K8;      "
-"               ret;                 "
-"  .K7:         srli    a4,a4,0x10;  "
-"               srli    a5,a5,0x10;  "
-"               sub     a0,a4,a5;    "
-"               andi    a1,a0,255;   "
-"               bnez    a1,.K8;      "
-"               ret;                 "
-"  .K8:         andi    a4,a4,255;   "
-"               andi    a5,a5,255;   "
-"               sub     a0,a4,a5;    "
-"               ret;                 "
-"  .K1:         lbu     a2,0(a0);    "
-"               lbu     a3,0(a1);    "
-"               addi    a0,a0,1;     "
-"               addi    a1,a1,1;     "
-"               bne     a2,a3,.K9;   "
-"               bnez    a2,.K1;      "
-"  .K9:         sub     a0,a2,a3;    "
-"               ret;                 "
-"  .K4:         addi    a0,a0,4;     "
-"               addi    a1,a1,4;     "
-"  .K2:         bne     a2,a3,.K1;   "
-"               li      a0,0;        "
-"               ret;                 "
-"  .K5:         addi    a0,a0,8;     "
-"               addi    a1,a1,8;     "
-"               bne     a2,a3,.K1;   "
-"               li      a0,0;        "
-"               ret;                 "
-);

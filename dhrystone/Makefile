@@ -1,7 +1,14 @@
+USE_MYSTDLIB = 0
+OBJS = dhry_1.o dhry_2.o stdlib.o
+CFLAGS = -MD -O3 -m32 -march=RV32IM -DTIME -DRISCV
+TOOLCHAIN_PREFIX = /opt/riscv32im/bin/riscv32-unknown-elf-
 
-OBJS = start.o dhry_1.o dhry_2.o stdlib.o
-CFLAGS = -MD -O3 -m32 -march=RV32IM -ffreestanding -nostdlib -DTIME -DRISCV
-TOOLCHAIN_PREFIX = riscv32-unknown-elf-
+ifeq ($(USE_MYSTDLIB),1)
+CFLAGS += -DUSE_MYSTDLIB -ffreestanding -nostdlib
+OBJS += start.o
+else
+OBJS += syscalls.o
+endif
 
 test: testbench.vvp dhry.hex
 	vvp -N testbench.vvp
@@ -21,16 +28,18 @@ timing.vvp: testbench.v ../picorv32.v
 	iverilog -o timing.vvp -DTIMING testbench.v ../picorv32.v
 	chmod -x timing.vvp
 
-dhry.hex: dhry.bin ../firmware/makehex.py
-	python3 ../firmware/makehex.py $< 16384 > $@
+dhry.hex: dhry.elf
+	riscv32-unknown-elf-objcopy -O verilog $< $@
 
-dhry.bin: dhry.elf
-	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@
+ifeq ($(USE_MYSTDLIB),1)
+dhry.elf: $(OBJS) sections.lds
+	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-T,sections.lds,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc
 	chmod -x $@
-	
-dhry.elf: $(OBJS) ../firmware/sections.lds
-	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-T,../firmware/sections.lds,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc
+else
+dhry.elf: $(OBJS)
+	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc -lc
 	chmod -x $@
+endif
 
 %.o: %.c
 	$(TOOLCHAIN_PREFIX)gcc -c $(CFLAGS) $<
