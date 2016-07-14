@@ -1,12 +1,12 @@
 `timescale 1 ns / 1 ps
 
 module testbench;
-	reg clk_pin = 1;
-	always #5 clk_pin = ~clk_pin;
+	reg clk = 1;
+	always #5 clk = ~clk;
 	wire LED0, LED1, LED2, LED3, LED4, LED5, LED6, LED7;
 
 	top uut (
-		.clk_pin(clk_pin),
+		.clk(clk),
 		.LED0(LED0),
 		.LED1(LED1),
 		.LED2(LED2),
@@ -24,7 +24,7 @@ module testbench;
 		end
 
 		$monitor(LED7, LED6, LED5, LED4, LED3, LED2, LED1, LED0);
-		repeat (10000) @(posedge clk_pin);
+		repeat (10000) @(posedge clk);
 		$finish;
 	end
 endmodule

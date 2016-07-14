@@ -18,11 +18,11 @@ firmware.hex: firmware.bin
 synth.blif: example.v ../../picorv32.v firmware.hex
 	yosys -v3 -l synth.log -p 'synth_ice40 -top top -blif $@; write_verilog -attr2comment synth.v' $(filter %.v, $^)
 
-example.txt: synth.blif
-	arachne-pnr -d 8k -o example.txt -p example.pcf synth.blif
+example.asc: synth.blif
+	arachne-pnr -d 8k -o example.asc -p example.pcf synth.blif
 
-example.bin: example.txt
-	icepack example.txt example.bin
+example.bin: example.asc
+	icepack example.asc example.bin
 
 example_tb.vvp: example_tb.v example.v firmware.hex
 	iverilog -o example_tb.vvp -s testbench example.v example_tb.v ../../picorv32.v
@@ -44,8 +44,8 @@ synth_sim: synth_tb.vvp
 synth_sim_vcd: synth_tb.vvp
 	vvp -N synth_tb.vvp +vcd
 
-route.v: example.txt
-	icebox_vlog -L -n top -sp example.pcf example.txt > route.v
+route.v: example.asc
+	icebox_vlog -L -n top -sp example.pcf example.asc > route.v
 
 route_tb.vvp: example_tb.v route.v
 	iverilog -o route_tb.vvp -s testbench route.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
@@ -65,7 +65,7 @@ view:
 
 clean:
 	rm -f firmware.elf firmware.map firmware.bin firmware.hex
-	rm -f synth.log synth.v synth.blif route.v example.txt example.bin
+	rm -f synth.log synth.v synth.blif route.v example.asc example.bin
 	rm -f example_tb.vvp synth_tb.vvp route_tb.vvp example.vcd
 
 .PHONY: all prog_sram view clean
