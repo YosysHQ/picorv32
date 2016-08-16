@@ -1,9 +1,8 @@
 
-RISCV_GNU_TOOLCHAIN_REV = 13f52d2
-GCC_URL = http://mirrors.kernel.org/gnu/gcc/gcc-6.1.0/gcc-6.1.0.tar.gz
+RISCV_GNU_TOOLCHAIN_REV = 7e48594
 NEWLIB_URL = ftp://sourceware.org/pub/newlib/newlib-2.2.0.tar.gz
-BINUTILS_URL = http://mirrors.kernel.org/gnu/binutils/binutils-2.26.tar.gz
 
+SHELL = bash
 TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.o firmware/multest.o firmware/stats.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
@@ -77,9 +76,14 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
 download-tools:
-	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; $(foreach URL,$(GCC_URL) $(NEWLIB_URL) $(BINUTILS_URL), \
+	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; $(foreach URL,$(NEWLIB_URL), \
 		if ! test -f /var/cache/distfiles/$(notdir $(URL)); then wget -O /var/cache/distfiles/$(notdir $(URL)).part $(URL); \
-			mv /var/cache/distfiles/$(notdir $(URL)).part /var/cache/distfiles/$(notdir $(URL)); fi;)'
+			mv /var/cache/distfiles/$(notdir $(URL)).part /var/cache/distfiles/$(notdir $(URL)); fi;) \
+	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-dejagnu riscv-gcc riscv-glibc, \
+		if ! test -d /var/cache/distfiles/$(REPO).git; then rm -rf /var/cache/distfiles/$(REPO).git.part; \
+			git clone --bare https://github.com/riscv/$(REPO) /var/cache/distfiles/$(REPO).git.part; \
+			mv /var/cache/distfiles/$(REPO).git.part /var/cache/distfiles/$(REPO).git; else \
+			(cd /var/cache/distfiles/$(REPO).git; git fetch https://github.com/riscv/$(REPO)); fi;)'
 
 define build_tools_template
 build-$(1)-tools:
@@ -88,11 +92,19 @@ build-$(1)-tools:
 	$(MAKE) build-$(1)-tools-bh
 
 build-$(1)-tools-bh:
-	set -ex; if ! test -d riscv-gnu-toolchain-$(1); then git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-$(1); \
-		else cd riscv-gnu-toolchain-$(1); git checkout master; git pull; fi
-	set -ex; cd riscv-gnu-toolchain-$(1); rm -rf build; git checkout $(RISCV_GNU_TOOLCHAIN_REV); mkdir -p build
-	set -ex; cd riscv-gnu-toolchain-$(1)/build; ../configure --with-arch=$(2) --prefix=/opt/$(1)
-	+set -ex; cd riscv-gnu-toolchain-$(1)/build; make
+	+set -ex; \
+	if [ -d /var/cache/distfiles/riscv-gnu-toolchain.git ]; then reference_riscv_gnu_toolchain="--reference /var/cache/distfiles/riscv-gnu-toolchain.git"; else reference_riscv_gnu_toolchain=""; fi; \
+	if [ -d /var/cache/distfiles/riscv-binutils-gdb.git ]; then reference_riscv_binutils_gdb="--reference /var/cache/distfiles/riscv-binutils-gdb.git"; else reference_riscv_binutils_gdb=""; fi; \
+	if [ -d /var/cache/distfiles/riscv-dejagnu.git ]; then reference_riscv_dejagnu="--reference /var/cache/distfiles/riscv-dejagnu.git"; else reference_riscv_dejagnu=""; fi; \
+	if [ -d /var/cache/distfiles/riscv-gcc.git ]; then reference_riscv_gcc="--reference /var/cache/distfiles/riscv-gcc.git"; else reference_riscv_gcc=""; fi; \
+	if [ -d /var/cache/distfiles/riscv-glibc.git ]; then reference_riscv_glibc="--reference /var/cache/distfiles/riscv-glibc.git"; else reference_riscv_glibc=""; fi; \
+	rm -rf riscv-gnu-toolchain-$(1); git clone $$$$reference_riscv_gnu_toolchain https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-$(1); \
+	cd riscv-gnu-toolchain-$(1); git checkout $(RISCV_GNU_TOOLCHAIN_REV); \
+	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-binutils-gdb; \
+	git submodule update --init $$$$reference_riscv_dejagnu riscv-dejagnu; \
+	git submodule update --init $$$$reference_riscv_gcc riscv-gcc; \
+	git submodule update --init $$$$reference_riscv_glibc riscv-glibc; \
+	mkdir build; cd build; ../configure --with-arch=$(2) --prefix=/opt/$(1); make
 
 .PHONY: build-$(1)-tools
 endef
