@@ -172,8 +172,8 @@ This parameter is only available for the `picorv32` core. In the
 
 #### TWO_STAGE_SHIFT (default = 1)
 
-By default shift operations are performed in two stages: first shift in units
-of 4 bits and then shift in units of 1 bit. This speeds up shift operations,
+By default shift operations are performed in two stages: first shifts in units
+of 4 bits and then shifts in units of 1 bit. This speeds up shift operations,
 but adds additional hardware. Set this parameter to 0 to disable the two-stage
 shift to further reduce the size of the core.
 
@@ -181,7 +181,7 @@ shift to further reduce the size of the core.
 
 By default shift operations are performed by successively shifting by a
 small amount (see `TWO_STAGE_SHIFT` above). With this option set, a barrel
-shifter is used instead instead.
+shifter is used instead.
 
 #### TWO_CYCLE_COMPARE (default = 0)
 
@@ -203,8 +203,7 @@ the ALU.
 
 #### COMPRESSED_ISA (default = 0)
 
-This enables support for the RISC-V Compressed Instruction Set. Currently
-this implements the draft version 1.9 of the compressed ISA specification.
+This enables support for the RISC-V Compressed Instruction Set.
 
 #### CATCH_MISALIGN (default = 1)
 
@@ -391,7 +390,7 @@ normal interface.
 
 In the clock cycle before `mem_valid` goes high, this interface will output a
 pulse on `mem_la_read` or `mem_la_write` to indicate the start of a read or
-write transaction in the next clock cycles.
+write transaction in the next clock cycle.
 
 *Note: The signals `mem_la_read`, `mem_la_write`, and `mem_la_addr` are driven
 by combinatorial circuits within the PicoRV32 core. It might be harder to
