@@ -58,6 +58,7 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
 	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
+	parameter [ 0:0] REGS_INIT_ZERO = 0,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
@@ -134,6 +135,14 @@ module picorv32 #(
 	reg [31:0] irq_mask;
 	reg [31:0] irq_pending;
 	reg [31:0] timer;
+
+	integer i;
+	initial begin
+		if (REGS_INIT_ZERO) begin
+			for (i = 0; i < regfile_size; i = i+1)
+				cpuregs[i] = 0;
+		end
+	end
 
 `ifdef DEBUGREGS
 	wire [31:0] dbg_reg_x0  = cpuregs[0];
@@ -1882,6 +1891,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
 	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
+	parameter [ 0:0] REGS_INIT_ZERO = 0,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
@@ -1983,6 +1993,7 @@ module picorv32_axi #(
 		.ENABLE_IRQ          (ENABLE_IRQ          ),
 		.ENABLE_IRQ_QREGS    (ENABLE_IRQ_QREGS    ),
 		.ENABLE_IRQ_TIMER    (ENABLE_IRQ_TIMER    ),
+		.REGS_INIT_ZERO      (REGS_INIT_ZERO      ),
 		.MASKED_IRQ          (MASKED_IRQ          ),
 		.LATCHED_IRQ         (LATCHED_IRQ         ),
 		.PROGADDR_RESET      (PROGADDR_RESET      ),

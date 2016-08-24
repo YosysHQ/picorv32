@@ -256,6 +256,11 @@ Set this to 0 to disable support for the `timer` instruction.
 
 Support for the timer is always disabled when ENABLE_IRQ is set to 0.
 
+#### REGS_INIT_ZERO (default = 0)
+
+Set this to 1 to initialize all registers to zero (using a Verilog `initial` block).
+This can be useful for simulation or formal verification.
+
 #### MASKED_IRQ (default = 32'h 0000_0000)
 
 A 1 bit in this bitmask corresponds to a permanently disabled IRQ.
