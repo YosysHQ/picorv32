@@ -23,6 +23,7 @@
 /testbench_synth.vvp
 /testbench.gtkw
 /testbench.vcd
+/testbench.trace
 /check.smt2
 /check.vcd
 /synth.log

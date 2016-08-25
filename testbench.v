@@ -15,6 +15,7 @@ module testbench #(
 
 	reg clk = 1;
 	reg resetn = 0;
+	wire trap;
 
 	always #5 clk = ~clk;
 
@@ -33,12 +34,32 @@ module testbench #(
 		$finish;
 	end
 
+	wire trace_valid;
+	wire [35:0] trace_data;
+	integer trace_file;
+
+	initial begin
+		if ($test$plusargs("trace")) begin
+			trace_file = $fopen("testbench.trace", "w");
+			repeat (10) @(posedge clk);
+			while (!trap) begin
+				@(posedge clk);
+				if (trace_valid)
+					$fwrite(trace_file, "%x\n", trace_data);
+			end
+			$fclose(trace_file);
+		end
+	end
+
 	picorv32_wrapper #(
 		.AXI_TEST (AXI_TEST),
 		.VERBOSE  (VERBOSE)
 	) top (
-		.clk    (clk   ),
-		.resetn (resetn)
+		.clk(clk),
+		.resetn(resetn),
+		.trap(trap),
+		.trace_valid(trace_valid),
+		.trace_data(trace_data)
 	);
 endmodule
 `endif
@@ -48,10 +69,14 @@ module picorv32_wrapper #(
 	parameter VERBOSE = 0
 ) (
 	input clk,
-	input resetn
+	input resetn,
+	output trap,
+	output trace_valid,
+	output [35:0] trace_data
 );
 
-	wire       trap;
+	wire trap;
+	wire tests_passed;
 	reg [31:0] irq;
 
 	always @* begin
@@ -107,7 +132,9 @@ module picorv32_wrapper #(
 
 		.mem_axi_rvalid  (mem_axi_rvalid  ),
 		.mem_axi_rready  (mem_axi_rready  ),
-		.mem_axi_rdata   (mem_axi_rdata   )
+		.mem_axi_rdata   (mem_axi_rdata   ),
+
+		.tests_passed    (tests_passed    )
 	);
 
 	picorv32_axi #(
@@ -119,7 +146,8 @@ module picorv32_wrapper #(
 `endif
 		.ENABLE_MUL(1),
 		.ENABLE_DIV(1),
-		.ENABLE_IRQ(1)
+		.ENABLE_IRQ(1),
+		.ENABLE_TRACE(1)
 	) uut (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
@@ -141,7 +169,9 @@ module picorv32_wrapper #(
 		.mem_axi_rvalid (mem_axi_rvalid ),
 		.mem_axi_rready (mem_axi_rready ),
 		.mem_axi_rdata  (mem_axi_rdata  ),
-		.irq            (irq            )
+		.irq            (irq            ),
+		.trace_valid    (trace_valid    ),
+		.trace_data     (trace_data     )
 	);
 
 	reg [1023:0] firmware_file;
@@ -159,7 +189,13 @@ module picorv32_wrapper #(
 			repeat (10) @(posedge clk);
 `endif
 			$display("TRAP after %1d clock cycles", cycle_counter);
-			$finish;
+			if (tests_passed) begin
+				$display("ALL TESTS PASSED.");
+				$finish;
+			end else begin
+				$display("ERROR!");
+				$stop;
+			end
 		end
 	end
 endmodule
@@ -189,7 +225,9 @@ module axi4_memory #(
 
 	output reg        mem_axi_rvalid = 0,
 	input             mem_axi_rready,
-	output reg [31:0] mem_axi_rdata
+	output reg [31:0] mem_axi_rdata,
+
+	output reg tests_passed
 );
 
 	reg [31:0]   memory [0:64*1024/4-1] /* verilator public */;
@@ -198,6 +236,8 @@ module axi4_memory #(
 
 	reg axi_test;
 	initial axi_test = $test$plusargs("axi_test") || AXI_TEST;
+
+	initial tests_passed = 0;
 
 	reg [63:0] xorshift64_state = 64'd88172645463325252;
 
@@ -292,6 +332,10 @@ module axi4_memory #(
 				$fflush();
 `endif
 			end
+		end else
+		if (latched_waddr == 32'h2000_0000) begin
+			if (latched_wdata == 123456789)
+				tests_passed = 1;
 		end else begin
 			$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
 			$finish;

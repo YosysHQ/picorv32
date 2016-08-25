@@ -14,7 +14,7 @@ test: testbench.vvp firmware/firmware.hex
 	vvp -N testbench.vvp
 
 testbench.vcd: testbench.vvp firmware/firmware.hex
-	vvp -N $< +vcd
+	vvp -N $< +vcd +trace
 
 view: testbench.vcd
 	gtkwave $< testbench.gtkw
@@ -131,7 +131,7 @@ clean:
 		riscv-gnu-toolchain-riscv32im riscv-gnu-toolchain-riscv32imc
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
-		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench.vcd
+		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench.vcd testbench.trace
 
 .PHONY: test view test_sp test_axi test_synth download-tools toc clean
 

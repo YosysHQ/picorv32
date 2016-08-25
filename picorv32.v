@@ -58,6 +58,7 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
 	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
+	parameter [ 0:0] ENABLE_TRACE = 0,
 	parameter [ 0:0] REGS_INIT_ZERO = 0,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
@@ -96,7 +97,11 @@ module picorv32 #(
 
 	// IRQ Interface
 	input      [31:0] irq,
-	output reg [31:0] eoi
+	output reg [31:0] eoi,
+
+	// Trace Interface
+	output reg        trace_valid,
+	output reg [35:0] trace_data
 );
 	localparam integer irq_timer = 0;
 	localparam integer irq_ebreak = 1;
@@ -107,6 +112,10 @@ module picorv32 #(
 	localparam integer regindex_bits = (ENABLE_REGS_16_31 ? 5 : 4) + ENABLE_IRQ*ENABLE_IRQ_QREGS;
 
 	localparam WITH_PCPI = ENABLE_PCPI || ENABLE_MUL || ENABLE_DIV;
+
+	localparam [35:0] TRACE_BRANCH = {4'b 0001, 32'b 0};
+	localparam [35:0] TRACE_ADDR   = {4'b 0010, 32'b 0};
+	localparam [35:0] TRACE_IRQ    = {4'b 1000, 32'b 0};
 
 	reg [63:0] count_cycle, count_instr;
 	reg [31:0] reg_pc, reg_next_pc, reg_op1, reg_op2, reg_out;
@@ -1016,6 +1025,7 @@ module picorv32 #(
 	reg latched_stalu;
 	reg latched_branch;
 	reg latched_compr;
+	reg latched_trace;
 	reg latched_is_lu;
 	reg latched_is_lh;
 	reg latched_is_lb;
@@ -1155,6 +1165,9 @@ module picorv32 #(
 		decoder_pseudo_trigger_q <= decoder_pseudo_trigger;
 		do_waitirq <= 0;
 
+		if (ENABLE_TRACE)
+			trace_valid <= 0;
+
 		if (!resetn) begin
 			reg_pc <= PROGADDR_RESET;
 			reg_next_pc <= PROGADDR_RESET;
@@ -1163,6 +1176,7 @@ module picorv32 #(
 			latched_store <= 0;
 			latched_stalu <= 0;
 			latched_branch <= 0;
+			latched_trace <= 0;
 			latched_is_lu <= 0;
 			latched_is_lh <= 0;
 			latched_is_lb <= 0;
@@ -1218,6 +1232,15 @@ module picorv32 #(
 					end
 				endcase
 
+				if (ENABLE_TRACE && latched_trace) begin
+					latched_trace <= 0;
+					trace_valid <= 1;
+					if (latched_branch)
+						trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_BRANCH | current_pc;
+					else
+						trace_data <= (irq_active ? TRACE_IRQ : 0) | (latched_stalu ? alu_out_q : reg_out);
+				end
+
 				reg_pc <= current_pc;
 				reg_next_pc <= current_pc;
 
@@ -1253,6 +1276,8 @@ module picorv32 #(
 					`debug($display("-- %-0t", $time);)
 					irq_delay <= irq_active;
 					reg_next_pc <= current_pc + (compressed_instr ? 2 : 4);
+					if (ENABLE_TRACE)
+						latched_trace <= 1;
 					if (ENABLE_COUNTERS) begin
 						count_instr <= count_instr + 1;
 						if (!ENABLE_COUNTERS64) count_instr[63:32] <= 0;
@@ -1519,6 +1544,8 @@ module picorv32 #(
 			end
 
 			cpu_state_stmem: begin
+				if (ENABLE_TRACE)
+					reg_out <= reg_op2;
 				if (!mem_do_prefetch || mem_done) begin
 					if (!mem_do_wdata) begin
 						(* parallel_case, full_case *)
@@ -1527,6 +1554,10 @@ module picorv32 #(
 							instr_sh: mem_wordsize <= 1;
 							instr_sw: mem_wordsize <= 0;
 						endcase
+						if (ENABLE_TRACE) begin
+							trace_valid <= 1;
+							trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_ADDR | (reg_op1 + decoded_imm);
+						end
 						reg_op1 <= reg_op1 + decoded_imm;
 						set_mem_do_wdata = 1;
 					end
@@ -1551,6 +1582,10 @@ module picorv32 #(
 						latched_is_lu <= is_lbu_lhu_lw;
 						latched_is_lh <= instr_lh;
 						latched_is_lb <= instr_lb;
+						if (ENABLE_TRACE) begin
+							trace_valid <= 1;
+							trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_ADDR | (reg_op1 + decoded_imm);
+						end
 						reg_op1 <= reg_op1 + decoded_imm;
 						set_mem_do_rdata = 1;
 					end
@@ -1891,6 +1926,7 @@ module picorv32_axi #(
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
 	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
+	parameter [ 0:0] ENABLE_TRACE = 0,
 	parameter [ 0:0] REGS_INIT_ZERO = 0,
 	parameter [31:0] MASKED_IRQ = 32'h 0000_0000,
 	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
@@ -1936,7 +1972,11 @@ module picorv32_axi #(
 
 	// IRQ interface
 	input  [31:0] irq,
-	output [31:0] eoi
+	output [31:0] eoi,
+
+	// Trace Interface
+	output        trace_valid,
+	output [35:0] trace_data
 );
 	wire        mem_valid;
 	wire [31:0] mem_addr;
@@ -1993,6 +2033,7 @@ module picorv32_axi #(
 		.ENABLE_IRQ          (ENABLE_IRQ          ),
 		.ENABLE_IRQ_QREGS    (ENABLE_IRQ_QREGS    ),
 		.ENABLE_IRQ_TIMER    (ENABLE_IRQ_TIMER    ),
+		.ENABLE_TRACE        (ENABLE_TRACE        ),
 		.REGS_INIT_ZERO      (REGS_INIT_ZERO      ),
 		.MASKED_IRQ          (MASKED_IRQ          ),
 		.LATCHED_IRQ         (LATCHED_IRQ         ),
@@ -2021,7 +2062,10 @@ module picorv32_axi #(
 		.pcpi_ready(pcpi_ready),
 
 		.irq(irq),
-		.eoi(eoi)
+		.eoi(eoi),
+
+		.trace_valid(trace_valid),
+		.trace_data (trace_data)
 	);
 endmodule
 
