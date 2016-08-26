@@ -1,0 +1,12 @@
+initial
+assume (= [mem_0] [mem_1])
+assume (= [cpu_0.cpuregs] [cpu_1.cpuregs])
+assume (= [trace_data_0] [trace_data_1])
+
+always
+assume (=> (not [mem_valid_0]) (not [mem_ready_0]))
+assume (=> (not [mem_valid_1]) (not [mem_ready_1]))
+# assume (= [mem_ready_0] [mem_ready_1])
+
+always -1
+assert (=> (= [trace_balance] #x00) (= [trace_data_0] [trace_data_1]))

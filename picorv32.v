@@ -1145,6 +1145,9 @@ module picorv32 #(
 		if (ENABLE_COUNTERS) begin
 			count_cycle <= resetn ? count_cycle + 1 : 0;
 			if (!ENABLE_COUNTERS64) count_cycle[63:32] <= 0;
+		end else begin
+			count_cycle <= 'bx;
+			count_instr <= 'bx;
 		end
 
 		next_irq_pending = ENABLE_IRQ ? irq_pending & LATCHED_IRQ : 'bx;
@@ -1667,11 +1670,11 @@ module picorv32 #(
 	reg [4:0] last_mem_ready;
 	always @(posedge clk)
 		last_mem_ready <= {last_mem_ready, mem_ready};
-	assume property (|last_mem_ready);
+	restrict property (|last_mem_ready);
 
 	reg ok;
 	always @* begin
-		assume (resetn == |cycle);
+		restrict (resetn == |cycle);
 		if (cycle) begin
 			// instruction fetches are read-only
 			if (mem_valid && mem_instr)
