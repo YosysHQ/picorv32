@@ -1168,8 +1168,10 @@ module picorv32 #(
 		decoder_pseudo_trigger_q <= decoder_pseudo_trigger;
 		do_waitirq <= 0;
 
-		if (ENABLE_TRACE)
-			trace_valid <= 0;
+		trace_valid <= 0;
+
+		if (!ENABLE_TRACE)
+			trace_data <= 'bx;
 
 		if (!resetn) begin
 			reg_pc <= PROGADDR_RESET;
@@ -1663,19 +1665,15 @@ module picorv32 #(
 
 	// Formal Verification
 `ifdef FORMAL
-	reg [3:0] cycle = 0;
+	reg [3:0] last_mem_nowait;
 	always @(posedge clk)
-		if (~&cycle) cycle <= cycle + 1;
-
-	reg [4:0] last_mem_ready;
-	always @(posedge clk)
-		last_mem_ready <= {last_mem_ready, mem_ready};
-	restrict property (|last_mem_ready);
+		last_mem_nowait <= {last_mem_nowait, mem_ready || !mem_valid};
+	restrict property (|last_mem_nowait || mem_ready || !mem_valid);
 
 	reg ok;
 	always @* begin
-		restrict (resetn == |cycle);
-		if (cycle) begin
+		restrict (resetn == !$initstate);
+		if (!$initstate) begin
 			// instruction fetches are read-only
 			if (mem_valid && mem_instr)
 				assert (mem_wstrb == 0);
@@ -1685,7 +1683,7 @@ module picorv32 #(
 			if (cpu_state == cpu_state_trap)   ok = 1;
 			if (cpu_state == cpu_state_fetch)  ok = 1;
 			if (cpu_state == cpu_state_ld_rs1) ok = 1;
-			if (cpu_state == cpu_state_ld_rs2) ok = ENABLE_REGS_DUALPORT;
+			if (cpu_state == cpu_state_ld_rs2) ok = !ENABLE_REGS_DUALPORT;
 			if (cpu_state == cpu_state_exec)   ok = 1;
 			if (cpu_state == cpu_state_shift)  ok = 1;
 			if (cpu_state == cpu_state_stmem)  ok = 1;
