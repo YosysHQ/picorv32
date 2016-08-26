@@ -1236,7 +1236,7 @@ module picorv32 #(
 					latched_trace <= 0;
 					trace_valid <= 1;
 					if (latched_branch)
-						trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_BRANCH | current_pc;
+						trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_BRANCH | (current_pc & 32'hfffffffe);
 					else
 						trace_data <= (irq_active ? TRACE_IRQ : 0) | (latched_stalu ? alu_out_q : reg_out);
 				end
@@ -1556,7 +1556,7 @@ module picorv32 #(
 						endcase
 						if (ENABLE_TRACE) begin
 							trace_valid <= 1;
-							trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_ADDR | (reg_op1 + decoded_imm);
+							trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_ADDR | ((reg_op1 + decoded_imm) & 32'hffffffff);
 						end
 						reg_op1 <= reg_op1 + decoded_imm;
 						set_mem_do_wdata = 1;
@@ -1584,7 +1584,7 @@ module picorv32 #(
 						latched_is_lb <= instr_lb;
 						if (ENABLE_TRACE) begin
 							trace_valid <= 1;
-							trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_ADDR | (reg_op1 + decoded_imm);
+							trace_data <= (irq_active ? TRACE_IRQ : 0) | TRACE_ADDR | ((reg_op1 + decoded_imm) & 32'hffffffff);
 						end
 						reg_op1 <= reg_op1 + decoded_imm;
 						set_mem_do_rdata = 1;

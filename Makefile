@@ -14,7 +14,7 @@ test: testbench.vvp firmware/firmware.hex
 	vvp -N testbench.vvp
 
 testbench.vcd: testbench.vvp firmware/firmware.hex
-	vvp -N $< +vcd +trace
+	vvp -N $< +vcd +trace +noerror
 
 view: testbench.vcd
 	gtkwave $< testbench.gtkw

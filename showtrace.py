@@ -23,6 +23,7 @@ with open(trace_filename, "r") as f:
         irq_active = (raw_data & 0x800000000) != 0
         is_addr = (raw_data & 0x200000000) != 0
         is_branch = (raw_data & 0x100000000) != 0
+        info = "%s %s%08x" % ("IRQ" if irq_active else "   ", ">" if is_branch else "@" if is_addr else "=", payload)
 
         if irq_active and not last_irq:
             pc = 0x10
@@ -30,18 +31,31 @@ with open(trace_filename, "r") as f:
         if pc >= 0:
             if pc in insns:
                 insn_opcode, insn_desc = insns[pc]
+                opname = insn_desc.split()[0]
+
+                if insn_desc.startswith("custom0 0,0,0,2"):
+                    opname = "retirq"
+
+                if is_branch and opname not in ["j", "jal", "jr", "jalr", "ret", "retirq",
+                        "beq", "bne", "blt", "ble", "bge", "bgt", "bltu", "bleu", "bgeu", "bgtu",
+                        "beqz", "bnez", "blez", "bgez", "bltz", "bgtz"]:
+                    print("%s ** UNEXPECTED BRANCH DATA FOR INSN AT %08x! **" % (info, pc))
+
+                if is_addr and opname not in ["lb", "lh", "lw", "lbu", "lhu", "sb", "sh", "sw"]:
+                    print("%s ** UNEXPECTED ADDR DATA FOR INSN AT %08x! **" % (info, pc))
+
                 opcode_fmt = "%08x" if (insn_opcode & 3) == 3 else "    %04x"
-                print(("%s %s%08x | %08x | " + opcode_fmt + " | %s") % ("IRQ" if irq_active else "   ",
-                        ">" if is_branch else "@" if is_addr else "=", payload, pc, insn_opcode, insn_desc))
+                print(("%s | %08x | " + opcode_fmt + " | %s") % (info, pc, insn_opcode, insn_desc))
                 if not is_addr:
                     pc += 4 if (insn_opcode & 3) == 3 else 2
             else:
-                print("%s %s%08x ** NO INFORMATION ON INSN AT %08x! **" % ("IRQ" if irq_active else "   ",
-                        ">" if is_branch else "@" if is_addr else "=", payload, pc))
+                print("%s ** NO INFORMATION ON INSN AT %08x! **" % (info, pc))
                 pc = -1
         else:
-            print("%s %s%08x ** SKIPPING DATA UNTIL NEXT BRANCH **" % ("IRQ" if irq_active else "   ",
-                    ">" if is_branch else "@" if is_addr else "=", payload))
+            if is_branch:
+                print("%s ** FOUND BRANCH AND STARTING DECODING **" % info)
+            else:
+                print("%s ** SKIPPING DATA UNTIL NEXT BRANCH **" % info)
 
         if is_branch:
             pc = payload

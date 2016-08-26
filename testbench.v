@@ -48,6 +48,7 @@ module testbench #(
 					$fwrite(trace_file, "%x\n", trace_data);
 			end
 			$fclose(trace_file);
+			$display("Finished writing testbench.trace.");
 		end
 	end
 
@@ -194,6 +195,8 @@ module picorv32_wrapper #(
 				$finish;
 			end else begin
 				$display("ERROR!");
+				if ($test$plusargs("noerror"))
+					$finish;
 				$stop;
 			end
 		end

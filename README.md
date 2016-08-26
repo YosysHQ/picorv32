@@ -256,6 +256,13 @@ Set this to 0 to disable support for the `timer` instruction.
 
 Support for the timer is always disabled when ENABLE_IRQ is set to 0.
 
+#### ENABLE_TRACE (default = 0)
+
+Produce an execution trace using the `trace_valid` and `trace_data` output ports.
+For a demontration of this feature run `make testbench.vcd` to create a trace file
+and then run `python3 showtrace.py testbench.trace firmware/firmware.elf` to decode
+it.
+
 #### REGS_INIT_ZERO (default = 0)
 
 Set this to 1 to initialize all registers to zero (using a Verilog `initial` block).
