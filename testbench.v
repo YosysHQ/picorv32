@@ -146,6 +146,7 @@ module picorv32_wrapper #(
 		.COMPRESSED_ISA(1),
 `endif
 		.ENABLE_MUL(1),
+		.ENABLE_FAST_MUL(1),
 		.ENABLE_DIV(1),
 		.ENABLE_IRQ(1),
 		.ENABLE_TRACE(1)
