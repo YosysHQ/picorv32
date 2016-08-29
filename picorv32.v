@@ -56,6 +56,7 @@ module picorv32 #(
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
+	parameter [ 0:0] ENABLE_FAST_MUL = 0,
 	parameter [ 0:0] ENABLE_DIV = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
@@ -113,7 +114,7 @@ module picorv32 #(
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16) + 4*ENABLE_IRQ*ENABLE_IRQ_QREGS;
 	localparam integer regindex_bits = (ENABLE_REGS_16_31 ? 5 : 4) + ENABLE_IRQ*ENABLE_IRQ_QREGS;
 
-	localparam WITH_PCPI = ENABLE_PCPI || ENABLE_MUL || ENABLE_DIV;
+	localparam WITH_PCPI = ENABLE_PCPI || ENABLE_MUL || ENABLE_FAST_MUL || ENABLE_DIV;
 
 	localparam [35:0] TRACE_BRANCH = {4'b 0001, 32'b 0};
 	localparam [35:0] TRACE_ADDR   = {4'b 0010, 32'b 0};
@@ -207,7 +208,20 @@ module picorv32 #(
 	reg        pcpi_int_wait;
 	reg        pcpi_int_ready;
 
-	generate if (ENABLE_MUL) begin
+	generate if (ENABLE_FAST_MUL) begin
+		picorv32_pcpi_fast_mul pcpi_mul (
+			.clk       (clk            ),
+			.resetn    (resetn         ),
+			.pcpi_valid(pcpi_valid     ),
+			.pcpi_insn (pcpi_insn      ),
+			.pcpi_rs1  (pcpi_rs1       ),
+			.pcpi_rs2  (pcpi_rs2       ),
+			.pcpi_wr   (pcpi_mul_wr    ),
+			.pcpi_rd   (pcpi_mul_rd    ),
+			.pcpi_wait (pcpi_mul_wait  ),
+			.pcpi_ready(pcpi_mul_ready )
+		);
+	end else if (ENABLE_MUL) begin
 		picorv32_pcpi_mul pcpi_mul (
 			.clk       (clk            ),
 			.resetn    (resetn         ),
@@ -250,8 +264,8 @@ module picorv32 #(
 	always @* begin
 		pcpi_int_wr = 0;
 		pcpi_int_rd = 1'bx;
-		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait,  ENABLE_MUL && pcpi_mul_wait,  ENABLE_DIV && pcpi_div_wait};
-		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready, ENABLE_MUL && pcpi_mul_ready, ENABLE_DIV && pcpi_div_ready};
+		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait,  (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_wait,  ENABLE_DIV && pcpi_div_wait};
+		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready, (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready, ENABLE_DIV && pcpi_div_ready};
 
 		(* parallel_case *)
 		case (1'b1)
@@ -259,7 +273,7 @@ module picorv32 #(
 				pcpi_int_wr = pcpi_wr;
 				pcpi_int_rd = pcpi_rd;
 			end
-			ENABLE_MUL && pcpi_mul_ready: begin
+			(ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready: begin
 				pcpi_int_wr = pcpi_mul_wr;
 				pcpi_int_rd = pcpi_mul_rd;
 			end
@@ -1856,6 +1870,72 @@ module picorv32_pcpi_mul #(
 	end
 endmodule
 
+module picorv32_pcpi_fast_mul (
+	input clk, resetn,
+
+	input             pcpi_valid,
+	input      [31:0] pcpi_insn,
+	input      [31:0] pcpi_rs1,
+	input      [31:0] pcpi_rs2,
+	output            pcpi_wr,
+	output     [31:0] pcpi_rd,
+	output            pcpi_wait,
+	output            pcpi_ready
+);
+	reg instr_mul, instr_mulh, instr_mulhsu, instr_mulhu;
+	wire instr_any_mul = |{instr_mul, instr_mulh, instr_mulhsu, instr_mulhu};
+	wire instr_any_mulh = |{instr_mulh, instr_mulhsu, instr_mulhu};
+	wire instr_rs1_signed = |{instr_mulh, instr_mulhsu};
+	wire instr_rs2_signed = |{instr_mulh};
+
+	reg active1, active2, shift_out;
+	reg [63:0] rs1, rs2, rd;
+
+	always @* begin
+		instr_mul = 0;
+		instr_mulh = 0;
+		instr_mulhsu = 0;
+		instr_mulhu = 0;
+
+		if (resetn && pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+			case (pcpi_insn[14:12])
+				3'b000: instr_mul = 1;
+				3'b001: instr_mulh = 1;
+				3'b010: instr_mulhsu = 1;
+				3'b011: instr_mulhu = 1;
+			endcase
+		end
+	end
+
+	always @(posedge clk) begin
+		rd <= rs1 * rs2;
+	end
+
+	always @(posedge clk) begin
+		if (instr_any_mul && !active1 && !active2) begin
+			if (instr_rs1_signed)
+				rs1 <= $signed(pcpi_rs1);
+			else
+				rs1 <= $unsigned(pcpi_rs1);
+
+			if (instr_rs2_signed)
+				rs2 <= $signed(pcpi_rs2);
+			else
+				rs2 <= $unsigned(pcpi_rs2);
+			active1 <= 1;
+		end else begin
+			active1 <= 0;
+		end
+		active2 <= active1;
+		shift_out <= instr_any_mulh;
+	end
+
+	assign pcpi_wr = active2;
+	assign pcpi_wait = 0;
+	assign pcpi_ready = active2;
+	assign pcpi_rd = shift_out ? rd >> 32 : rd;
+endmodule
+
 
 /***************************************************************
  * picorv32_pcpi_div
@@ -1959,6 +2039,7 @@ module picorv32_axi #(
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
+	parameter [ 0:0] ENABLE_FAST_MUL = 0,
 	parameter [ 0:0] ENABLE_DIV = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
@@ -2066,6 +2147,7 @@ module picorv32_axi #(
 		.CATCH_ILLINSN       (CATCH_ILLINSN       ),
 		.ENABLE_PCPI         (ENABLE_PCPI         ),
 		.ENABLE_MUL          (ENABLE_MUL          ),
+		.ENABLE_FAST_MUL     (ENABLE_FAST_MUL     ),
 		.ENABLE_DIV          (ENABLE_DIV          ),
 		.ENABLE_IRQ          (ENABLE_IRQ          ),
 		.ENABLE_IRQ_QREGS    (ENABLE_IRQ_QREGS    ),

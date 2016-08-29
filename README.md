@@ -85,13 +85,14 @@ You are reading it right now.
 
 This Verilog file contains the following Verilog modules:
 
-| Module                  | Description                                                   |
-| ----------------------- | ------------------------------------------------------------- |
-| `picorv32`              | The PicoRV32 CPU                                              |
-| `picorv32_axi`          | The version of the CPU with AXI4-Lite interface               |
-| `picorv32_axi_adapter`  | Adapter from PicoRV32 Memory Interface to AXI4-Lite           |
-| `picorv32_pcpi_mul`     | A PCPI core that implements the `MUL[H[SU|U]]` instructions   |
-| `picorv32_pcpi_div`     | A PCPI core that implements the `DIV[U]/REM[U]` instructions  |
+| Module                   | Description                                                           |
+| ------------------------ | --------------------------------------------------------------------- |
+| `picorv32`               | The PicoRV32 CPU                                                      |
+| `picorv32_axi`           | The version of the CPU with AXI4-Lite interface                       |
+| `picorv32_axi_adapter`   | Adapter from PicoRV32 Memory Interface to AXI4-Lite                   |
+| `picorv32_pcpi_mul`      | A PCPI core that implements the `MUL[H[SU|U]]` instructions           |
+| `picorv32_pcpi_fast_mul` | A version of `picorv32_pcpi_fast_mul` using a single cycle multiplier |
+| `picorv32_pcpi_div`      | A PCPI core that implements the `DIV[U]/REM[U]` instructions          |
 
 Simply copy this file into your project.
 
@@ -228,6 +229,15 @@ Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
 This parameter internally enables PCPI and instantiates the `picorv32_pcpi_mul`
 core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
 interface only becomes functional when ENABLE_PCPI is set as well.
+
+#### ENABLE_FAST_MUL (default = 0)
+
+This parameter internally enables PCPI and instantiates the `picorv32_pcpi_fast_mul`
+core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
+interface only becomes functional when ENABLE_PCPI is set as well.
+
+If both ENABLE_MUL and ENABLE_FAST_MUL are set then the ENABLE_MUL setting
+will be ignored and the fast multiplier core will be instantiated.
 
 #### ENABLE_DIV (default = 0)
 
