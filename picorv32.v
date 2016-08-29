@@ -460,8 +460,17 @@ module picorv32 #(
 			if (mem_do_prefetch || mem_do_rinst || mem_do_rdata)
 				`assert(!mem_do_wdata);
 
+			if (mem_do_prefetch || mem_do_rinst)
+				`assert(!mem_do_rdata);
+
+			if (mem_do_rdata)
+				`assert(!mem_do_prefetch && !mem_do_rinst);
+
 			if (mem_do_wdata)
 				`assert(!(mem_do_prefetch || mem_do_rinst || mem_do_rdata));
+
+			if (mem_state == 2 || mem_state == 3)
+				`assert(mem_valid || mem_do_prefetch);
 		end
 	end
 
