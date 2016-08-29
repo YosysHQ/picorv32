@@ -31,8 +31,10 @@
 
 `ifdef FORMAL
   `define FORMAL_KEEP (* keep *)
+  `define assert(assert_expr) assert(assert_expr)
 `else
   `define FORMAL_KEEP
+  `define assert(assert_expr)
 `endif
 
 /***************************************************************
@@ -454,64 +456,85 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (mem_la_read || mem_la_write) begin
-			mem_addr <= mem_la_addr;
-			mem_wdata <= mem_la_wdata;
-			mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
+		if (resetn) begin
+			if (mem_do_prefetch || mem_do_rinst || mem_do_rdata)
+				`assert(!mem_do_wdata);
+
+			if (mem_do_wdata)
+				`assert(!(mem_do_prefetch || mem_do_rinst || mem_do_rdata));
 		end
-		if (!resetn) begin
+	end
+
+	always @(posedge clk) begin
+		if (!resetn || trap) begin
 			mem_state <= 0;
-			mem_valid <= 0;
+			if (!resetn || mem_ready)
+				mem_valid <= 0;
 			mem_la_secondword <= 0;
 			prefetched_high_word <= 0;
-		end else case (mem_state)
-			0: begin
-				if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
-					mem_valid <= !mem_la_use_prefetched_high_word;
-					mem_instr <= mem_do_prefetch || mem_do_rinst;
-					mem_wstrb <= 0;
-					mem_state <= 1;
-				end
-				if (mem_do_wdata) begin
-					mem_valid <= 1;
-					mem_instr <= 0;
-					mem_state <= 2;
-				end
+		end else begin
+			if (mem_la_read || mem_la_write) begin
+				mem_addr <= mem_la_addr;
+				mem_wdata <= mem_la_wdata;
+				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
 			end
-			1: begin
-				if (mem_xfer) begin
-					if (COMPRESSED_ISA && mem_la_read) begin
+			case (mem_state)
+				0: begin
+					if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
+						mem_valid <= !mem_la_use_prefetched_high_word;
+						mem_instr <= mem_do_prefetch || mem_do_rinst;
+						mem_wstrb <= 0;
+						mem_state <= 1;
+					end
+					if (mem_do_wdata) begin
 						mem_valid <= 1;
-						mem_la_secondword <= 1;
-						if (!mem_la_use_prefetched_high_word)
-							mem_16bit_buffer <= mem_rdata[31:16];
-					end else begin
-						mem_valid <= 0;
-						mem_la_secondword <= 0;
-						if (COMPRESSED_ISA && !mem_do_rdata) begin
-							if (~&mem_rdata[1:0] || mem_la_secondword) begin
-								mem_16bit_buffer <= mem_rdata[31:16];
-								prefetched_high_word <= 1;
-							end else begin
-								prefetched_high_word <= 0;
-							end
-						end
-						mem_state <= mem_do_rinst || mem_do_rdata ? 0 : 3;
+						mem_instr <= 0;
+						mem_state <= 2;
 					end
 				end
-			end
-			2: begin
-				if (mem_xfer) begin
-					mem_valid <= 0;
-					mem_state <= 0;
+				1: begin
+					`assert(mem_wstrb == 0);
+					`assert(mem_do_prefetch || mem_do_rinst || mem_do_rdata);
+					`assert(mem_valid == !mem_la_use_prefetched_high_word);
+					`assert(mem_instr == (mem_do_prefetch || mem_do_rinst));
+					if (mem_xfer) begin
+						if (COMPRESSED_ISA && mem_la_read) begin
+							mem_valid <= 1;
+							mem_la_secondword <= 1;
+							if (!mem_la_use_prefetched_high_word)
+								mem_16bit_buffer <= mem_rdata[31:16];
+						end else begin
+							mem_valid <= 0;
+							mem_la_secondword <= 0;
+							if (COMPRESSED_ISA && !mem_do_rdata) begin
+								if (~&mem_rdata[1:0] || mem_la_secondword) begin
+									mem_16bit_buffer <= mem_rdata[31:16];
+									prefetched_high_word <= 1;
+								end else begin
+									prefetched_high_word <= 0;
+								end
+							end
+							mem_state <= mem_do_rinst || mem_do_rdata ? 0 : 3;
+						end
+					end
 				end
-			end
-			3: begin
-				if (mem_do_rinst) begin
-					mem_state <= 0;
+				2: begin
+					`assert(mem_wstrb != 0);
+					`assert(mem_do_wdata);
+					if (mem_xfer) begin
+						mem_valid <= 0;
+						mem_state <= 0;
+					end
 				end
-			end
-		endcase
+				3: begin
+					`assert(mem_wstrb == 0);
+					`assert(mem_do_prefetch);
+					if (mem_do_rinst) begin
+						mem_state <= 0;
+					end
+				end
+			endcase
+		end
 
 		if (clear_prefetched_high_word)
 			prefetched_high_word <= 0;
@@ -1668,12 +1691,16 @@ module picorv32 #(
 	reg [3:0] last_mem_nowait;
 	always @(posedge clk)
 		last_mem_nowait <= {last_mem_nowait, mem_ready || !mem_valid};
+
+	// stall the memory interface for max 4 cycles
 	restrict property (|last_mem_nowait || mem_ready || !mem_valid);
+
+	// resetn low in first cycle, after that resetn high
+	restrict property (resetn != $initstate);
 
 	reg ok;
 	always @* begin
-		restrict (resetn == !$initstate);
-		if (!$initstate) begin
+		if (resetn) begin
 			// instruction fetches are read-only
 			if (mem_valid && mem_instr)
 				assert (mem_wstrb == 0);

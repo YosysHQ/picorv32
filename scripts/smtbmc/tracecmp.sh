@@ -8,5 +8,5 @@ yosys -ql tracecmp.yslog \
 	-p 'prep -top testbench -nordff' \
 	-p 'write_smt2 -mem -bv -wires tracecmp.smt2'
 
-yosys-smtbmc -s yices --smtc tracecmp.smtc --dump-vcd tracecmp.vcd tracecmp.smt2
+yosys-smtbmc -s yices --smtc tracecmp.smtc --dump-vcd output.vcd --dump-smtc output.smtc tracecmp.smt2
 

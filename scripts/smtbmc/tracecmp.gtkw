@@ -2,7 +2,7 @@
 [*] GTKWave Analyzer v3.3.65 (w)1999-2015 BSI
 [*] Fri Aug 26 15:42:37 2016
 [*]
-[dumpfile] "/home/clifford/Work/picorv32/scripts/smtbmc/tracecmp.vcd"
+[dumpfile] "/home/clifford/Work/picorv32/scripts/smtbmc/output.vcd"
 [dumpfile_mtime] "Fri Aug 26 15:33:18 2016"
 [dumpfile_size] 80106
 [savefile] "/home/clifford/Work/picorv32/scripts/smtbmc/tracecmp.gtkw"
