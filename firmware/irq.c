@@ -14,7 +14,7 @@ uint32_t *irq(uint32_t *regs, uint32_t irqs)
 	static unsigned int timer_irq_count = 0;
 
 	// checking compressed isa q0 reg handling
-	{
+	if ((irqs & 6) != 0) {
 		uint32_t pc = (regs[0] & 1) ? regs[0] - 3 : regs[0] - 4;
 		uint32_t instr = *(uint16_t*)pc;
 
