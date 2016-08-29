@@ -229,6 +229,16 @@ This parameter internally enables PCPI and instantiates the `picorv32_pcpi_mul`
 core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
 interface only becomes functional when ENABLE_PCPI is set as well.
 
+#### ENABLE_FAST_MUL (default = 0)
+
+This parameter internally enables PCPI and instanciates the 'picorv32_pcpi_fmul'
+core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
+interface only becomes functional when ENABLE_PCPI is set as well.
+Instead of using the slower interative multiplication logic that's used when the
+ENABLE_MUL parameter is set, it uses a single-cycle 32*32 bit multiplication. Not
+only makes this multiplication much faster, it also saves registers and combinational
+elements on FPGAs that have hard DSP cores.
+
 #### ENABLE_DIV (default = 0)
 
 This parameter internally enables PCPI and instantiates the `picorv32_pcpi_div`
