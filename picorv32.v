@@ -1873,7 +1873,11 @@ module picorv32_pcpi_fmul (
 	wire instr_rs2_signed = |{instr_mulh};
 
     reg [31:0] rs1_q, rs2_q;
-    reg pcpi_valid_q;
+    reg instr_any_mul_q;
+
+    always @(posedge clk) begin
+           instr_any_mul_q      <= instr_any_mul;
+    end
 
 	always @(posedge clk) begin
 		instr_mul <= 0;
@@ -1895,7 +1899,6 @@ module picorv32_pcpi_fmul (
             rs2_q       <= pcpi_rs2;
         end
 
-        pcpi_valid_q    <= pcpi_valid;
 	end
 
 	wire signed [63:0] rs1_expand, rs2_expand, rd;
@@ -1910,7 +1913,7 @@ module picorv32_pcpi_fmul (
 		pcpi_wr <= 0;
 		pcpi_ready <= 0;
 
-		if (pcpi_valid_q) begin
+		if (instr_any_mul & !instr_any_mul_q) begin
 			pcpi_wr <= 1;
 			pcpi_ready <= 1;
 			pcpi_rd <= instr_any_mulh ? rd >> 32 : rd;
