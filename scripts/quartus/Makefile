@@ -48,6 +48,8 @@ area: synth_area_small synth_area_regular synth_area_large
 	-grep -B4 -A10 'Slice LUTs' synth_area_small.log synth_area_regular.log synth_area_large.log
 
 table.txt: tab_small_ep4ce_c7/results.txt
+table.txt: tab_small_ep4cgx_c7/results.txt
+table.txt: tab_small_5cgx_c7/results.txt
 
 table.txt:
 	bash table.sh > table.txt
