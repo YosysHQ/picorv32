@@ -28,7 +28,6 @@ module testbench;
 
 	picorv32 #(
 		.BARREL_SHIFTER(1),
-		.ENABLE_MUL(1),
 		.ENABLE_FAST_MUL(1),
 		.ENABLE_DIV(1),
 		.PROGADDR_RESET('h10000),

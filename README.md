@@ -345,11 +345,11 @@ When `BARREL_SHIFTER` is activated, a shift operation takes as long as
 any other ALU operation.
 
 The following dhrystone benchmark results are for a core with enabled
-`ENABLE_MUL`, `ENABLE_DIV`, and `BARREL_SHIFTER` options.
+`ENABLE_FAST_MUL`, `ENABLE_DIV`, and `BARREL_SHIFTER` options.
 
-Dhrystone benchmark results: 0.505 DMIPS/MHz (888 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.521 DMIPS/MHz (916 Dhrystones/Second/MHz)
 
-For the Dhrystone benchmark the average CPI is 4.208.
+For the Dhrystone benchmark the average CPI is 4.081.
 
 
 PicoRV32 Native Memory Interface
