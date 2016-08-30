@@ -1862,7 +1862,7 @@ module picorv32_pcpi_mul #(
 	always @(posedge clk) begin
 		pcpi_wr <= 0;
 		pcpi_ready <= 0;
-		if (mul_finish) begin
+		if (mul_finish && resetn) begin
 			pcpi_wr <= 1;
 			pcpi_ready <= 1;
 			pcpi_rd <= instr_any_mulh ? rd >> 32 : rd;
@@ -1928,6 +1928,11 @@ module picorv32_pcpi_fast_mul (
 		end
 		active2 <= active1;
 		shift_out <= instr_any_mulh;
+
+		if (!resetn) begin
+			active1 <= 0;
+			active2 <= 0;
+		end
 	end
 
 	assign pcpi_wr = active2;
