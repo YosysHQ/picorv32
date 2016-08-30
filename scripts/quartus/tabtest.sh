@@ -18,46 +18,32 @@ synth_case() {
 	fi
 
 	case "${dev}" in
-		xc7a) xl_device="xc7a15t-fgg484-${grade}" ;;
-		xc7k) xl_device="xc7k70t-fbg676-${grade}" ;;
-		xc7v) xl_device="xc7v585t-ffg1761-${grade}" ;;
-		xcku) xl_device="xcku035-fbva676-${grade}" ;;
-		xcvu) xl_device="xcvu065-ffvc1517-${grade}" ;;
+		ep4ce) al_device="ep4ce30f23${grade}" ;;
 	esac
 
-	case "${dev}-${grade}" in
-		xcku-1) xl_device="${xl_device}-c" ;;
-		xcvu-1) xl_device="${xl_device}-i" ;;
-		xcku-?|xcvu-?) xl_device="${xl_device}-e" ;;
-	esac
-
-	cat > test_${1}.tcl <<- EOT
-		read_verilog ../tabtest.v
-		read_verilog ../../../picorv32.v
-		read_xdc test_${1}.xdc
-		synth_design -flatten_hierarchy full -part ${xl_device} -top top
-		opt_design -sweep -remap -propconst
-		opt_design -directive Explore
-		place_design -directive Explore
-		phys_opt_design -retime -rewire -critical_pin_opt -placement_opt -critical_cell_opt
-		route_design -directive Explore
-		place_design -post_place_opt
-		phys_opt_design -retime
-		route_design -directive NoTimingRelaxation
-		report_utilization
-		report_timing
+	cat > test_${1}.qsf <<- EOT
+set_global_assignment -name DEVICE ${al_device}
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name TOP_LEVEL_ENTITY top
+set_global_assignment -name VERILOG_FILE ../tabtest.v
+set_global_assignment -name VERILOG_FILE ../../../picorv32.v
+set_global_assignment -name SDC_FILE test_${1}.sdc
 	EOT
 
-	cat > test_${1}.xdc <<- EOT
+	cat > test_${1}.sdc <<- EOT
 		create_clock -period ${speed%?}.${speed#?} [get_ports clk]
 	EOT
 
 	echo "Running tab_${ip}_${dev}_${grade}/test_${1}.."
-	if ! $VIVADO -nojournal -log test_${1}.log -mode batch -source test_${1}.tcl > /dev/null 2>&1; then
-		cat test_${1}.log
-		exit 1
-	fi
-	mv test_${1}.log test_${1}.txt
+     
+    quartus_map test_${1}
+    quartus_fit --read_settings_files=off --write_settings_files=off test_${1} -c test_${1}
+        
+#	if ! $VIVADO -nojournal -log test_${1}.log -mode batch -source test_${1}.tcl > /dev/null 2>&1; then
+#		cat test_${1}.log
+#		exit 1
+#	fi
+#	mv test_${1}.log test_${1}.txt
 }
 
 countdown=2
