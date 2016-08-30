@@ -1,3 +1,6 @@
 tracecmp.smt2
-tracecmp.vcd
 tracecmp.yslog
+notrap_validop.smt2
+notrap_validop.yslog
+output.vcd
+output.smtc

@@ -31,8 +31,10 @@
 
 `ifdef FORMAL
   `define FORMAL_KEEP (* keep *)
+  `define assert(assert_expr) assert(assert_expr)
 `else
   `define FORMAL_KEEP
+  `define assert(assert_expr)
 `endif
 
 /***************************************************************
@@ -54,6 +56,7 @@ module picorv32 #(
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
+	parameter [ 0:0] ENABLE_FAST_MUL = 0,
 	parameter [ 0:0] ENABLE_DIV = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
@@ -111,7 +114,7 @@ module picorv32 #(
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16) + 4*ENABLE_IRQ*ENABLE_IRQ_QREGS;
 	localparam integer regindex_bits = (ENABLE_REGS_16_31 ? 5 : 4) + ENABLE_IRQ*ENABLE_IRQ_QREGS;
 
-	localparam WITH_PCPI = ENABLE_PCPI || ENABLE_MUL || ENABLE_DIV;
+	localparam WITH_PCPI = ENABLE_PCPI || ENABLE_MUL || ENABLE_FAST_MUL || ENABLE_DIV;
 
 	localparam [35:0] TRACE_BRANCH = {4'b 0001, 32'b 0};
 	localparam [35:0] TRACE_ADDR   = {4'b 0010, 32'b 0};
@@ -205,7 +208,20 @@ module picorv32 #(
 	reg        pcpi_int_wait;
 	reg        pcpi_int_ready;
 
-	generate if (ENABLE_MUL) begin
+	generate if (ENABLE_FAST_MUL) begin
+		picorv32_pcpi_fast_mul pcpi_mul (
+			.clk       (clk            ),
+			.resetn    (resetn         ),
+			.pcpi_valid(pcpi_valid     ),
+			.pcpi_insn (pcpi_insn      ),
+			.pcpi_rs1  (pcpi_rs1       ),
+			.pcpi_rs2  (pcpi_rs2       ),
+			.pcpi_wr   (pcpi_mul_wr    ),
+			.pcpi_rd   (pcpi_mul_rd    ),
+			.pcpi_wait (pcpi_mul_wait  ),
+			.pcpi_ready(pcpi_mul_ready )
+		);
+	end else if (ENABLE_MUL) begin
 		picorv32_pcpi_mul pcpi_mul (
 			.clk       (clk            ),
 			.resetn    (resetn         ),
@@ -248,8 +264,8 @@ module picorv32 #(
 	always @* begin
 		pcpi_int_wr = 0;
 		pcpi_int_rd = 1'bx;
-		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait,  ENABLE_MUL && pcpi_mul_wait,  ENABLE_DIV && pcpi_div_wait};
-		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready, ENABLE_MUL && pcpi_mul_ready, ENABLE_DIV && pcpi_div_ready};
+		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait,  (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_wait,  ENABLE_DIV && pcpi_div_wait};
+		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready, (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready, ENABLE_DIV && pcpi_div_ready};
 
 		(* parallel_case *)
 		case (1'b1)
@@ -257,7 +273,7 @@ module picorv32 #(
 				pcpi_int_wr = pcpi_wr;
 				pcpi_int_rd = pcpi_rd;
 			end
-			ENABLE_MUL && pcpi_mul_ready: begin
+			(ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready: begin
 				pcpi_int_wr = pcpi_mul_wr;
 				pcpi_int_rd = pcpi_mul_rd;
 			end
@@ -454,64 +470,94 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (mem_la_read || mem_la_write) begin
-			mem_addr <= mem_la_addr;
-			mem_wdata <= mem_la_wdata;
-			mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
+		if (resetn) begin
+			if (mem_do_prefetch || mem_do_rinst || mem_do_rdata)
+				`assert(!mem_do_wdata);
+
+			if (mem_do_prefetch || mem_do_rinst)
+				`assert(!mem_do_rdata);
+
+			if (mem_do_rdata)
+				`assert(!mem_do_prefetch && !mem_do_rinst);
+
+			if (mem_do_wdata)
+				`assert(!(mem_do_prefetch || mem_do_rinst || mem_do_rdata));
+
+			if (mem_state == 2 || mem_state == 3)
+				`assert(mem_valid || mem_do_prefetch);
 		end
-		if (!resetn) begin
+	end
+
+	always @(posedge clk) begin
+		if (!resetn || trap) begin
 			mem_state <= 0;
-			mem_valid <= 0;
+			if (!resetn || mem_ready)
+				mem_valid <= 0;
 			mem_la_secondword <= 0;
 			prefetched_high_word <= 0;
-		end else case (mem_state)
-			0: begin
-				if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
-					mem_valid <= !mem_la_use_prefetched_high_word;
-					mem_instr <= mem_do_prefetch || mem_do_rinst;
-					mem_wstrb <= 0;
-					mem_state <= 1;
-				end
-				if (mem_do_wdata) begin
-					mem_valid <= 1;
-					mem_instr <= 0;
-					mem_state <= 2;
-				end
+		end else begin
+			if (mem_la_read || mem_la_write) begin
+				mem_addr <= mem_la_addr;
+				mem_wdata <= mem_la_wdata;
+				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
 			end
-			1: begin
-				if (mem_xfer) begin
-					if (COMPRESSED_ISA && mem_la_read) begin
+			case (mem_state)
+				0: begin
+					if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
+						mem_valid <= !mem_la_use_prefetched_high_word;
+						mem_instr <= mem_do_prefetch || mem_do_rinst;
+						mem_wstrb <= 0;
+						mem_state <= 1;
+					end
+					if (mem_do_wdata) begin
 						mem_valid <= 1;
-						mem_la_secondword <= 1;
-						if (!mem_la_use_prefetched_high_word)
-							mem_16bit_buffer <= mem_rdata[31:16];
-					end else begin
-						mem_valid <= 0;
-						mem_la_secondword <= 0;
-						if (COMPRESSED_ISA && !mem_do_rdata) begin
-							if (~&mem_rdata[1:0] || mem_la_secondword) begin
-								mem_16bit_buffer <= mem_rdata[31:16];
-								prefetched_high_word <= 1;
-							end else begin
-								prefetched_high_word <= 0;
-							end
-						end
-						mem_state <= mem_do_rinst || mem_do_rdata ? 0 : 3;
+						mem_instr <= 0;
+						mem_state <= 2;
 					end
 				end
-			end
-			2: begin
-				if (mem_xfer) begin
-					mem_valid <= 0;
-					mem_state <= 0;
+				1: begin
+					`assert(mem_wstrb == 0);
+					`assert(mem_do_prefetch || mem_do_rinst || mem_do_rdata);
+					`assert(mem_valid == !mem_la_use_prefetched_high_word);
+					`assert(mem_instr == (mem_do_prefetch || mem_do_rinst));
+					if (mem_xfer) begin
+						if (COMPRESSED_ISA && mem_la_read) begin
+							mem_valid <= 1;
+							mem_la_secondword <= 1;
+							if (!mem_la_use_prefetched_high_word)
+								mem_16bit_buffer <= mem_rdata[31:16];
+						end else begin
+							mem_valid <= 0;
+							mem_la_secondword <= 0;
+							if (COMPRESSED_ISA && !mem_do_rdata) begin
+								if (~&mem_rdata[1:0] || mem_la_secondword) begin
+									mem_16bit_buffer <= mem_rdata[31:16];
+									prefetched_high_word <= 1;
+								end else begin
+									prefetched_high_word <= 0;
+								end
+							end
+							mem_state <= mem_do_rinst || mem_do_rdata ? 0 : 3;
+						end
+					end
 				end
-			end
-			3: begin
-				if (mem_do_rinst) begin
-					mem_state <= 0;
+				2: begin
+					`assert(mem_wstrb != 0);
+					`assert(mem_do_wdata);
+					if (mem_xfer) begin
+						mem_valid <= 0;
+						mem_state <= 0;
+					end
 				end
-			end
-		endcase
+				3: begin
+					`assert(mem_wstrb == 0);
+					`assert(mem_do_prefetch);
+					if (mem_do_rinst) begin
+						mem_state <= 0;
+					end
+				end
+			endcase
+		end
 
 		if (clear_prefetched_high_word)
 			prefetched_high_word <= 0;
@@ -1668,12 +1714,16 @@ module picorv32 #(
 	reg [3:0] last_mem_nowait;
 	always @(posedge clk)
 		last_mem_nowait <= {last_mem_nowait, mem_ready || !mem_valid};
+
+	// stall the memory interface for max 4 cycles
 	restrict property (|last_mem_nowait || mem_ready || !mem_valid);
+
+	// resetn low in first cycle, after that resetn high
+	restrict property (resetn != $initstate);
 
 	reg ok;
 	always @* begin
-		restrict (resetn == !$initstate);
-		if (!$initstate) begin
+		if (resetn) begin
 			// instruction fetches are read-only
 			if (mem_valid && mem_instr)
 				assert (mem_wstrb == 0);
@@ -1820,6 +1870,72 @@ module picorv32_pcpi_mul #(
 	end
 endmodule
 
+module picorv32_pcpi_fast_mul (
+	input clk, resetn,
+
+	input             pcpi_valid,
+	input      [31:0] pcpi_insn,
+	input      [31:0] pcpi_rs1,
+	input      [31:0] pcpi_rs2,
+	output            pcpi_wr,
+	output     [31:0] pcpi_rd,
+	output            pcpi_wait,
+	output            pcpi_ready
+);
+	reg instr_mul, instr_mulh, instr_mulhsu, instr_mulhu;
+	wire instr_any_mul = |{instr_mul, instr_mulh, instr_mulhsu, instr_mulhu};
+	wire instr_any_mulh = |{instr_mulh, instr_mulhsu, instr_mulhu};
+	wire instr_rs1_signed = |{instr_mulh, instr_mulhsu};
+	wire instr_rs2_signed = |{instr_mulh};
+
+	reg active1, active2, shift_out;
+	reg [63:0] rs1, rs2, rd;
+
+	always @* begin
+		instr_mul = 0;
+		instr_mulh = 0;
+		instr_mulhsu = 0;
+		instr_mulhu = 0;
+
+		if (resetn && pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+			case (pcpi_insn[14:12])
+				3'b000: instr_mul = 1;
+				3'b001: instr_mulh = 1;
+				3'b010: instr_mulhsu = 1;
+				3'b011: instr_mulhu = 1;
+			endcase
+		end
+	end
+
+	always @(posedge clk) begin
+		rd <= rs1 * rs2;
+	end
+
+	always @(posedge clk) begin
+		if (instr_any_mul && !active1 && !active2) begin
+			if (instr_rs1_signed)
+				rs1 <= $signed(pcpi_rs1);
+			else
+				rs1 <= $unsigned(pcpi_rs1);
+
+			if (instr_rs2_signed)
+				rs2 <= $signed(pcpi_rs2);
+			else
+				rs2 <= $unsigned(pcpi_rs2);
+			active1 <= 1;
+		end else begin
+			active1 <= 0;
+		end
+		active2 <= active1;
+		shift_out <= instr_any_mulh;
+	end
+
+	assign pcpi_wr = active2;
+	assign pcpi_wait = 0;
+	assign pcpi_ready = active2;
+	assign pcpi_rd = shift_out ? rd >> 32 : rd;
+endmodule
+
 
 /***************************************************************
  * picorv32_pcpi_div
@@ -1923,6 +2039,7 @@ module picorv32_axi #(
 	parameter [ 0:0] CATCH_ILLINSN = 1,
 	parameter [ 0:0] ENABLE_PCPI = 0,
 	parameter [ 0:0] ENABLE_MUL = 0,
+	parameter [ 0:0] ENABLE_FAST_MUL = 0,
 	parameter [ 0:0] ENABLE_DIV = 0,
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
@@ -2030,6 +2147,7 @@ module picorv32_axi #(
 		.CATCH_ILLINSN       (CATCH_ILLINSN       ),
 		.ENABLE_PCPI         (ENABLE_PCPI         ),
 		.ENABLE_MUL          (ENABLE_MUL          ),
+		.ENABLE_FAST_MUL     (ENABLE_FAST_MUL     ),
 		.ENABLE_DIV          (ENABLE_DIV          ),
 		.ENABLE_IRQ          (ENABLE_IRQ          ),
 		.ENABLE_IRQ_QREGS    (ENABLE_IRQ_QREGS    ),
