@@ -1063,6 +1063,9 @@ module picorv32 #(
 		if (cpu_state == cpu_state_ldmem)  dbg_ascii_state = "ldmem";
 	end
 
+	reg cpuregs_write;
+	reg [31:0] cpuregs_wrdata;
+
 	reg set_mem_do_rinst;
 	reg set_mem_do_rdata;
 	reg set_mem_do_wdata;
@@ -1169,6 +1172,8 @@ module picorv32 #(
 		trap <= 0;
 		reg_sh <= 'bx;
 		reg_out <= 'bx;
+		cpuregs_write = 0;
+		cpuregs_wrdata = 'bx;
 		set_mem_do_rinst = 0;
 		set_mem_do_rdata = 0;
 		set_mem_do_wdata = 0;
@@ -1264,24 +1269,31 @@ module picorv32 #(
 					latched_branch: begin
 						current_pc = latched_store ? (latched_stalu ? alu_out_q : reg_out) : reg_next_pc;
 						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + (latched_compr ? 2 : 4), current_pc);)
-						cpuregs[latched_rd] <= reg_pc + (latched_compr ? 2 : 4);
+						cpuregs_wrdata = reg_pc + (latched_compr ? 2 : 4);
+						cpuregs_write = 1;
 					end
 					latched_store && !latched_branch: begin
 						`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? alu_out_q : reg_out);)
-						cpuregs[latched_rd] <= latched_stalu ? alu_out_q : reg_out;
+						cpuregs_wrdata = latched_stalu ? alu_out_q : reg_out;
+						cpuregs_write = 1;
 					end
 					ENABLE_IRQ && irq_state[0]: begin
-						cpuregs[latched_rd] <= current_pc | latched_compr;
+						cpuregs_wrdata = current_pc | latched_compr;
+						cpuregs_write = 1;
 						current_pc = PROGADDR_IRQ;
 						irq_active <= 1;
 						mem_do_rinst <= 1;
 					end
 					ENABLE_IRQ && irq_state[1]: begin
 						eoi <= irq_pending & ~irq_mask;
-						cpuregs[latched_rd] <= irq_pending & ~irq_mask;
+						cpuregs_wrdata = irq_pending & ~irq_mask;
+						cpuregs_write = 1;
 						next_irq_pending = next_irq_pending & irq_mask;
 					end
 				endcase
+
+				if (cpuregs_write)
+					cpuregs[latched_rd] <= cpuregs_wrdata;
 
 				if (ENABLE_TRACE && latched_trace) begin
 					latched_trace <= 0;
