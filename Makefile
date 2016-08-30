@@ -30,7 +30,7 @@ check-yices: check.smt2
 check.smt2: picorv32.v
 	yosys -v2 -p 'read_verilog -formal picorv32.v' \
 	          -p 'prep -top picorv32 -nordff' \
-		  -p 'write_smt2 -bv -mem -wires check.smt2'
+		  -p 'write_smt2 -wires check.smt2'
 
 test_sp: testbench_sp.vvp firmware/firmware.hex
 	vvp -N testbench_sp.vvp
