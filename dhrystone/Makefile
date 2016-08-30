@@ -29,7 +29,7 @@ timing.vvp: testbench.v ../picorv32.v
 	chmod -x timing.vvp
 
 dhry.hex: dhry.elf
-	riscv32-unknown-elf-objcopy -O verilog $< $@
+	$(TOOLCHAIN_PREFIX)objcopy -O verilog $< $@
 
 ifeq ($(USE_MYSTDLIB),1)
 dhry.elf: $(OBJS) sections.lds
