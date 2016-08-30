@@ -1,10 +1,9 @@
 
-VIVADO_BASE = /opt/Xilinx/Vivado/2016.1
-VIVADO = $(VIVADO_BASE)/bin/vivado
-XVLOG = $(VIVADO_BASE)/bin/xvlog
-XELAB = $(VIVADO_BASE)/bin/xelab
-GLBL = $(VIVADO_BASE)/data/verilog/src/glbl.v
-TOOLCHAIN_PREFIX = riscv64-unknown-elf-
+QUARTUS_ROOTDIR = /opt/altera_lite/16.0
+QUARTUS_BIN = $(QUARTUS_ROOTDIR)/quartus/bin
+
+VLOG = iverilog
+TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
 
 export VIVADO
 
@@ -32,10 +31,9 @@ synth_%:
 
 synth_system: firmware.hex
 
-sim_system:
-	$(XVLOG) system_tb.v synth_system.v
-	$(XVLOG) $(GLBL)
-	$(XELAB) -L unifast_ver -L unisims_ver -R system_tb glbl
+sim_system: firmware.hex system_tb.v system.v ../../picorv32.v
+	$(VLOG) -o system_tb system_tb.v system.v ../../picorv32.v
+	./system_tb
 
 firmware.hex: firmware.S firmware.c firmware.lds
 	$(TOOLCHAIN_PREFIX)gcc -Os -m32 -ffreestanding -nostdlib -o firmware.elf firmware.S firmware.c \
@@ -59,7 +57,6 @@ table.txt:
 	bash table.sh > table.txt
 
 clean:
-	rm -rf .Xil/ firmware.bin firmware.elf firmware.hex firmware.map synth_*.log
+	rm -rf firmware.bin firmware.elf firmware.hex firmware.map synth_*.log
 	rm -rf synth_*.mmi synth_*.bit synth_system.v table.txt tab_*/ webtalk.jou
-	rm -rf webtalk.log webtalk_*.jou webtalk_*.log xelab.* xsim[._]* xvlog.*
 

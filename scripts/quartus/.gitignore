@@ -1,4 +1,3 @@
-.Xil/
 firmware.bin
 firmware.elf
 firmware.hex
@@ -9,10 +8,4 @@ synth_*.bit
 synth_system.v
 table.txt
 tab_*/
-webtalk.jou
-webtalk.log
-webtalk_*.jou
-webtalk_*.log
-xelab.*
-xsim.*
-xvlog.*
+system_tb
