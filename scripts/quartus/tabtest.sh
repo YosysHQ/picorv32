@@ -51,7 +51,7 @@ set_global_assignment -name SDC_FILE test_${1}.sdc
 	cp output_files/test_${1}.sta.summary test_${1}.txt
 }
 
-countdown=6
+countdown=7
 while [ $countdown -gt 0 ]; do
     speed=$(((max_speed+min_speed)/2))
 	synth_case $speed
