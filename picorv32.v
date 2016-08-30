@@ -1889,7 +1889,8 @@ module picorv32_pcpi_fast_mul (
 	wire instr_rs2_signed = |{instr_mulh};
 
 	reg active1, active2, shift_out;
-	reg [63:0] rs1, rs2, rd;
+	reg [32:0] rs1, rs2;
+	reg [63:0] rd;
 
 	always @* begin
 		instr_mul = 0;
