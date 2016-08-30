@@ -1909,7 +1909,7 @@ module picorv32_pcpi_fast_mul (
 	end
 
 	always @(posedge clk) begin
-		rd <= rs1 * rs2;
+		rd <= $signed(rs1) * $signed(rs2);
 	end
 
 	always @(posedge clk) begin
