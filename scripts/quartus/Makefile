@@ -46,7 +46,7 @@ tab_%/results.txt:
 	bash tabtest.sh $@
 
 area: synth_area_small synth_area_regular synth_area_large
-	-grep -B4 -A10 'Slice LUTs' synth_area_small.log synth_area_regular.log synth_area_large.log
+	-grep -A3 "Total logic elements" synth_area_*_build/output_files/synth_area_*.fit.summary
 
 table.txt: tab_small_ep4ce_c7/results.txt
 table.txt: tab_small_ep4cgx_c7/results.txt
