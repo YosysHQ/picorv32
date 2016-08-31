@@ -38,13 +38,13 @@ set_global_assignment -name SDC_FILE test_${1}.sdc
 
 	echo "Running tab_${ip}_${dev}_${grade}/test_${1}.."
      
-    if ! quartus_map test_${1}; then
+    if ! $QUARTUS_BIN/quartus_map test_${1}; then
         exit 1
     fi
-    if ! quartus_fit --read_settings_files=off --write_settings_files=off test_${1} -c test_${1}; then
+    if ! $QUARTUS_BIN/quartus_fit --read_settings_files=off --write_settings_files=off test_${1} -c test_${1}; then
         exit 1
     fi
-    if ! quartus_sta test_${1} -c test_${1}; then
+    if ! $QUARTUS_BIN/quartus_sta test_${1} -c test_${1}; then
         exit 1
     fi
         
