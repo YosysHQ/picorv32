@@ -1,11 +1,9 @@
 
-QUARTUS_ROOTDIR = /opt/altera_lite/16.0
-QUARTUS_BIN = $(QUARTUS_ROOTDIR)/quartus/bin
+export QUARTUS_ROOTDIR = /opt/altera_lite/16.0
+export QUARTUS_BIN = $(QUARTUS_ROOTDIR)/quartus/bin
 
 VLOG = iverilog
 TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
-
-export VIVADO
 
 help:
 	@echo ""
@@ -24,10 +22,13 @@ help:
 
 synth_%:
 	rm -f $@.log
-	$(VIVADO) -nojournal -log $@.log -mode batch -source $@.tcl
-	rm -rf .Xil fsm_encoding.os synth_*.backup.log usage_statistics_webtalk.*
-	-grep -B4 -A10 'Slice LUTs' $@.log
-	-grep -B1 -A9 ^Slack $@.log && echo
+	mkdir -p $@_build
+	cp $@.qsf $@_build
+	cd $@_build && $(QUARTUS_BIN)/quartus_map $@.qsf
+	cd $@_build && $(QUARTUS_BIN)/quartus_fit --read_settings_files=off -write_settings_files=off $@ -c $@
+	cd $@_build && $(QUARTUS_BIN)/quartus_sta $@ -c $@
+	-cd $@_build && grep -A3 "Total logic elements" output_files/$@.fit.summary
+	-cd $@_build && grep -B1 "Slack" output_files/$@.sta.summary
 
 synth_system: firmware.hex
 
@@ -56,5 +57,5 @@ table.txt:
 
 clean:
 	rm -rf firmware.bin firmware.elf firmware.hex firmware.map synth_*.log
-	rm -rf synth_*.mmi synth_*.bit synth_system.v table.txt tab_*/ webtalk.jou
+	rm -rf synth_*.mmi synth_*.bit synth_system.v table.txt tab_*/ 
 
