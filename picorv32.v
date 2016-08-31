@@ -1063,9 +1063,6 @@ module picorv32 #(
 		if (cpu_state == cpu_state_ldmem)  dbg_ascii_state = "ldmem";
 	end
 
-	reg cpuregs_write;
-	reg [31:0] cpuregs_wrdata;
-
 	reg set_mem_do_rinst;
 	reg set_mem_do_rdata;
 	reg set_mem_do_wdata;
@@ -1166,14 +1163,62 @@ module picorv32 #(
 			clear_prefetched_high_word = COMPRESSED_ISA;
 	end
 
+	reg cpuregs_write;
+	reg [31:0] cpuregs_wrdata;
+	reg [31:0] cpuregs_rs1;
+	reg [31:0] cpuregs_rs2;
+	reg [regindex_bits-1:0] decoded_rs;
+
+	always @* begin
+		cpuregs_write = 0;
+		cpuregs_wrdata = 'bx;
+
+		if (cpu_state == cpu_state_fetch) begin
+			(* parallel_case *)
+			case (1'b1)
+				latched_branch: begin
+					cpuregs_wrdata = reg_pc + (latched_compr ? 2 : 4);
+					cpuregs_write = 1;
+				end
+				latched_store && !latched_branch: begin
+					cpuregs_wrdata = latched_stalu ? alu_out_q : reg_out;
+					cpuregs_write = 1;
+				end
+				ENABLE_IRQ && irq_state[0]: begin
+					cpuregs_wrdata = reg_next_pc | latched_compr;
+					cpuregs_write = 1;
+				end
+				ENABLE_IRQ && irq_state[1]: begin
+					cpuregs_wrdata = irq_pending & ~irq_mask;
+					cpuregs_write = 1;
+				end
+			endcase
+		end
+	end
+
+	always @(posedge clk) begin
+		if (cpuregs_write)
+			cpuregs[latched_rd] <= cpuregs_wrdata;
+	end
+
+	always @* begin
+		decoded_rs = 'bx;
+		if (ENABLE_REGS_DUALPORT) begin
+			cpuregs_rs1 = decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+			cpuregs_rs2 = decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+		end else begin
+			decoded_rs = (cpu_state == cpu_state_ld_rs2) ? decoded_rs2 : decoded_rs1;
+			cpuregs_rs1 = decoded_rs ? cpuregs[decoded_rs] : 0;
+			cpuregs_rs2 = cpuregs_rs1;
+		end
+	end
+
 	assign launch_next_insn = cpu_state == cpu_state_fetch && decoder_trigger && (!ENABLE_IRQ || irq_delay || irq_active || !(irq_pending & ~irq_mask));
 
 	always @(posedge clk) begin
 		trap <= 0;
 		reg_sh <= 'bx;
 		reg_out <= 'bx;
-		cpuregs_write = 0;
-		cpuregs_wrdata = 'bx;
 		set_mem_do_rinst = 0;
 		set_mem_do_rdata = 0;
 		set_mem_do_wdata = 0;
@@ -1269,31 +1314,20 @@ module picorv32 #(
 					latched_branch: begin
 						current_pc = latched_store ? (latched_stalu ? alu_out_q : reg_out) : reg_next_pc;
 						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + (latched_compr ? 2 : 4), current_pc);)
-						cpuregs_wrdata = reg_pc + (latched_compr ? 2 : 4);
-						cpuregs_write = 1;
 					end
 					latched_store && !latched_branch: begin
 						`debug($display("ST_RD:  %2d 0x%08x", latched_rd, latched_stalu ? alu_out_q : reg_out);)
-						cpuregs_wrdata = latched_stalu ? alu_out_q : reg_out;
-						cpuregs_write = 1;
 					end
 					ENABLE_IRQ && irq_state[0]: begin
-						cpuregs_wrdata = current_pc | latched_compr;
-						cpuregs_write = 1;
 						current_pc = PROGADDR_IRQ;
 						irq_active <= 1;
 						mem_do_rinst <= 1;
 					end
 					ENABLE_IRQ && irq_state[1]: begin
 						eoi <= irq_pending & ~irq_mask;
-						cpuregs_wrdata = irq_pending & ~irq_mask;
-						cpuregs_write = 1;
 						next_irq_pending = next_irq_pending & irq_mask;
 					end
 				endcase
-
-				if (cpuregs_write)
-					cpuregs[latched_rd] <= cpuregs_wrdata;
 
 				if (ENABLE_TRACE && latched_trace) begin
 					latched_trace <= 0;
@@ -1365,13 +1399,13 @@ module picorv32 #(
 				case (1'b1)
 					(CATCH_ILLINSN || WITH_PCPI) && instr_trap: begin
 						if (WITH_PCPI) begin
-							`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-							reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+							`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+							reg_op1 <= cpuregs_rs1;
 							if (ENABLE_REGS_DUALPORT) begin
 								pcpi_valid <= 1;
-								`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);)
-								reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-								reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+								`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, cpuregs_rs2);)
+								reg_sh <= cpuregs_rs2;
+								reg_op2 <= cpuregs_rs2;
 								if (pcpi_int_ready) begin
 									mem_do_rinst <= 1;
 									pcpi_valid <= 0;
@@ -1425,14 +1459,14 @@ module picorv32 #(
 						cpu_state <= cpu_state_exec;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq: begin
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						reg_out <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						reg_out <= cpuregs_rs1;
 						latched_store <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_setq: begin
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						reg_out <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						reg_out <= cpuregs_rs1;
 						latched_rd <= latched_rd | irqregs_offset;
 						latched_store <= 1;
 						cpu_state <= cpu_state_fetch;
@@ -1442,39 +1476,39 @@ module picorv32 #(
 						irq_active <= 0;
 						latched_branch <= 1;
 						latched_store <= 1;
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						reg_out <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						reg_out <= cpuregs_rs1;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && instr_maskirq: begin
 						latched_store <= 1;
 						reg_out <= irq_mask;
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						irq_mask <= (decoded_rs1 ? cpuregs[decoded_rs1] : 0) | MASKED_IRQ;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						irq_mask <= cpuregs_rs1 | MASKED_IRQ;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_TIMER && instr_timer: begin
 						latched_store <= 1;
 						reg_out <= timer;
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						timer <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						timer <= cpuregs_rs1;
 						cpu_state <= cpu_state_fetch;
 					end
 					is_lb_lh_lw_lbu_lhu: begin
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						reg_op1 <= cpuregs_rs1;
 						cpu_state <= cpu_state_ldmem;
 						mem_do_rinst <= 1;
 					end
 					is_slli_srli_srai && !BARREL_SHIFTER: begin
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						reg_op1 <= cpuregs_rs1;
 						reg_sh <= decoded_rs2;
 						cpu_state <= cpu_state_shift;
 					end
 					is_jalr_addi_slti_sltiu_xori_ori_andi, is_slli_srli_srai && BARREL_SHIFTER: begin
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						reg_op1 <= cpuregs_rs1;
 						reg_op2 <= is_slli_srli_srai && BARREL_SHIFTER ? decoded_rs2 : decoded_imm;
 						if (TWO_CYCLE_ALU)
 							alu_wait <= 1;
@@ -1483,12 +1517,12 @@ module picorv32 #(
 						cpu_state <= cpu_state_exec;
 					end
 					default: begin
-						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, decoded_rs1 ? cpuregs[decoded_rs1] : 0);)
-						reg_op1 <= decoded_rs1 ? cpuregs[decoded_rs1] : 0;
+						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
+						reg_op1 <= cpuregs_rs1;
 						if (ENABLE_REGS_DUALPORT) begin
-							`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);)
-							reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-							reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+							`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, cpuregs_rs2);)
+							reg_sh <= cpuregs_rs2;
+							reg_op2 <= cpuregs_rs2;
 							(* parallel_case *)
 							case (1'b1)
 								is_sb_sh_sw: begin
@@ -1514,9 +1548,9 @@ module picorv32 #(
 			end
 
 			cpu_state_ld_rs2: begin
-				`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, decoded_rs2 ? cpuregs[decoded_rs2] : 0);)
-				reg_sh <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-				reg_op2 <= decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+				`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, cpuregs_rs2);)
+				reg_sh <= cpuregs_rs2;
+				reg_op2 <= cpuregs_rs2;
 
 				(* parallel_case *)
 				case (1'b1)
