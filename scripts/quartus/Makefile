@@ -57,6 +57,6 @@ table.txt:
 
 clean:
 	rm -rf firmware.bin firmware.elf firmware.hex firmware.map synth_*.log
-	rm -rf synth_system.v table.txt tab_*/ 
-	rm -rf synth_area_*_build
+	rm -rf table.txt tab_*/
+	rm -rf synth_*_build
 
