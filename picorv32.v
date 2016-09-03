@@ -1931,9 +1931,9 @@ module picorv32_pcpi_fast_mul #(
 	output            pcpi_ready
 );
 
-	reg pcpi_valid_q;
+	reg pcpi_valid_p1;
 	always @(posedge clk) begin
-		pcpi_valid_q <= pcpi_valid;
+		pcpi_valid_p1 <= pcpi_valid;
 	end
 
 	reg active_p0;
@@ -1946,7 +1946,7 @@ module picorv32_pcpi_fast_mul #(
 		instr_mulhu_p0  = 0;
 		active_p0       = 0;
 
-		if (resetn && pcpi_valid && !pcpi_valid_q && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+		if (resetn && pcpi_valid && !pcpi_valid_p1 && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
 			case (pcpi_insn[14:12])
 				3'b000: instr_mul_p0    = 1;
 				3'b001: instr_mulh_p0   = 1;
@@ -1958,7 +1958,7 @@ module picorv32_pcpi_fast_mul #(
 		end
 	end
     
-	wire instr_any_mul_p0    = |{instr_mul_p0, instr_mulh_p0, instr_mulhsu_p0, instr_mulhu_p0};
+	wire instr_any_mul_p0    = |{instr_mulh_p0, instr_mulhsu_p0, instr_mulhu_p0, instr_mul_p0};
 	wire instr_any_mulh_p0   = |{instr_mulh_p0, instr_mulhsu_p0, instr_mulhu_p0};
 	wire instr_rs1_signed_p0 = |{instr_mulh_p0, instr_mulhsu_p0};
 	wire instr_rs2_signed_p0 = |{instr_mulh_p0};
@@ -2019,7 +2019,7 @@ module picorv32_pcpi_fast_mul #(
 			else
 				rs2_p2 <= $unsigned(pcpi_rs2_p1);
 
-		    shift_out_p2 <= instr_any_mulh_p1;
+			shift_out_p2 <= instr_any_mulh_p1;
 		end
 
         active_p2 <= resetn && active_p1;
