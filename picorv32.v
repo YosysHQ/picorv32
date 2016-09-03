@@ -1916,7 +1916,9 @@ module picorv32_pcpi_mul #(
 	end
 endmodule
 
-module picorv32_pcpi_fast_mul (
+module picorv32_pcpi_fast_mul #(
+    parameter MAX_PIPELINED = 1
+    ) (
 	input clk, resetn,
 
 	input             pcpi_valid,
@@ -1928,64 +1930,136 @@ module picorv32_pcpi_fast_mul (
 	output            pcpi_wait,
 	output            pcpi_ready
 );
-	reg instr_mul, instr_mulh, instr_mulhsu, instr_mulhu;
-	wire instr_any_mul = |{instr_mul, instr_mulh, instr_mulhsu, instr_mulhu};
-	wire instr_any_mulh = |{instr_mulh, instr_mulhsu, instr_mulhu};
-	wire instr_rs1_signed = |{instr_mulh, instr_mulhsu};
-	wire instr_rs2_signed = |{instr_mulh};
 
-	reg active1, active2, shift_out;
-	reg [32:0] rs1, rs2;
-	reg [63:0] rd;
+    reg pcpi_valid_q;
+    always @(posedge clk) begin
+        pcpi_valid_q <= pcpi_valid;
+    end
+
+    reg active_p0;
+	reg instr_mul_p0, instr_mulh_p0, instr_mulhsu_p0, instr_mulhu_p0;
 
 	always @* begin
-		instr_mul = 0;
-		instr_mulh = 0;
-		instr_mulhsu = 0;
-		instr_mulhu = 0;
+		instr_mul_p0    = 0;
+		instr_mulh_p0   = 0;
+		instr_mulhsu_p0 = 0;
+		instr_mulhu_p0  = 0;
+        active_p0       = 0;
 
-		if (resetn && pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+		if (resetn && pcpi_valid && !pcpi_valid_q && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
 			case (pcpi_insn[14:12])
-				3'b000: instr_mul = 1;
-				3'b001: instr_mulh = 1;
-				3'b010: instr_mulhsu = 1;
-				3'b011: instr_mulhu = 1;
+				3'b000: instr_mul_p0    = 1;
+				3'b001: instr_mulh_p0   = 1;
+				3'b010: instr_mulhsu_p0 = 1;
+				3'b011: instr_mulhu_p0  = 1;
 			endcase
+
+            active_p0 = !pcpi_insn[14];
 		end
 	end
+    
+	wire instr_any_mul_p0    = |{instr_mul_p0, instr_mulh_p0, instr_mulhsu_p0, instr_mulhu_p0};
+	wire instr_any_mulh_p0   = |{instr_mulh_p0, instr_mulhsu_p0, instr_mulhu_p0};
+	wire instr_rs1_signed_p0 = |{instr_mulh_p0, instr_mulhsu_p0};
+	wire instr_rs2_signed_p0 = |{instr_mulh_p0};
+
+    reg active_p1;
+
+   	reg instr_any_mul_p1;
+   	reg instr_any_mulh_p1;
+   	reg instr_rs1_signed_p1;
+   	reg instr_rs2_signed_p1;
+
+    reg [31:0] pcpi_rs1_p1;
+    reg [31:0] pcpi_rs2_p1;
+
+    generate if (MAX_PIPELINED) begin
+    
+        always @(posedge clk) begin
+            if (active_p0) begin
+				instr_any_mul_p1    <= instr_any_mul_p0;
+            	instr_any_mulh_p1   <= instr_any_mulh_p0;
+            	instr_rs1_signed_p1 <= instr_rs1_signed_p0;
+            	instr_rs2_signed_p1 <= instr_rs2_signed_p0;
+
+                pcpi_rs1_p1         <= pcpi_rs1;
+                pcpi_rs2_p1         <= pcpi_rs2;
+            end
+
+            active_p1           <= resetn && active_p0;
+        end
+    end else begin
+        // When no max pipelined, just collapse this stage.
+        always @* begin
+            active_p1           = resetn && active_p0;
+
+    	    instr_any_mul_p1    = active_p0 && instr_any_mul_p0;
+        	instr_any_mulh_p1   = active_p0 && instr_any_mulh_p0;
+        	instr_rs1_signed_p1 = instr_rs1_signed_p0;
+        	instr_rs2_signed_p1 = instr_rs2_signed_p0;
+
+            pcpi_rs1_p1         = pcpi_rs1;
+            pcpi_rs2_p1         = pcpi_rs2;
+        end
+    end endgenerate
+
+	reg [32:0] rs1_p2, rs2_p2;
+    reg        active_p2;
+    reg        shift_out_p2;
 
 	always @(posedge clk) begin
-		rd <= $signed(rs1) * $signed(rs2);
+		if (instr_any_mul_p1) begin
+			if (instr_rs1_signed_p1)
+				rs1_p2 <= $signed(pcpi_rs1_p1);
+			else
+				rs1_p2 <= $unsigned(pcpi_rs1_p1);
+
+			if (instr_rs2_signed_p1)
+				rs2_p2 <= $signed(pcpi_rs2_p1);
+			else
+				rs2_p2 <= $unsigned(pcpi_rs2_p1);
+
+		    shift_out_p2 <= instr_any_mulh_p1;
+		end
+
+        active_p2 <= resetn && active_p1;
 	end
+
+	reg [63:0] rd_p3;
+    reg        shift_out_p3;
+    reg        active_p3;
 
 	always @(posedge clk) begin
-		if (instr_any_mul && !active1 && !active2) begin
-			if (instr_rs1_signed)
-				rs1 <= $signed(pcpi_rs1);
-			else
-				rs1 <= $unsigned(pcpi_rs1);
-
-			if (instr_rs2_signed)
-				rs2 <= $signed(pcpi_rs2);
-			else
-				rs2 <= $unsigned(pcpi_rs2);
-			active1 <= 1;
-		end else begin
-			active1 <= 0;
-		end
-		active2 <= active1;
-		shift_out <= instr_any_mulh;
-
-		if (!resetn) begin
-			active1 <= 0;
-			active2 <= 0;
-		end
+		rd_p3           <= $signed(rs1_p2) * $signed(rs2_p2);
+        shift_out_p3    <= shift_out_p2;
+        active_p3       <= resetn && active_p2;
 	end
 
-	assign pcpi_wr = active2;
-	assign pcpi_wait = 0;
-	assign pcpi_ready = active2;
-	assign pcpi_rd = shift_out ? rd >> 32 : rd;
+	reg [63:0] rd_p4;
+    reg        shift_out_p4;
+    reg        active_p4;
+
+    generate if (MAX_PIPELINED) begin
+        always @(posedge clk) begin
+            if (active_p3) begin
+                rd_p4           <= rd_p3;
+                shift_out_p4    <= shift_out_p3;
+            end
+            active_p4       <= resetn && active_p3;
+        end
+    end
+    else begin
+        always @* begin
+            rd_p4           = rd_p3;
+            shift_out_p4    = shift_out_p3;
+            active_p4       = resetn && active_p3;
+        end
+    end endgenerate
+
+	assign pcpi_wr      = active_p4;
+	assign pcpi_wait    = 0;
+	assign pcpi_ready   = active_p4;
+	assign pcpi_rd      = shift_out_p4 ? rd_p4 >> 32 : rd_p4;
 endmodule
 
 
