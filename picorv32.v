@@ -1197,7 +1197,7 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (cpuregs_write)
+		if (resetn && cpuregs_write)
 			cpuregs[latched_rd] <= cpuregs_wrdata;
 	end
 
