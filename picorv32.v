@@ -1917,7 +1917,7 @@ module picorv32_pcpi_mul #(
 endmodule
 
 module picorv32_pcpi_fast_mul #(
-	parameter MAX_PIPELINED = 1
+	parameter MAX_PIPELINED = 0
 	) (
 	input clk, resetn,
 
