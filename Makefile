@@ -19,13 +19,11 @@ testbench.vcd: testbench.vvp firmware/firmware.hex
 view: testbench.vcd
 	gtkwave $< testbench.gtkw
 
-check-z3: check.smt2
-	yosys-smtbmc -s z3 -t 30 --dump-vcd check.vcd check.smt2
-	yosys-smtbmc -s z3 -t 30 --dump-vcd check.vcd -i check.smt2
+check: check-yices
 
-check-yices: check.smt2
-	yosys-smtbmc -s yices -t 30 --dump-vcd check.vcd check.smt2
-	yosys-smtbmc -s yices -t 30 --dump-vcd check.vcd -i check.smt2
+check-%: check.smt2
+	yosys-smtbmc -s $(subst check-,,$@) -t 30 --dump-vcd check.vcd check.smt2
+	yosys-smtbmc -s $(subst check-,,$@) -t 30 --dump-vcd check.vcd -i check.smt2
 
 check.smt2: picorv32.v
 	yosys -v2 -p 'read_verilog -formal picorv32.v' \
@@ -137,5 +135,5 @@ clean:
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
 		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench.vcd testbench.trace
 
-.PHONY: test view test_sp test_axi test_synth check-z3 check-yices download-tools build-tools toc clean
+.PHONY: test view test_sp test_axi test_synth download-tools build-tools toc clean
 
