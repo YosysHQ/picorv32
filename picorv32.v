@@ -1917,7 +1917,8 @@ module picorv32_pcpi_mul #(
 endmodule
 
 module picorv32_pcpi_fast_mul #(
-	parameter EXTRA_FFS = 0
+	parameter EXTRA_MUL_FFS = 0,
+	parameter EXTRA_INSN_FFS = 0
 ) (
 	input clk, resetn,
 
@@ -1941,13 +1942,16 @@ module picorv32_pcpi_fast_mul #(
 	reg [32:0] rs1, rs2, rs1_q, rs2_q;
 	reg [63:0] rd, rd_q;
 
+	wire pcpi_insn_valid = pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001;
+	reg pcpi_insn_valid_q;
+
 	always @* begin
 		instr_mul = 0;
 		instr_mulh = 0;
 		instr_mulhsu = 0;
 		instr_mulhu = 0;
 
-		if (resetn && pcpi_valid && pcpi_insn[6:0] == 7'b0110011 && pcpi_insn[31:25] == 7'b0000001) begin
+		if (resetn && (EXTRA_INSN_FFS ? pcpi_insn_valid_q : pcpi_insn_valid)) begin
 			case (pcpi_insn[14:12])
 				3'b000: instr_mul = 1;
 				3'b001: instr_mulh = 1;
@@ -1958,17 +1962,18 @@ module picorv32_pcpi_fast_mul #(
 	end
 
 	always @(posedge clk) begin
+		pcpi_insn_valid_q <= pcpi_insn_valid;
 		rs1_q <= rs1;
 		rs2_q <= rs2;
 		rd_q <= rd;
 	end
 
 	always @(posedge clk) begin
-		rd <= $signed(EXTRA_FFS ? rs1_q : rs1) * $signed(EXTRA_FFS ? rs2_q : rs2);
+		rd <= $signed(EXTRA_MUL_FFS ? rs1_q : rs1) * $signed(EXTRA_MUL_FFS ? rs2_q : rs2);
 	end
 
 	always @(posedge clk) begin
-		if (instr_any_mul && !(EXTRA_FFS ? active[3:0] : active[1:0])) begin
+		if (instr_any_mul && !(EXTRA_MUL_FFS ? active[3:0] : active[1:0])) begin
 			if (instr_rs1_signed)
 				rs1 <= $signed(pcpi_rs1);
 			else
@@ -1990,10 +1995,10 @@ module picorv32_pcpi_fast_mul #(
 			active <= 0;
 	end
 
-	assign pcpi_wr = active[EXTRA_FFS ? 3 : 1];
+	assign pcpi_wr = active[EXTRA_MUL_FFS ? 3 : 1];
 	assign pcpi_wait = 0;
-	assign pcpi_ready = active[EXTRA_FFS ? 3 : 1];
-	assign pcpi_rd = shift_out ? (EXTRA_FFS ? rd_q : rd) >> 32 : (EXTRA_FFS ? rd_q : rd);
+	assign pcpi_ready = active[EXTRA_MUL_FFS ? 3 : 1];
+	assign pcpi_rd = shift_out ? (EXTRA_MUL_FFS ? rd_q : rd) >> 32 : (EXTRA_MUL_FFS ? rd_q : rd);
 endmodule
 
 
