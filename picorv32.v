@@ -1917,7 +1917,7 @@ module picorv32_pcpi_mul #(
 endmodule
 
 module picorv32_pcpi_fast_mul #(
-	parameter MAX_PIPELINED = 0
+	parameter EXTRA_FFS = 0
 	) (
 	input clk, resetn,
 
@@ -1973,7 +1973,7 @@ module picorv32_pcpi_fast_mul #(
 	reg [31:0] pcpi_rs1_p1;
 	reg [31:0] pcpi_rs2_p1;
 
-	generate if (MAX_PIPELINED) begin
+	generate if (EXTRA_FFS) begin
     
 		always @(posedge clk) begin
 			if (active_p0) begin
@@ -2039,7 +2039,7 @@ module picorv32_pcpi_fast_mul #(
 	reg        shift_out_p4;
 	reg        active_p4;
 
-	generate if (MAX_PIPELINED) begin
+	generate if (EXTRA_FFS) begin
 		always @(posedge clk) begin
 			if (active_p3) begin
 				rd_p4           <= rd_p3;
