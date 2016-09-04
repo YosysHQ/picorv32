@@ -10,6 +10,8 @@
 /dhrystone/dhry.map
 /dhrystone/testbench.vvp
 /dhrystone/testbench.vcd
+/dhrystone/testbench_nola.vvp
+/dhrystone/testbench_nola.vcd
 /dhrystone/timing.vvp
 /dhrystone/timing.txt
 /dhrystone/*.d

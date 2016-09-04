@@ -1,3 +1,5 @@
+// A version of the dhrystone test bench that isn't using the look-ahead interface
+
 `timescale 1 ns / 1 ps
 
 module testbench;
@@ -79,7 +81,7 @@ module testbench;
 	end
 
 	initial begin
-		$dumpfile("testbench_slow_mem.vcd");
+		$dumpfile("testbench_nola.vcd");
 		$dumpvars(0, testbench);
 	end
 

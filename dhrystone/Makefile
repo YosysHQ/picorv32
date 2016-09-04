@@ -13,8 +13,8 @@ endif
 test: testbench.vvp dhry.hex
 	vvp -N testbench.vvp
 
-test_slow_mem: testbench_slow_mem.vvp dhry.hex
-	vvp -N testbench_slow_mem.vvp
+test_nola: testbench_nola.vvp dhry.hex
+	vvp -N testbench_nola.vvp
 
 timing: timing.txt
 	grep '^##' timing.txt | gawk 'x != "" {print x,$$3-y;} {x=$$2;y=$$3;}' | sort | uniq -c | \
@@ -27,9 +27,9 @@ testbench.vvp: testbench.v ../picorv32.v
 	iverilog -o testbench.vvp testbench.v ../picorv32.v
 	chmod -x testbench.vvp
 
-testbench_slow_mem.vvp: testbench_slow_mem.v ../picorv32.v
-	iverilog -o testbench_slow_mem.vvp testbench_slow_mem.v ../picorv32.v
-	chmod -x testbench_slow_mem.vvp
+testbench_nola.vvp: testbench_nola.v ../picorv32.v
+	iverilog -o testbench_nola.vvp testbench_nola.v ../picorv32.v
+	chmod -x testbench_nola.vvp
 
 timing.vvp: testbench.v ../picorv32.v
 	iverilog -o timing.vvp -DTIMING testbench.v ../picorv32.v
@@ -57,7 +57,7 @@ endif
 dhry_1.o dhry_2.o: CFLAGS += -Wno-implicit-int -Wno-implicit-function-declaration
 
 clean:
-	rm -rf *.o *.d dhry.elf dhry.map dhry.bin dhry.hex testbench.vvp testbench.vcd timing.vvp timing.txt testbench_slow_mem.vvp
+	rm -rf *.o *.d dhry.elf dhry.map dhry.bin dhry.hex testbench.vvp testbench.vcd timing.vvp timing.txt testbench_nola.vvp
 
 .PHONY: test clean
 
