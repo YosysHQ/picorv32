@@ -351,6 +351,9 @@ Dhrystone benchmark results: 0.521 DMIPS/MHz (916 Dhrystones/Second/MHz)
 
 For the Dhrystone benchmark the average CPI is 4.081.
 
+Without using the look-ahead memory interface (usually required for max
+clock speed), this results drop to 0.305 DMIPS/MHz and 5.232 CPI.
+
 
 PicoRV32 Native Memory Interface
 --------------------------------

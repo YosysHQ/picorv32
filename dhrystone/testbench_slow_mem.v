@@ -13,7 +13,6 @@ module testbench;
 	end
 
 	wire mem_valid;
-	reg  mem_valid_q;
 	wire mem_instr;
 	reg  mem_ready;
 	wire [31:0] mem_addr;
@@ -37,12 +36,7 @@ module testbench;
 		.mem_addr    (mem_addr   ),
 		.mem_wdata   (mem_wdata  ),
 		.mem_wstrb   (mem_wstrb  ),
-		.mem_rdata   (mem_rdata  ),
-		.mem_la_read (),
-		.mem_la_write(),
-		.mem_la_addr (),
-		.mem_la_wdata(),
-		.mem_la_wstrb()
+		.mem_rdata   (mem_rdata  )
 	);
 
 	reg [7:0] memory [0:256*1024-1];
@@ -56,16 +50,14 @@ module testbench;
 		mem_rdata[23:16] <= 'bx;
 		mem_rdata[31:24] <= 'bx;
 
-		if (mem_valid & !mem_valid_q) begin
+		if (mem_valid & !mem_ready) begin
 			if (|mem_wstrb) begin
 				mem_ready <= 1'b1;
 
 				case (mem_addr)
 					32'h1000_0000: begin
-`ifndef TIMING
 						$write("%c", mem_wdata);
 						$fflush();
-`endif
 					end
 					default: begin
 						if (mem_wstrb[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
@@ -84,12 +76,10 @@ module testbench;
 				mem_rdata[31:24] <= memory[mem_addr + 3];
 			end
 		end
-
-		mem_valid_q <= mem_valid;
 	end
 
 	initial begin
-		$dumpfile("testbench.vcd");
+		$dumpfile("testbench_slow_mem.vcd");
 		$dumpvars(0, testbench);
 	end
 
@@ -100,15 +90,4 @@ module testbench;
 			$finish;
 		end
 	end
-
-`ifdef TIMING
-	initial begin
-		repeat (100000) @(posedge clk);
-		$finish;
-	end
-	always @(posedge clk) begin
-		if (uut.dbg_next)
-			$display("## %-s %d", uut.dbg_ascii_instr ? uut.dbg_ascii_instr : "pcpi", uut.count_cycle);
-	end
-`endif
 endmodule
