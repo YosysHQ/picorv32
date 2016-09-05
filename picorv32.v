@@ -1918,7 +1918,8 @@ endmodule
 
 module picorv32_pcpi_fast_mul #(
 	parameter EXTRA_MUL_FFS = 0,
-	parameter EXTRA_INSN_FFS = 0
+	parameter EXTRA_INSN_FFS = 0,
+	parameter MUL_CLKGATE = 0
 ) (
 	input clk, resetn,
 
@@ -1963,9 +1964,13 @@ module picorv32_pcpi_fast_mul #(
 
 	always @(posedge clk) begin
 		pcpi_insn_valid_q <= pcpi_insn_valid;
-		rs1_q <= rs1;
-		rs2_q <= rs2;
-		rd_q <= rd;
+		if (!MUL_CLKGATE || active[0]) begin
+			rs1_q <= rs1;
+			rs2_q <= rs2;
+		end
+		if (!MUL_CLKGATE || active[2]) begin
+			rd_q <= rd;
+		end
 	end
 
 	always @(posedge clk) begin
