@@ -1968,13 +1968,12 @@ module picorv32_pcpi_fast_mul #(
 			rs1_q <= rs1;
 			rs2_q <= rs2;
 		end
+		if (!MUL_CLKGATE || active[1]) begin
+			rd <= $signed(EXTRA_MUL_FFS ? rs1_q : rs1) * $signed(EXTRA_MUL_FFS ? rs2_q : rs2);
+		end
 		if (!MUL_CLKGATE || active[2]) begin
 			rd_q <= rd;
 		end
-	end
-
-	always @(posedge clk) begin
-		rd <= $signed(EXTRA_MUL_FFS ? rs1_q : rs1) * $signed(EXTRA_MUL_FFS ? rs2_q : rs2);
 	end
 
 	always @(posedge clk) begin
