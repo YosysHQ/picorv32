@@ -1494,7 +1494,7 @@ module picorv32 #(
 						timer <= cpuregs_rs1;
 						cpu_state <= cpu_state_fetch;
 					end
-					is_lb_lh_lw_lbu_lhu: begin
+					is_lb_lh_lw_lbu_lhu && !instr_trap: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_op1 <= cpuregs_rs1;
 						cpu_state <= cpu_state_ldmem;
@@ -1525,7 +1525,7 @@ module picorv32 #(
 							reg_op2 <= cpuregs_rs2;
 							(* parallel_case *)
 							case (1'b1)
-								is_sb_sh_sw: begin
+								is_sb_sh_sw && !instr_trap: begin
 									cpu_state <= cpu_state_stmem;
 									mem_do_rinst <= 1;
 								end
