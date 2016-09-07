@@ -23,11 +23,12 @@ check: check-yices
 
 check-%: check.smt2
 	yosys-smtbmc -s $(subst check-,,$@) -t 30 --dump-vcd check.vcd check.smt2
-	yosys-smtbmc -s $(subst check-,,$@) -t 30 --dump-vcd check.vcd -i check.smt2
+	yosys-smtbmc -s $(subst check-,,$@) -t 20 --dump-vcd check.vcd -i check.smt2
 
 check.smt2: picorv32.v
 	yosys -v2 -p 'read_verilog -formal picorv32.v' \
 	          -p 'prep -top picorv32 -nordff' \
+		  -p 'assertpmux -noinit; opt -fast' \
 		  -p 'write_smt2 -wires check.smt2'
 
 test_sp: testbench_sp.vvp firmware/firmware.hex

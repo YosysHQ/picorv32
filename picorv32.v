@@ -1016,6 +1016,9 @@ module picorv32 #(
 				mem_rdata_q[14:12] == 3'b101 && mem_rdata_q[31:25] == 7'b0100000
 			};
 
+			is_lui_auipc_jal_jalr_addi_add_sub <= 0;
+			is_compare <= 0;
+
 			(* parallel_case *)
 			case (1'b1)
 				instr_jal:
@@ -1031,6 +1034,29 @@ module picorv32 #(
 				default:
 					decoded_imm <= 1'bx;
 			endcase
+		end
+
+		if (!resetn) begin
+			is_beq_bne_blt_bge_bltu_bgeu <= 0;
+			is_compare <= 0;
+
+			instr_addi  <= 0;
+			instr_slti  <= 0;
+			instr_sltiu <= 0;
+			instr_xori  <= 0;
+			instr_ori   <= 0;
+			instr_andi  <= 0;
+
+			instr_add   <= 0;
+			instr_sub   <= 0;
+			instr_sll   <= 0;
+			instr_slt   <= 0;
+			instr_sltu  <= 0;
+			instr_xor   <= 0;
+			instr_srl   <= 0;
+			instr_sra   <= 0;
+			instr_or    <= 0;
+			instr_and   <= 0;
 		end
 	end
 
@@ -1525,7 +1551,7 @@ module picorv32 #(
 							reg_op2 <= cpuregs_rs2;
 							(* parallel_case *)
 							case (1'b1)
-								is_sb_sh_sw && !instr_trap: begin
+								is_sb_sh_sw: begin
 									cpu_state <= cpu_state_stmem;
 									mem_do_rinst <= 1;
 								end
