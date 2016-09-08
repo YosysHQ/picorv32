@@ -500,9 +500,9 @@ module picorv32 #(
 				mem_addr <= mem_la_addr;
 				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
 			end
-            if (mem_la_write) begin
+			if (mem_la_write) begin
 				mem_wdata <= mem_la_wdata;
-            end
+			end
 			case (mem_state)
 				0: begin
 					if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
