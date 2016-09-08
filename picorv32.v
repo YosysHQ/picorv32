@@ -498,8 +498,10 @@ module picorv32 #(
 		end else begin
 			if (mem_la_read || mem_la_write) begin
 				mem_addr <= mem_la_addr;
-				mem_wdata <= mem_la_wdata;
 				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
+			end
+			if (mem_la_write) begin
+				mem_wdata <= mem_la_wdata;
 			end
 			case (mem_state)
 				0: begin
