@@ -23,7 +23,7 @@ check: check-yices
 
 check-%: check.smt2
 	yosys-smtbmc -s $(subst check-,,$@) -t 30 --dump-vcd check.vcd check.smt2
-	yosys-smtbmc -s $(subst check-,,$@) -t 20 --dump-vcd check.vcd -i check.smt2
+	yosys-smtbmc -s $(subst check-,,$@) -t 25 --dump-vcd check.vcd -i check.smt2
 
 check.smt2: picorv32.v
 	yosys -v2 -p 'read_verilog -formal picorv32.v' \

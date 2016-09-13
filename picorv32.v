@@ -470,7 +470,7 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (resetn) begin
+		if (resetn && !trap) begin
 			if (mem_do_prefetch || mem_do_rinst || mem_do_rdata)
 				`assert(!mem_do_wdata);
 
@@ -490,7 +490,8 @@ module picorv32 #(
 
 	always @(posedge clk) begin
 		if (!resetn || trap) begin
-			mem_state <= 0;
+			if (!resetn)
+				mem_state <= 0;
 			if (!resetn || mem_ready)
 				mem_valid <= 0;
 			mem_la_secondword <= 0;
@@ -1795,6 +1796,9 @@ module picorv32 #(
 	// resetn low in first cycle, after that resetn high
 	restrict property (resetn != $initstate);
 
+	// this just makes it much easier to read traces. uncomment as needed.
+	// assume property (mem_valid || !mem_ready);
+
 	reg ok;
 	always @* begin
 		if (resetn) begin
@@ -1813,6 +1817,35 @@ module picorv32 #(
 			if (cpu_state == cpu_state_stmem)  ok = 1;
 			if (cpu_state == cpu_state_ldmem)  ok = 1;
 			assert (ok);
+		end
+	end
+
+	reg last_mem_la_read = 0;
+	reg last_mem_la_write = 0;
+	reg [31:0] last_mem_la_addr;
+	reg [31:0] last_mem_la_wdata;
+	reg [3:0] last_mem_la_wstrb = 0;
+
+	always @(posedge clk) begin
+		last_mem_la_read <= mem_la_read;
+		last_mem_la_write <= mem_la_write;
+		last_mem_la_addr <= mem_la_addr;
+		last_mem_la_wdata <= mem_la_wdata;
+		last_mem_la_wstrb <= mem_la_wstrb;
+
+		if (last_mem_la_read) begin
+			assert(mem_valid);
+			assert(mem_addr == last_mem_la_addr);
+			assert(mem_wstrb == 0);
+		end
+		if (last_mem_la_write) begin
+			assert(mem_valid);
+			assert(mem_addr == last_mem_la_addr);
+			assert(mem_wdata == last_mem_la_wdata);
+			assert(mem_wstrb == last_mem_la_wstrb);
+		end
+		if (mem_la_read || mem_la_write) begin
+			assert(!mem_valid || mem_ready);
 		end
 	end
 `endif
