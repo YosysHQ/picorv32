@@ -1043,6 +1043,13 @@ module picorv32 #(
 			is_beq_bne_blt_bge_bltu_bgeu <= 0;
 			is_compare <= 0;
 
+			instr_beq   <= 0;
+			instr_bne   <= 0;
+			instr_blt   <= 0;
+			instr_bge   <= 0;
+			instr_bltu  <= 0;
+			instr_bgeu  <= 0;
+
 			instr_addi  <= 0;
 			instr_slti  <= 0;
 			instr_sltiu <= 0;
@@ -1155,9 +1162,9 @@ module picorv32 #(
 				alu_out_0 = !alu_lts;
 			instr_bgeu:
 				alu_out_0 = !alu_ltu;
-			is_slti_blt_slt:
+			is_slti_blt_slt && (!TWO_CYCLE_COMPARE || !{instr_beq,instr_bne,instr_bge,instr_bgeu}):
 				alu_out_0 = alu_lts;
-			is_sltiu_bltu_sltu:
+			is_sltiu_bltu_sltu && (!TWO_CYCLE_COMPARE || !{instr_beq,instr_bne,instr_bge,instr_bgeu}):
 				alu_out_0 = alu_ltu;
 		endcase
 
