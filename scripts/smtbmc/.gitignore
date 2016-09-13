@@ -1,5 +1,7 @@
 tracecmp.smt2
 tracecmp.yslog
+tracecmp2.smt2
+tracecmp2.yslog
 notrap_validop.smt2
 notrap_validop.yslog
 mulcmp.smt2

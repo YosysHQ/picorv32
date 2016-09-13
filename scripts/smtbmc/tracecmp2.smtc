@@ -1,0 +1,2 @@
+initial
+assume (= [cpu_0.cpuregs] [cpu_1.cpuregs])
