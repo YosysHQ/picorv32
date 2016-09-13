@@ -143,11 +143,11 @@ module testbench(
 
 		// change this settings as you like
 		.ENABLE_REGS_DUALPORT(1),
-		.TWO_STAGE_SHIFT(1),
+		.TWO_STAGE_SHIFT(0),
 		.BARREL_SHIFTER(0),
 		.TWO_CYCLE_COMPARE(0),
 		.TWO_CYCLE_ALU(0),
-		.COMPRESSED_ISA(0),
+		.COMPRESSED_ISA(1),
 		.ENABLE_MUL(0),
 		.ENABLE_DIV(0)
 	) cpu_0 (
@@ -174,9 +174,9 @@ module testbench(
 		.ENABLE_REGS_DUALPORT(1),
 		.TWO_STAGE_SHIFT(1),
 		.BARREL_SHIFTER(0),
-		.TWO_CYCLE_COMPARE(0),
-		.TWO_CYCLE_ALU(0),
-		.COMPRESSED_ISA(0),
+		.TWO_CYCLE_COMPARE(1),
+		.TWO_CYCLE_ALU(1),
+		.COMPRESSED_ISA(1),
 		.ENABLE_MUL(0),
 		.ENABLE_DIV(0)
 	) cpu_1 (
