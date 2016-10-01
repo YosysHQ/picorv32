@@ -4,6 +4,8 @@ tracecmp2.smt2
 tracecmp2.yslog
 axicheck.smt2
 axicheck.yslog
+axicheck2.smt2
+axicheck2.yslog
 notrap_validop.smt2
 notrap_validop.yslog
 mulcmp.smt2

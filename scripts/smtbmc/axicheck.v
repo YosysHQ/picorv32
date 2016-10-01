@@ -34,8 +34,7 @@ module testbench (
 		.ENABLE_COUNTERS64(1),
 		.ENABLE_REGS_16_31(1),
 		.ENABLE_REGS_DUALPORT(1),
-		.TWO_STAGE_SHIFT(1),
-		.BARREL_SHIFTER(0),
+		.BARREL_SHIFTER(1),
 		.TWO_CYCLE_COMPARE(0),
 		.TWO_CYCLE_ALU(0),
 		.COMPRESSED_ISA(0),
@@ -64,26 +63,50 @@ module testbench (
 		.mem_axi_rdata   (mem_axi_rdata  )
 	);
 
-	reg expect_bvalid_0 = 0;
-	reg expect_bvalid_1 = 0;
-	reg expect_rvalid = 0;
+	reg expect_bvalid_aw = 0;
+	reg expect_bvalid_w  = 0;
+	reg expect_rvalid    = 0;
+
+	reg [3:0] timeout_aw = 0;
+	reg [3:0] timeout_w  = 0;
+	reg [3:0] timeout_b  = 0;
+	reg [3:0] timeout_ar = 0;
+	reg [3:0] timeout_r  = 0;
+	reg [3:0] timeout_ex = 0;
+
+	always @(posedge clk) begin
+		timeout_aw <= !mem_axi_awvalid || mem_axi_awready ? 0 : timeout_aw + 1;
+		timeout_w  <= !mem_axi_wvalid  || mem_axi_wready  ? 0 : timeout_w  + 1;
+		timeout_b  <= !mem_axi_bvalid  || mem_axi_bready  ? 0 : timeout_b  + 1;
+		timeout_ar <= !mem_axi_arvalid || mem_axi_arready ? 0 : timeout_ar + 1;
+		timeout_r  <= !mem_axi_rvalid  || mem_axi_rready  ? 0 : timeout_r  + 1;
+		timeout_ex <= !{expect_bvalid_aw, expect_bvalid_w, expect_rvalid} ? 0 : timeout_ex + 1;
+		restrict(timeout_aw != 15);
+		restrict(timeout_w  != 15);
+		restrict(timeout_b  != 15);
+		restrict(timeout_ar != 15);
+		restrict(timeout_r  != 15);
+		restrict(timeout_ex != 15);
+		restrict(!trap);
+
+	end
 
 	always @(posedge clk) begin
 		if (resetn) begin
 			if (!$past(resetn)) begin
 				assert(!mem_axi_awvalid);
-				assert(!mem_axi_wvalid);
-				assume(!mem_axi_bvalid);
+				assert(!mem_axi_wvalid );
+				assume(!mem_axi_bvalid );
 				assert(!mem_axi_arvalid);
-				assume(!mem_axi_rvalid);
+				assume(!mem_axi_rvalid );
 			end else begin
 				// Only one read/write transaction in flight at each point in time
 
-				if (expect_bvalid_0) begin
+				if (expect_bvalid_aw) begin
 					assert(!mem_axi_awvalid);
 				end
 
-				if (expect_bvalid_1) begin
+				if (expect_bvalid_w) begin
 					assert(!mem_axi_wvalid);
 				end
 
@@ -91,20 +114,20 @@ module testbench (
 					assert(!mem_axi_arvalid);
 				end
 
-				expect_bvalid_0 = expect_bvalid_0 || (mem_axi_awvalid && mem_axi_awready);
-				expect_bvalid_1 = expect_bvalid_1 || (mem_axi_wvalid && mem_axi_wready);
-				expect_rvalid = expect_rvalid || (mem_axi_arvalid && mem_axi_arready);
+				expect_bvalid_aw = expect_bvalid_aw || (mem_axi_awvalid && mem_axi_awready);
+				expect_bvalid_w  = expect_bvalid_w  || (mem_axi_wvalid  && mem_axi_wready );
+				expect_rvalid    = expect_rvalid    || (mem_axi_arvalid && mem_axi_arready);
 
-				if (expect_bvalid_0 || expect_bvalid_1) begin
+				if (expect_bvalid_aw || expect_bvalid_w) begin
 					assert(!expect_rvalid);
 				end
 
 				if (expect_rvalid) begin
-					assert(!expect_bvalid_0);
-					assert(!expect_bvalid_1);
+					assert(!expect_bvalid_aw);
+					assert(!expect_bvalid_w);
 				end
 
-				if (!expect_bvalid_0 || !expect_bvalid_1) begin
+				if (!expect_bvalid_aw || !expect_bvalid_w) begin
 					assume(!mem_axi_bvalid);
 				end
 
@@ -113,8 +136,8 @@ module testbench (
 				end
 
 				if (mem_axi_bvalid && mem_axi_bready) begin
-					expect_bvalid_0 = 0;
-					expect_bvalid_1 = 0;
+					expect_bvalid_aw = 0;
+					expect_bvalid_w = 0;
 				end
 
 				if (mem_axi_rvalid && mem_axi_rready) begin

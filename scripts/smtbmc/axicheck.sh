@@ -8,5 +8,6 @@ yosys -ql axicheck.yslog \
 	-p 'prep -top testbench -nordff' \
 	-p 'write_smt2 -wires axicheck.smt2'
 
-yosys-smtbmc -s boolector --dump-vcd output.vcd --dump-smtc output.smtc axicheck.smt2
+yosys-smtbmc -t 50 -s boolector --dump-vcd output.vcd --dump-smtc output.smtc axicheck.smt2
+# yosys-smtbmc -t 50 -i -s boolector --dump-vcd output.vcd --dump-smtc output.smtc axicheck.smt2
 
