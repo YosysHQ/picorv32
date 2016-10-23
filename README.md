@@ -625,8 +625,10 @@ The commands will all be named using the prefix `riscv32-unknown-elf-`, which
 makes it easy to install them side-by-side with the regular riscv-tools (those
 are using the name prefix `riscv64-unknown-elf-` by default).
 
-The following make targets build toolchains for `RV32I[M][C]` using this sequence
-of commands (not including installing prerequisites):
+Alternatively you can simply use one of the following make targets from PicoRV32's
+Makefile to build a `RV32I[M][C]` toolchain. You still need to install all
+prerequisites, as described above. Then run any of the following commands in the
+PicoRV32 source directory:
 
 | Command                                  | Install Directory  | ISA       |
 |:---------------------------------------- |:------------------ |:--------  |
