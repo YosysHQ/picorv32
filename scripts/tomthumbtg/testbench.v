@@ -21,6 +21,10 @@ module testbench;
 	reg  [31:0] mem_rdata;
 
 	picorv32 #(
+		.TWO_STAGE_SHIFT(`TWO_STAGE_SHIFT),
+		.BARREL_SHIFTER(`BARREL_SHIFTER),
+		.TWO_CYCLE_COMPARE(`TWO_CYCLE_COMPARE),
+		.TWO_CYCLE_ALU(`TWO_CYCLE_ALU)
 	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
