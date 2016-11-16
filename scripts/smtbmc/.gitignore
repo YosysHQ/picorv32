@@ -2,6 +2,10 @@ tracecmp.smt2
 tracecmp.yslog
 tracecmp2.smt2
 tracecmp2.yslog
+tracecmp3.blif
+tracecmp3.cex
+tracecmp3.smt2
+tracecmp3.yslog
 axicheck.smt2
 axicheck.yslog
 axicheck2.smt2
