@@ -316,7 +316,7 @@ module picorv32 #(
 
 	assign mem_la_write = resetn && !mem_state && mem_do_wdata;
 	assign mem_la_read = resetn && ((!mem_la_use_prefetched_high_word && !mem_state && (mem_do_rinst || mem_do_prefetch || mem_do_rdata)) ||
-			(COMPRESSED_ISA && mem_xfer && mem_la_firstword && !mem_la_secondword && &mem_rdata_latched[1:0]));
+			(COMPRESSED_ISA && mem_xfer && (!last_mem_valid ? mem_la_firstword : mem_la_firstword_reg) && !mem_la_secondword && &mem_rdata_latched[1:0]));
 	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2] + mem_la_firstword_xfer, 2'b00} : {reg_op1[31:2], 2'b00};
 
 	assign mem_rdata_latched_noshuffle = (mem_xfer || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
@@ -536,7 +536,7 @@ module picorv32 #(
 					`assert(mem_valid == !mem_la_use_prefetched_high_word);
 					`assert(mem_instr == (mem_do_prefetch || mem_do_rinst));
 					if (mem_xfer) begin
-						if (COMPRESSED_ISA && mem_la_read && (!last_mem_valid ? mem_la_firstword : mem_la_firstword_reg)) begin
+						if (COMPRESSED_ISA && mem_la_read) begin
 							mem_valid <= 1;
 							mem_la_secondword <= 1;
 							if (!mem_la_use_prefetched_high_word)
