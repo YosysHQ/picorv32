@@ -102,6 +102,19 @@ module picorv32 #(
 	input      [31:0] irq,
 	output reg [31:0] eoi,
 
+`ifdef RISCV_FORMAL
+	output reg rvfi_valid,
+	output reg [4:0] rvfi_rs1,
+	output reg [4:0] rvfi_rs2,
+	output reg [4:0] rvfi_rd,
+	output reg [31:0] rvfi_opcode,
+	output reg [31:0] rvfi_pre_pc,
+	output reg [31:0] rvfi_pre_rs1,
+	output reg [31:0] rvfi_pre_rs2,
+	output reg [31:0] rvfi_post_pc,
+	output reg [31:0] rvfi_post_rd,
+`endif
+
 	// Trace Interface
 	output reg        trace_valid,
 	output reg [35:0] trace_data
@@ -630,6 +643,10 @@ module picorv32 #(
 	`FORMAL_KEEP reg [4:0] dbg_insn_rs1;
 	`FORMAL_KEEP reg [4:0] dbg_insn_rs2;
 	`FORMAL_KEEP reg [4:0] dbg_insn_rd;
+	`FORMAL_KEEP reg [31:0] dbg_rs1val;
+	`FORMAL_KEEP reg [31:0] dbg_rs2val;
+	`FORMAL_KEEP reg dbg_rs1val_valid;
+	`FORMAL_KEEP reg dbg_rs2val_valid;
 
 	always @* begin
 		new_ascii_instr = "";
@@ -698,6 +715,8 @@ module picorv32 #(
 	reg dbg_next;
 
 	wire launch_next_insn;
+	reg dbg_valid_insn;
+
 	reg [63:0] cached_ascii_instr;
 	reg [31:0] cached_insn_imm;
 	reg [31:0] cached_insn_opcode;
@@ -713,6 +732,11 @@ module picorv32 #(
 		q_insn_rs2 <= dbg_insn_rs2;
 		q_insn_rd <= dbg_insn_rd;
 		dbg_next <= launch_next_insn;
+
+		if (!resetn || trap)
+			dbg_valid_insn <= 0;
+		else if (launch_next_insn)
+			dbg_valid_insn <= 1;
 
 		if (decoder_trigger_q) begin
 			cached_ascii_instr <= new_ascii_instr;
@@ -1277,6 +1301,13 @@ module picorv32 #(
 		alu_wait <= 0;
 		alu_wait_2 <= 0;
 
+		if (launch_next_insn) begin
+			dbg_rs1val <= 'bx;
+			dbg_rs2val <= 'bx;
+			dbg_rs1val_valid <= 0;
+			dbg_rs2val_valid <= 0;
+		end
+
 		if (WITH_PCPI && CATCH_ILLINSN) begin
 			if (resetn && pcpi_valid && !pcpi_int_wait) begin
 				if (pcpi_timeout_counter)
@@ -1449,11 +1480,15 @@ module picorv32 #(
 						if (WITH_PCPI) begin
 							`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 							reg_op1 <= cpuregs_rs1;
+							dbg_rs1val <= cpuregs_rs1;
+							dbg_rs1val_valid <= 1;
 							if (ENABLE_REGS_DUALPORT) begin
 								pcpi_valid <= 1;
 								`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, cpuregs_rs2);)
 								reg_sh <= cpuregs_rs2;
 								reg_op2 <= cpuregs_rs2;
+								dbg_rs2val <= cpuregs_rs1;
+								dbg_rs2val_valid <= 0;
 								if (pcpi_int_ready) begin
 									mem_do_rinst <= 1;
 									pcpi_valid <= 0;
@@ -1509,12 +1544,16 @@ module picorv32 #(
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_out <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						latched_store <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_setq: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_out <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						latched_rd <= latched_rd | irqregs_offset;
 						latched_store <= 1;
 						cpu_state <= cpu_state_fetch;
@@ -1526,6 +1565,8 @@ module picorv32 #(
 						latched_store <= 1;
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_out <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && instr_maskirq: begin
@@ -1533,6 +1574,8 @@ module picorv32 #(
 						reg_out <= irq_mask;
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						irq_mask <= cpuregs_rs1 | MASKED_IRQ;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_TIMER && instr_timer: begin
@@ -1540,23 +1583,31 @@ module picorv32 #(
 						reg_out <= timer;
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						timer <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						cpu_state <= cpu_state_fetch;
 					end
 					is_lb_lh_lw_lbu_lhu && !instr_trap: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_op1 <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						cpu_state <= cpu_state_ldmem;
 						mem_do_rinst <= 1;
 					end
 					is_slli_srli_srai && !BARREL_SHIFTER: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_op1 <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						reg_sh <= decoded_rs2;
 						cpu_state <= cpu_state_shift;
 					end
 					is_jalr_addi_slti_sltiu_xori_ori_andi, is_slli_srli_srai && BARREL_SHIFTER: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_op1 <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						reg_op2 <= is_slli_srli_srai && BARREL_SHIFTER ? decoded_rs2 : decoded_imm;
 						if (TWO_CYCLE_ALU)
 							alu_wait <= 1;
@@ -1567,10 +1618,14 @@ module picorv32 #(
 					default: begin
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
 						reg_op1 <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
 						if (ENABLE_REGS_DUALPORT) begin
 							`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, cpuregs_rs2);)
 							reg_sh <= cpuregs_rs2;
 							reg_op2 <= cpuregs_rs2;
+							dbg_rs2val <= cpuregs_rs2;
+							dbg_rs2val_valid <= 0;
 							(* parallel_case *)
 							case (1'b1)
 								is_sb_sh_sw: begin
@@ -1599,6 +1654,8 @@ module picorv32 #(
 				`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, cpuregs_rs2);)
 				reg_sh <= cpuregs_rs2;
 				reg_op2 <= cpuregs_rs2;
+				dbg_rs2val <= cpuregs_rs2;
+				dbg_rs2val_valid <= 0;
 
 				(* parallel_case *)
 				case (1'b1)
@@ -1802,6 +1859,23 @@ module picorv32 #(
 		current_pc = 'bx;
 	end
 
+`ifdef RISCV_FORMAL
+	always @(posedge clk) begin
+		rvfi_valid <= launch_next_insn && dbg_valid_insn;
+		rvfi_opcode <= dbg_insn_opcode;
+		rvfi_rs1 <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
+		rvfi_rs2 <= dbg_rs1val_valid ? dbg_insn_rs2 : 0;
+		rvfi_pre_pc <= dbg_insn_addr;
+		rvfi_pre_rs1 <= dbg_rs1val_valid ? dbg_rs1val : 0;
+		rvfi_pre_rs2 <= dbg_rs2val_valid ? dbg_rs2val : 0;
+	end
+
+	always @* begin
+		rvfi_rd = cpuregs_write ? dbg_insn_rd : 0;
+		rvfi_post_rd = rvfi_rd ? cpuregs_wrdata : 0;
+		rvfi_post_pc = dbg_insn_addr;
+	end
+`endif
 
 	// Formal Verification
 `ifdef FORMAL

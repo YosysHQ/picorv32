@@ -41,11 +41,11 @@ test_synth: testbench_synth.vvp firmware/firmware.hex
 	vvp -N testbench_synth.vvp
 
 testbench.vvp: testbench.v picorv32.v
-	iverilog -o testbench.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) testbench.v picorv32.v
+	iverilog -o testbench.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL testbench.v picorv32.v
 	chmod -x testbench.vvp
 
 testbench_sp.vvp: testbench.v picorv32.v
-	iverilog -o testbench_sp.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST testbench.v picorv32.v
+	iverilog -o testbench_sp.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL -DSP_TEST testbench.v picorv32.v
 	chmod -x testbench_sp.vvp
 
 testbench_synth.vvp: testbench.v synth.v
