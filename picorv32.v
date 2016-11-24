@@ -1861,7 +1861,7 @@ module picorv32 #(
 
 `ifdef RISCV_FORMAL
 	always @(posedge clk) begin
-		rvfi_valid <= launch_next_insn && dbg_valid_insn;
+		rvfi_valid <= resetn && launch_next_insn && dbg_valid_insn;
 		rvfi_opcode <= dbg_insn_opcode;
 		rvfi_rs1 <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
 		rvfi_rs2 <= dbg_rs1val_valid ? dbg_insn_rs2 : 0;
