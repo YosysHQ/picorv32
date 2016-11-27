@@ -1487,8 +1487,8 @@ module picorv32 #(
 								`debug($display("LD_RS2: %2d 0x%08x", decoded_rs2, cpuregs_rs2);)
 								reg_sh <= cpuregs_rs2;
 								reg_op2 <= cpuregs_rs2;
-								dbg_rs2val <= cpuregs_rs1;
-								dbg_rs2val_valid <= 0;
+								dbg_rs2val <= cpuregs_rs2;
+								dbg_rs2val_valid <= 1;
 								if (pcpi_int_ready) begin
 									mem_do_rinst <= 1;
 									pcpi_valid <= 0;
@@ -1625,7 +1625,7 @@ module picorv32 #(
 							reg_sh <= cpuregs_rs2;
 							reg_op2 <= cpuregs_rs2;
 							dbg_rs2val <= cpuregs_rs2;
-							dbg_rs2val_valid <= 0;
+							dbg_rs2val_valid <= 1;
 							(* parallel_case *)
 							case (1'b1)
 								is_sb_sh_sw: begin
@@ -1655,7 +1655,7 @@ module picorv32 #(
 				reg_sh <= cpuregs_rs2;
 				reg_op2 <= cpuregs_rs2;
 				dbg_rs2val <= cpuregs_rs2;
-				dbg_rs2val_valid <= 0;
+				dbg_rs2val_valid <= 1;
 
 				(* parallel_case *)
 				case (1'b1)
@@ -1864,15 +1864,26 @@ module picorv32 #(
 		rvfi_valid <= resetn && launch_next_insn && dbg_valid_insn;
 		rvfi_opcode <= dbg_insn_opcode;
 		rvfi_rs1 <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
-		rvfi_rs2 <= dbg_rs1val_valid ? dbg_insn_rs2 : 0;
+		rvfi_rs2 <= dbg_rs2val_valid ? dbg_insn_rs2 : 0;
 		rvfi_pre_pc <= dbg_insn_addr;
 		rvfi_pre_rs1 <= dbg_rs1val_valid ? dbg_rs1val : 0;
 		rvfi_pre_rs2 <= dbg_rs2val_valid ? dbg_rs2val : 0;
+
+		if (!resetn) begin
+			rvfi_rd <= 0;
+			rvfi_post_rd <= 0;
+		end else
+		if (cpuregs_write) begin
+			rvfi_rd <= latched_rd;
+			rvfi_post_rd <= latched_rd ? cpuregs_wrdata : 0;
+		end else
+		if (rvfi_valid) begin
+			rvfi_rd <= 0;
+			rvfi_post_rd <= 0;
+		end
 	end
 
 	always @* begin
-		rvfi_rd = cpuregs_write ? dbg_insn_rd : 0;
-		rvfi_post_rd = rvfi_rd ? cpuregs_wrdata : 0;
 		rvfi_post_pc = dbg_insn_addr;
 	end
 `endif
