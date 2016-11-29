@@ -1564,7 +1564,7 @@ module picorv32 #(
 						latched_branch <= 1;
 						latched_store <= 1;
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
-						reg_out <= cpuregs_rs1;
+						reg_out <= CATCH_MISALIGN ? (cpuregs_rs1 & 32'h fffffffe) : cpuregs_rs1;
 						dbg_rs1val <= cpuregs_rs1;
 						dbg_rs1val_valid <= 1;
 						cpu_state <= cpu_state_fetch;
@@ -1849,12 +1849,14 @@ module picorv32 #(
 
 		irq_pending <= next_irq_pending & ~MASKED_IRQ;
 
-		if (COMPRESSED_ISA) begin
-			reg_pc[0] <= 0;
-			reg_next_pc[0] <= 0;
-		end else begin
-			reg_pc[1:0] <= 0;
-			reg_next_pc[1:0] <= 0;
+		if (!CATCH_MISALIGN) begin
+			if (COMPRESSED_ISA) begin
+				reg_pc[0] <= 0;
+				reg_next_pc[0] <= 0;
+			end else begin
+				reg_pc[1:0] <= 0;
+				reg_next_pc[1:0] <= 0;
+			end
 		end
 		current_pc = 'bx;
 	end
