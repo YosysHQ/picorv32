@@ -15,6 +15,7 @@ module testbench (
 	always @(posedge clk)
 		resetn <= 1;
 
+	wire        cpu0_trap;
 	wire        cpu0_mem_valid;
 	wire        cpu0_mem_instr;
 	wire        cpu0_mem_ready;
@@ -25,6 +26,7 @@ module testbench (
 	wire        cpu0_trace_valid;
 	wire [35:0] cpu0_trace_data;
 
+	wire        cpu1_trap;
 	wire        cpu1_mem_valid;
 	wire        cpu1_mem_instr;
 	wire        cpu1_mem_ready;
@@ -91,6 +93,7 @@ module testbench (
 	) cpu0 (
 		.clk         (clk             ),
 		.resetn      (resetn          ),
+		.trap        (cpu0_trap       ),
 		.mem_valid   (cpu0_mem_valid  ),
 		.mem_instr   (cpu0_mem_instr  ),
 		.mem_ready   (cpu0_mem_ready  ),
@@ -118,6 +121,7 @@ module testbench (
 	) cpu1 (
 		.clk         (clk             ),
 		.resetn      (resetn          ),
+		.trap        (cpu1_trap       ),
 		.mem_valid   (cpu1_mem_valid  ),
 		.mem_instr   (cpu1_mem_instr  ),
 		.mem_ready   (cpu1_mem_ready  ),
