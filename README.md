@@ -2,11 +2,13 @@
 PicoRV32 - A Size-Optimized RISC-V CPU
 ======================================
 
-PicoRV32 is a CPU core that implements the [RISC-V RV32I Instruction Set](http://riscv.org/).
+PicoRV32 is a CPU core that implements the [RISC-V RV32IMC Instruction Set](http://riscv.org/).
+It can be configured as RV32E, RV32I, RV32IC, RV32IM, or RV32IMC core, and optionally
+contains a built-in interrupt controller.
 
 Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](http://riscv.org/download.html#tab_tools).
-The examples bundled with PicoRV32 (such as the firmware for `make test`) expect a `riscv32-unknown-elf-` toolchain
-installed in `$PATH` (see [build instructions below](#building-a-pure-rv32i-toolchain)).
+The examples bundled with PicoRV32 expect various RV32 toolchains to be installed in `/opt/riscv32i[m][c]`. See
+the [build instructions below](#building-a-pure-rv32i-toolchain) for details.
 
 PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wikipedia.org/wiki/ISC_license)
 (a license that is similar in terms to the MIT license or the 2-clause BSD license).
@@ -27,14 +29,14 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 Features and Typical Applications
 ---------------------------------
 
-- Small (~1000 LUTs in a 7-Series Xilinx FPGA)
-- High fMAX (~250 MHz on 7-Series Xilinx FPGAs)
+- Small (750-2000 LUTs in 7-Series Xilinx Architecture)
+- High f<sub>max</sub> (250-450 MHz on 7-Series Xilinx FPGAs)
 - Selectable native memory interface or AXI4-Lite master
 - Optional IRQ support (using a simple custom ISA)
 - Optional Co-Processor Interface
 
 This CPU is meant to be used as auxiliary processor in FPGA designs and ASICs. Due
-to its high fMAX it can be integrated in most existing designs without crossing
+to its high f<sub>max</sub> it can be integrated in most existing designs without crossing
 clock domains. When operated on a lower frequency, it will have a lot of timing
 slack and thus can be added to a design without compromising timing closure.
 
@@ -67,8 +69,9 @@ fault handlers, or catch instructions from a larger ISA and emulate them in
 software.
 
 The optional Pico Co-Processor Interface (PCPI) can be used to implement
-non-branching instructions in an external coprocessor. An implementation
-of a core that implements the `MUL[H[SU|U]]` instructions is provided.
+non-branching instructions in an external coprocessor. Implementations
+of PCPI cores that implement the M Standard Extension instructions
+`MUL[H[SU|U]]` and `DIV[U]/REM[U]` are included in this package.
 
 
 Files in this Repository
@@ -82,12 +85,14 @@ You are reading it right now.
 
 This Verilog file contains the following Verilog modules:
 
-| Module                  | Description                                                   |
-| ----------------------- | ------------------------------------------------------------- |
-| `picorv32`              | The PicoRV32 CPU                                              |
-| `picorv32_axi`          | The version of the CPU with AXI4-Lite interface               |
-| `picorv32_axi_adapter`  | Adapter from PicoRV32 Memory Interface to AXI4-Lite           |
-| `picorv32_pcpi_mul`     | A PCPI core that implements the `MUL[H[SU|U]]` instructions   |
+| Module                   | Description                                                           |
+| ------------------------ | --------------------------------------------------------------------- |
+| `picorv32`               | The PicoRV32 CPU                                                      |
+| `picorv32_axi`           | The version of the CPU with AXI4-Lite interface                       |
+| `picorv32_axi_adapter`   | Adapter from PicoRV32 Memory Interface to AXI4-Lite                   |
+| `picorv32_pcpi_mul`      | A PCPI core that implements the `MUL[H[SU|U]]` instructions           |
+| `picorv32_pcpi_fast_mul` | A version of `picorv32_pcpi_fast_mul` using a single cycle multiplier |
+| `picorv32_pcpi_div`      | A PCPI core that implements the `DIV[U]/REM[U]` instructions          |
 
 Simply copy this file into your project.
 
@@ -138,6 +143,12 @@ instructions are not optional for an RV32I core. But chances are they are not
 going to be missed after the application code has been debugged and profiled.
 This instructions are optional for an RV32E core.*
 
+#### ENABLE_COUNTERS64 (default = 1)
+
+This parameter enables support for the `RDCYCLEH`, `RDTIMEH`, and `RDINSTRETH`
+instructions. If this parameter is set to 0, and `ENABLE_COUNTERS` is set to 1,
+then only the `RDCYCLE`, `RDTIME`, and `RDINSTRET` instructions are available.
+
 #### ENABLE_REGS_16_31 (default = 1)
 
 This parameter enables support for registers the `x16`..`x31`. The RV32E ISA
@@ -162,10 +173,16 @@ This parameter is only available for the `picorv32` core. In the
 
 #### TWO_STAGE_SHIFT (default = 1)
 
-By default shift operations are performed in two stages: first shift in units
-of 4 bits and then shift in units of 1 bit. This speeds up shift operations,
+By default shift operations are performed in two stages: first shifts in units
+of 4 bits and then shifts in units of 1 bit. This speeds up shift operations,
 but adds additional hardware. Set this parameter to 0 to disable the two-stage
 shift to further reduce the size of the core.
+
+#### BARREL_SHIFTER (default = 0)
+
+By default shift operations are performed by successively shifting by a
+small amount (see `TWO_STAGE_SHIFT` above). With this option set, a barrel
+shifter is used instead.
 
 #### TWO_CYCLE_COMPARE (default = 0)
 
@@ -185,6 +202,10 @@ the ALU.
 *Note: Enabling this parameter will be most effective when retiming (aka
 "register balancing") is enabled in the synthesis flow.*
 
+#### COMPRESSED_ISA (default = 0)
+
+This enables support for the RISC-V Compressed Instruction Set.
+
 #### CATCH_MISALIGN (default = 1)
 
 Set this to 0 to disable the circuitry for catching misaligned memory
@@ -194,6 +215,11 @@ accesses.
 
 Set this to 0 to disable the circuitry for catching illegal instructions.
 
+The core will still trap on `EBREAK` instructions with this option
+set to 0. With IRQs enabled, an `EBREAK` normally triggers an IRQ 1. With
+this option set to 0, an `EBREAK` will trap the processor without
+triggering an interrupt.
+
 #### ENABLE_PCPI (default = 0)
 
 Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
@@ -202,6 +228,21 @@ Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
 
 This parameter internally enables PCPI and instantiates the `picorv32_pcpi_mul`
 core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
+interface only becomes functional when ENABLE_PCPI is set as well.
+
+#### ENABLE_FAST_MUL (default = 0)
+
+This parameter internally enables PCPI and instantiates the `picorv32_pcpi_fast_mul`
+core that implements the `MUL[H[SU|U]]` instructions. The external PCPI
+interface only becomes functional when ENABLE_PCPI is set as well.
+
+If both ENABLE_MUL and ENABLE_FAST_MUL are set then the ENABLE_MUL setting
+will be ignored and the fast multiplier core will be instantiated.
+
+#### ENABLE_DIV (default = 0)
+
+This parameter internally enables PCPI and instantiates the `picorv32_pcpi_div`
+core that implements the `DIV[U]/REM[U]` instructions. The external PCPI
 interface only becomes functional when ENABLE_PCPI is set as well.
 
 #### ENABLE_IRQ (default = 0)
@@ -225,6 +266,18 @@ Set this to 0 to disable support for the `timer` instruction.
 
 Support for the timer is always disabled when ENABLE_IRQ is set to 0.
 
+#### ENABLE_TRACE (default = 0)
+
+Produce an execution trace using the `trace_valid` and `trace_data` output ports.
+For a demontration of this feature run `make testbench.vcd` to create a trace file
+and then run `python3 showtrace.py testbench.trace firmware/firmware.elf` to decode
+it.
+
+#### REGS_INIT_ZERO (default = 0)
+
+Set this to 1 to initialize all registers to zero (using a Verilog `initial` block).
+This can be useful for simulation or formal verification.
+
 #### MASKED_IRQ (default = 32'h 0000_0000)
 
 A 1 bit in this bitmask corresponds to a permanently disabled IRQ.
@@ -247,20 +300,28 @@ The start address of the program.
 
 The start address of the interrupt handler.
 
+#### STACKADDR (default = 32'h ffff_ffff)
+
+When this parameter has a value different from 0xffffffff, then register `x2` (the
+stack pointer) is initialized to this value on reset. (All other registers remain
+uninitialized.) Note that the RISC-V calling convention requires the stack pointer
+to be aligned on 16 bytes boundaries (4 bytes for the RV32I soft float calling
+convention).
+
 
 Cycles per Instruction Performance
 ----------------------------------
 
-*A short reminder: This core is optimized for size, not performance.*
+*A short reminder: This core is optimized for size and f<sub>max</sub>, not performance.*
 
 Unless stated otherwise, the following numbers apply to a PicoRV32 with
 ENABLE_REGS_DUALPORT active and connected to a memory that can accommodate
 requests within one clock cycle.
 
-The average Cycles per Instruction (CPI) is 4 to 5, depending on the mix of
-instructions in the code. The CPI numbers for the individual instructions
-can be found in the table below. The column "CPI (SP)" contains the
-CPI numbers for a core built without ENABLE_REGS_DUALPORT.
+The average Cycles per Instruction (CPI) is approximately 4, depending on the mix of
+instructions in the code. The CPI numbers for the individual instructions can
+be found in the table below. The column "CPI (SP)" contains the CPI numbers for
+a core built without ENABLE_REGS_DUALPORT.
 
 | Instruction          |  CPI | CPI (SP) |
 | ---------------------| ----:| --------:|
@@ -277,9 +338,21 @@ CPI numbers for a core built without ENABLE_REGS_DUALPORT.
 When `ENABLE_MUL` is activated, then a `MUL` instruction will execute
 in 40 cycles and a `MULH[SU|U]` instruction will execute in 72 cycles.
 
-Dhrystone benchmark results: 0.311 DMIPS/MHz (547 Dhrystones/Second/MHz)
+When `ENABLE_DIV` is activated, then a `DIV[U]/REM[U]` instruction will
+execute in 40 cycles.
 
-For the Dhrystone benchmark the average CPI is 4.144.
+When `BARREL_SHIFTER` is activated, a shift operation takes as long as
+any other ALU operation.
+
+The following dhrystone benchmark results are for a core with enabled
+`ENABLE_FAST_MUL`, `ENABLE_DIV`, and `BARREL_SHIFTER` options.
+
+Dhrystone benchmark results: 0.521 DMIPS/MHz (916 Dhrystones/Second/MHz)
+
+For the Dhrystone benchmark the average CPI is 4.081.
+
+Without using the look-ahead memory interface (usually required for max
+clock speed), this results drop to 0.305 DMIPS/MHz and 5.232 CPI.
 
 
 PicoRV32 Native Memory Interface
@@ -299,7 +372,8 @@ that can run one memory transfer at a time:
 
 The core initiates a memory transfer by asserting `mem_valid`. The valid
 signal stays high until the peer asserts `mem_ready`. All core outputs
-are stable over the `mem_valid` period.
+are stable over the `mem_valid` period. If the memory transfer is an
+instruction fetch, the core asserts `mem_instr`.
 
 #### Read Transfer
 
@@ -317,6 +391,11 @@ asynchronously with `mem_ready` going high in the same cycle as `mem_valid`, or
 In a write transfer `mem_wstrb` is not 0 and `mem_rdata` is unused. The memory
 write the data at `mem_wdata` to the address `mem_addr` and acknowledges the
 transfer by asserting `mem_ready`.
+
+The 4 bits of `mem_wstrb` are write enables for the four bytes in the addressed
+word. Only the 8 values `0000`, `1111`, `1100`, `0011`, `1000`, `0100`, `0010`,
+and `0001` are possible, i.e. no write, write 32 bits, write upper 16 bits,
+write lower 16, or write a single byte respectively.
 
 There is no need for an external wait cycle. The memory can acknowledge the
 write immediately  with `mem_ready` going high in the same cycle as
@@ -336,7 +415,7 @@ normal interface.
 
 In the clock cycle before `mem_valid` goes high, this interface will output a
 pulse on `mem_la_read` or `mem_la_write` to indicate the start of a read or
-write transaction in the next clock cycles.
+write transaction in the next clock cycle.
 
 *Note: The signals `mem_la_read`, `mem_la_write`, and `mem_la_addr` are driven
 by combinatorial circuits within the PicoRV32 core. It might be harder to
@@ -401,11 +480,11 @@ interrupt handler returns.
 
 The IRQs 0-2 can be triggered internally by the following built-in interrupt sources:
 
-| IRQ | Interrupt Source                   |
-| ---:| -----------------------------------|
-|   0 | Timer Interrupt                    |
-|   1 | SBREAK or Illegal Instruction      |
-|   2 | BUS Error (Unalign Memory Access)  |
+| IRQ | Interrupt Source                    |
+| ---:| ------------------------------------|
+|   0 | Timer Interrupt                     |
+|   1 | EBREAK/ECALL or Illegal Instruction |
+|   2 | BUS Error (Unalign Memory Access)   |
 
 This interrupts can also be triggered by external sources, such as co-processors
 connected via PCPI.
@@ -415,6 +494,10 @@ handling. When the IRQ handler is called, the register `q0` contains the return
 address and `q1` contains a bitmask of all IRQs to be handled. This means one
 call to the interrupt handler needs to service more than one IRQ when more than
 one bit is set in `q1`.
+
+When support for compressed instructions is enabled, then the LSB of q0 is set
+when the interrupted instruction is a compressed instruction. This can be used if
+the IRQ handler wants to decode the interrupted instruction.
 
 Registers `q2` and `q3` are uninitialized and can be used as temporary storage
 when saving/restoring register values in the IRQ handler.
@@ -524,52 +607,76 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     # Ubuntu packages needed:
     sudo apt-get install autoconf automake autotools-dev curl libmpc-dev libmpfr-dev \
-            libgmp-dev gawk build-essential bison flex texinfo gperf
+            libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc
 
     sudo mkdir /opt/riscv32i
     sudo chown $USER /opt/riscv32i
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout 4bcd4f5
+    git checkout 7e48594
+    git submodule update --init --recursive
 
     mkdir build; cd build
-    ../configure --with-xlen=32 --with-arch=I --prefix=/opt/riscv32i
+    ../configure --with-arch=RV32I --prefix=/opt/riscv32i
     make -j$(nproc)
 
 The commands will all be named using the prefix `riscv32-unknown-elf-`, which
-makes it easy to install them side-by-side with the regular riscv-tools, which
-are using the name prefix `riscv64-unknown-elf-` by default.
+makes it easy to install them side-by-side with the regular riscv-tools (those
+are using the name prefix `riscv64-unknown-elf-` by default).
 
-*Note: This instructions are for git rev 4bcd4f5 (2015-12-14) of riscv-gnu-toolchain.*
+Alternatively you can simply use one of the following make targets from PicoRV32's
+Makefile to build a `RV32I[M][C]` toolchain. You still need to install all
+prerequisites, as described above. Then run any of the following commands in the
+PicoRV32 source directory:
+
+| Command                                  | Install Directory  | ISA       |
+|:---------------------------------------- |:------------------ |:--------  |
+| `make -j$(nproc) build-riscv32i-tools`   | `/opt/riscv32i/`   | `RV32I`   |
+| `make -j$(nproc) build-riscv32ic-tools`  | `/opt/riscv32ic/`  | `RV32IC`  |
+| `make -j$(nproc) build-riscv32im-tools`  | `/opt/riscv32im/`  | `RV32IM`  |
+| `make -j$(nproc) build-riscv32imc-tools` | `/opt/riscv32imc/` | `RV32IMC` |
+
+Or simply run `make -j$(nproc) build-tools` to build and install all four tool chains.
+
+By default calling any of those make targets will (re-)download the toolchain
+sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
+once in advance.
+
+*Note: This instructions are for git rev 7e48594 (2016-08-16) of riscv-gnu-toolchain.*
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
 -----------------------------------------------------------
 
-The following evaluations have been performed with Vivado 2015.1.
+The following evaluations have been performed with Vivado 2016.1.
 
 #### Timing on Xilinx 7-Series FPGAs
 
 The `picorv32_axi` module with enabled `TWO_CYCLE_ALU` has been placed and
-routed for Xilinx Artix-7T (xc7a15t-fgg484), Xilinx Kintex-7T (xc7k70t-fbg676),
-and Xilinx Virtex-7T (xc7v585t-ffg1761) devices in all speed grades. A binary
-search is used to find the lowest clock period for which the design meets
-timing.
+routed for Xilinx Artix-7T, Kintex-7T, Virtex-7T, Kintex UltraScale, and Virtex
+UltraScale devices in all speed grades. A binary search is used to find the
+lowest clock period for which the design meets timing.
 
 See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 
-| Device               | Speedgrade | Clock Period (Freq.) |
-|:-------------------- |:----------:| --------------------:|
-| Xilinx Artix-7T      | -1         |     4.2 ns (238 MHz) |
-| Xilinx Artix-7T      | -2         |     3.5 ns (285 MHz) |
-| Xilinx Artix-7T      | -3         |     3.2 ns (312 MHz) |
-| Xilinx Kintex-7T     | -1         |     2.8 ns (357 MHz) |
-| Xilinx Kintex-7T     | -2         |     2.3 ns (434 MHz) |
-| Xilinx Kintex-7T     | -3         |     2.1 ns (476 MHz) |
-| Xilinx Virtex-7T     | -1         |     2.6 ns (384 MHz) |
-| Xilinx Virtex-7T     | -2         |     2.3 ns (434 MHz) |
-| Xilinx Virtex-7T     | -3         |     2.1 ns (476 MHz) |
+| Family                   | Device               | Speedgrade | Clock Period (Freq.) |
+|:------------------------ |:-------------------- |:----------:| --------------------:|
+| Xilinx Artix-7T          | xc7a15t-fgg484-1     | -1         |     4.1 ns (243 MHz) |
+| Xilinx Artix-7T          | xc7a15t-fgg484-2     | -2         |     3.5 ns (285 MHz) |
+| Xilinx Artix-7T          | xc7a15t-fgg484-3     | -3         |     3.1 ns (322 MHz) |
+| Xilinx Kintex-7T         | xc7k70t-fbg676-1     | -1         |     2.8 ns (357 MHz) |
+| Xilinx Kintex-7T         | xc7k70t-fbg676-2     | -2         |     2.2 ns (454 MHz) |
+| Xilinx Kintex-7T         | xc7k70t-fbg676-3     | -3         |     2.1 ns (476 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-1   | -1         |     2.7 ns (370 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-2   | -2         |     2.2 ns (454 MHz) |
+| Xilinx Virtex-7T         | xc7v585t-ffg1761-3   | -3         |     2.1 ns (476 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-1-c  | -1         |     2.3 ns (434 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-2-e  | -2         |     2.0 ns (500 MHz) |
+| Xilinx Kintex UltraScale | xcku035-fbva676-3-e  | -3         |     1.8 ns (555 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-1-i | -1         |     2.3 ns (434 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-2-e | -2         |     2.1 ns (476 MHz) |
+| Xilinx Virtex UltraScale | xcvu065-ffvc1517-3-e | -3         |     1.9 ns (526 MHz) |
 
 #### Utilization on Xilinx 7-Series FPGAs
 
@@ -582,14 +689,14 @@ for the following three cores:
 
 - **PicoRV32 (regular):** The `picorv32` module in its default configuration.
 
-- **PicoRV32 (large):** The `picorv32` module with enabled PCPI, IRQ and MUL
-  features.
+- **PicoRV32 (large):** The `picorv32` module with enabled PCPI, IRQ, MUL,
+  DIV, BARREL_SHIFTER, and COMPRESSED_ISA features.
 
 See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        751 |             48 |             422 |
-| PicoRV32 (regular) |        901 |             48 |             564 |
-| PicoRV32 (large)   |       1718 |             88 |            1002 |
+| PicoRV32 (small)   |        725 |             48 |             441 |
+| PicoRV32 (regular) |        874 |             48 |             572 |
+| PicoRV32 (large)   |       2072 |             88 |            1022 |
 

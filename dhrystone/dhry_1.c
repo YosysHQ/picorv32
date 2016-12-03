@@ -17,6 +17,13 @@
 
 #include "dhry.h"
 
+#ifdef USE_MYSTDLIB
+extern char     *malloc ();
+#else
+#  include <stdlib.h>
+#  include <string.h>
+#endif
+
 /* Global Variables: */
 
 Rec_Pointer     Ptr_Glob,
@@ -28,7 +35,6 @@ char            Ch_1_Glob,
 int             Arr_1_Glob [50];
 int             Arr_2_Glob [50] [50];
 
-extern char     *malloc ();
 Enumeration     Func_1 ();
   /* forward declaration necessary since Enumeration may not simply be int */
 
@@ -43,7 +49,7 @@ Enumeration     Func_1 ();
 
 /* variables for time measurement: */
 
-#ifdef TIMES
+#ifdef IGN_TIMES
 struct tms      time_info;
 extern  int     times ();
                 /* see library function "times" */
@@ -124,9 +130,9 @@ main ()
   }
   printf ("Please give the number of runs through the benchmark: ");
   {
-    int n;
-    scanf ("%d", &n);
-    Number_Of_Runs = n;
+    // int n;
+    // scanf ("%d", &n);
+    Number_Of_Runs = 100;
   }
   printf ("\n");
 
@@ -136,7 +142,7 @@ main ()
   /* Start timer */
   /***************/
 
-#ifdef TIMES
+#ifdef IGN_TIMES
   times (&time_info);
   Begin_Time = (long) time_info.tms_utime;
 #endif
@@ -197,7 +203,7 @@ main ()
   /* Stop timer */
   /**************/
 
-#ifdef TIMES
+#ifdef IGN_TIMES
   times (&time_info);
   End_Time = (long) time_info.tms_utime;
 #endif

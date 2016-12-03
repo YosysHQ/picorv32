@@ -1,0 +1,71 @@
+[*]
+[*] GTKWave Analyzer v3.3.65 (w)1999-2015 BSI
+[*] Fri Aug 26 15:42:37 2016
+[*]
+[dumpfile] "/home/clifford/Work/picorv32/scripts/smtbmc/output.vcd"
+[dumpfile_mtime] "Fri Aug 26 15:33:18 2016"
+[dumpfile_size] 80106
+[savefile] "/home/clifford/Work/picorv32/scripts/smtbmc/tracecmp.gtkw"
+[timestart] 0
+[size] 1216 863
+[pos] -1 -1
+*-2.860312 10 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testbench.
+[sst_width] 241
+[signals_width] 337
+[sst_expanded] 1
+[sst_vpaned_height] 252
+@28
+smt_clock
+testbench.resetn
+testbench.trap_0
+testbench.trap_1
+@200
+-
+-Trace CMP
+@28
+testbench.trace_valid_0
+testbench.trace_valid_1
+@22
+testbench.trace_data_0[35:0]
+testbench.trace_data_1[35:0]
+@420
+testbench.trace_balance[7:0]
+@200
+-
+-CPU #0
+@28
+testbench.mem_valid_0
+testbench.mem_ready_0
+testbench.mem_instr_0
+@22
+testbench.mem_addr_0[31:0]
+testbench.mem_rdata_0[31:0]
+testbench.mem_wdata_0[31:0]
+@28
+testbench.mem_wstrb_0[3:0]
+@22
+testbench.cpu_0.cpu_state[7:0]
+@28
+testbench.cpu_0.mem_state[1:0]
+@200
+-
+-CPU #1
+@28
+testbench.mem_valid_1
+testbench.mem_ready_1
+testbench.mem_instr_1
+@22
+testbench.mem_addr_1[31:0]
+testbench.mem_rdata_1[31:0]
+testbench.mem_wdata_1[31:0]
+@28
+testbench.mem_wstrb_1[3:0]
+@22
+testbench.cpu_1.cpu_state[7:0]
+@28
+testbench.cpu_1.mem_state[1:0]
+@200
+-
+[pattern_trace] 1
+[pattern_trace] 0

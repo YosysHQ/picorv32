@@ -1,0 +1,7 @@
+
+Testing PicoRV32 using the test case generator from
+the Tom Thumb RISC-V CPU project:
+
+https://github.com/maikmerten/riscv-tomthumb
+https://github.com/maikmerten/riscv-tomthumb-testgen
+

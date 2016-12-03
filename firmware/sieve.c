@@ -72,13 +72,13 @@ void sieve(void)
 	}
 
 	print_str("checksum: ");
-	print_hex(hash);
+	print_hex(hash, 8);
 
 	if (hash == 0x1772A48F) {
 		print_str(" OK\n");
 	} else {
 		print_str(" ERROR\n");
-		__asm__ volatile ("sbreak");
+		__asm__ volatile ("ebreak");
 	}
 }
 

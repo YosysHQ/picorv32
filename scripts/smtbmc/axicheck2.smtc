@@ -1,0 +1,2 @@
+initial
+assume (= [uut_0] [uut_1])

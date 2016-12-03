@@ -1,0 +1,13 @@
+obj_dir
+riscv-fesvr
+riscv-isa-sim
+output_ref.txt
+output_sim.txt
+platform.info
+test.c
+test.ld
+test.elf
+test_ref
+test.hex
+testbench.vvp
+testbench.vcd

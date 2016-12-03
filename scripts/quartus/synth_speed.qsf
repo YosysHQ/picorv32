@@ -1,0 +1,5 @@
+set_global_assignment -name DEVICE ep4ce40f29c7
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name TOP_LEVEL_ENTITY picorv32_axi
+set_global_assignment -name VERILOG_FILE ../../../picorv32.v
+set_global_assignment -name SDC_FILE ../synth_speed.sdc

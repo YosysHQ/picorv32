@@ -40,9 +40,13 @@ addi x31, zero, 0
 lui sp, %hi(4*1024*1024)
 addi sp, sp, %lo(4*1024*1024)
 
-/* push a zero on the stack */
-addi sp,sp,-4
+/* push zeros on the stack for argc and argv */
+/* (stack is aligned to 16 bytes in riscv calling convention) */
+addi sp,sp,-16
 sw zero,0(sp)
+sw zero,4(sp)
+sw zero,8(sp)
+sw zero,12(sp)
 
 /* jump to libc init */
 j _ftext

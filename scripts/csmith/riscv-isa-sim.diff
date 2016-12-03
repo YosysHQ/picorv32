@@ -1,0 +1,62 @@
+diff --git a/riscv/execute.cc b/riscv/execute.cc
+index 5c3fdf7..4d914b3 100644
+--- a/riscv/execute.cc
++++ b/riscv/execute.cc
+@@ -124,6 +124,10 @@ miss:
+     }
+ 
+     state.minstret += instret;
++    if (state.minstret > 1000000) {
++        printf("Reached limit of 1000000 instructions.\n");
++	exit(0);
++    }
+     n -= instret;
+   }
+ }
+diff --git a/riscv/insns/c_ebreak.h b/riscv/insns/c_ebreak.h
+index a17200f..f06d8d9 100644
+--- a/riscv/insns/c_ebreak.h
++++ b/riscv/insns/c_ebreak.h
+@@ -1,2 +1,4 @@
+ require_extension('C');
++
++exit(0);
+ throw trap_breakpoint();
+diff --git a/riscv/insns/sbreak.h b/riscv/insns/sbreak.h
+index c22776c..d38bd22 100644
+--- a/riscv/insns/sbreak.h
++++ b/riscv/insns/sbreak.h
+@@ -1 +1,2 @@
++exit(0);
+ throw trap_breakpoint();
+diff --git a/riscv/mmu.h b/riscv/mmu.h
+index b9948c5..bee1f8b 100644
+--- a/riscv/mmu.h
++++ b/riscv/mmu.h
+@@ -67,7 +67,8 @@ public:
+       if (addr & (sizeof(type##_t)-1)) \
+         throw trap_store_address_misaligned(addr); \
+       reg_t vpn = addr >> PGSHIFT; \
+-      if (likely(tlb_store_tag[vpn % TLB_ENTRIES] == vpn)) \
++      if (addr == 0x10000000) putchar(val), fflush(stdout); \
++      else if (likely(tlb_store_tag[vpn % TLB_ENTRIES] == vpn)) \
+         *(type##_t*)(tlb_data[vpn % TLB_ENTRIES] + addr) = val; \
+       else \
+         store_slow_path(addr, sizeof(type##_t), (const uint8_t*)&val); \
+diff --git a/riscv/processor.cc b/riscv/processor.cc
+index 3b834c5..f407543 100644
+--- a/riscv/processor.cc
++++ b/riscv/processor.cc
+@@ -201,9 +201,9 @@ void processor_t::set_privilege(reg_t prv)
+ 
+ void processor_t::take_trap(trap_t& t, reg_t epc)
+ {
+-  if (debug)
+-    fprintf(stderr, "core %3d: exception %s, epc 0x%016" PRIx64 "\n",
+-            id, t.name(), epc);
++  printf("core %3d: exception %s, epc 0x%016" PRIx64 "\n",
++         id, t.name(), epc);
++  exit(0);
+ 
+   // by default, trap to M-mode, unless delegated to S-mode
+   reg_t bit = t.cause();

@@ -42,7 +42,7 @@ void gray(uint8_t c)
 	uint8_t gray_decoded = gray_decode(gray_simple);
 
 	if (gray_simple != gray_bitwise || gray_decoded != c)
-		while (1) asm volatile ("sbreak");
+		while (1) asm volatile ("ebreak");
 
 	output(gray_simple);
 }

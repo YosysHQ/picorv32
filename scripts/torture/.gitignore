@@ -1,0 +1,14 @@
+.looplog
+riscv-fesvr
+riscv-isa-sim
+riscv-torture
+config.vh
+obj_dir
+tests
+test.S
+test.elf
+test.bin
+test.hex
+test.ref
+test.vvp
+test.vcd

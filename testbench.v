@@ -6,21 +6,16 @@
 // means.
 
 `timescale 1 ns / 1 ps
-// `define VERBOSE
-// `define AXI_TEST
 
-module testbench;
+`ifndef VERILATOR
+module testbench #(
+	parameter AXI_TEST = 0,
+	parameter VERBOSE = 0
+);
 
 	reg clk = 1;
 	reg resetn = 0;
-	reg [31:0] irq;
 	wire trap;
-
-	always @* begin
-		irq = 0;
-		irq[4] = &uut.picorv32_core.count_cycle[12:0];
-		irq[5] = &uut.picorv32_core.count_cycle[15:0];
-	end
 
 	always #5 clk = ~clk;
 
@@ -29,34 +24,131 @@ module testbench;
 		resetn <= 1;
 	end
 
+	initial begin
+		if ($test$plusargs("vcd")) begin
+			$dumpfile("testbench.vcd");
+			$dumpvars(0, testbench);
+		end
+		repeat (1000000) @(posedge clk);
+		$display("TIMEOUT");
+		$finish;
+	end
+
+	wire trace_valid;
+	wire [35:0] trace_data;
+	integer trace_file;
+
+	initial begin
+		if ($test$plusargs("trace")) begin
+			trace_file = $fopen("testbench.trace", "w");
+			repeat (10) @(posedge clk);
+			while (!trap) begin
+				@(posedge clk);
+				if (trace_valid)
+					$fwrite(trace_file, "%x\n", trace_data);
+			end
+			$fclose(trace_file);
+			$display("Finished writing testbench.trace.");
+		end
+	end
+
+	picorv32_wrapper #(
+		.AXI_TEST (AXI_TEST),
+		.VERBOSE  (VERBOSE)
+	) top (
+		.clk(clk),
+		.resetn(resetn),
+		.trap(trap),
+		.trace_valid(trace_valid),
+		.trace_data(trace_data)
+	);
+endmodule
+`endif
+
+module picorv32_wrapper #(
+	parameter AXI_TEST = 0,
+	parameter VERBOSE = 0
+) (
+	input clk,
+	input resetn,
+	output trap,
+	output trace_valid,
+	output [35:0] trace_data
+);
+
+	wire trap;
+	wire tests_passed;
+	reg [31:0] irq;
+
+	always @* begin
+		irq = 0;
+		irq[4] = &uut.picorv32_core.count_cycle[12:0];
+		irq[5] = &uut.picorv32_core.count_cycle[15:0];
+	end
+
 	wire        mem_axi_awvalid;
-	reg         mem_axi_awready = 0;
+	wire        mem_axi_awready;
 	wire [31:0] mem_axi_awaddr;
 	wire [ 2:0] mem_axi_awprot;
 
 	wire        mem_axi_wvalid;
-	reg         mem_axi_wready = 0;
+	wire        mem_axi_wready;
 	wire [31:0] mem_axi_wdata;
 	wire [ 3:0] mem_axi_wstrb;
 
-	reg  mem_axi_bvalid = 0;
-	wire mem_axi_bready;
+	wire        mem_axi_bvalid;
+	wire        mem_axi_bready;
 
 	wire        mem_axi_arvalid;
-	reg         mem_axi_arready = 0;
+	wire        mem_axi_arready;
 	wire [31:0] mem_axi_araddr;
 	wire [ 2:0] mem_axi_arprot;
 
-	reg         mem_axi_rvalid = 0;
+	wire        mem_axi_rvalid;
 	wire        mem_axi_rready;
-	reg  [31:0] mem_axi_rdata;
+	wire [31:0] mem_axi_rdata;
+
+	axi4_memory #(
+		.AXI_TEST (AXI_TEST),
+		.VERBOSE  (VERBOSE)
+	) mem (
+		.clk             (clk             ),
+		.mem_axi_awvalid (mem_axi_awvalid ),
+		.mem_axi_awready (mem_axi_awready ),
+		.mem_axi_awaddr  (mem_axi_awaddr  ),
+		.mem_axi_awprot  (mem_axi_awprot  ),
+
+		.mem_axi_wvalid  (mem_axi_wvalid  ),
+		.mem_axi_wready  (mem_axi_wready  ),
+		.mem_axi_wdata   (mem_axi_wdata   ),
+		.mem_axi_wstrb   (mem_axi_wstrb   ),
+
+		.mem_axi_bvalid  (mem_axi_bvalid  ),
+		.mem_axi_bready  (mem_axi_bready  ),
+
+		.mem_axi_arvalid (mem_axi_arvalid ),
+		.mem_axi_arready (mem_axi_arready ),
+		.mem_axi_araddr  (mem_axi_araddr  ),
+		.mem_axi_arprot  (mem_axi_arprot  ),
+
+		.mem_axi_rvalid  (mem_axi_rvalid  ),
+		.mem_axi_rready  (mem_axi_rready  ),
+		.mem_axi_rdata   (mem_axi_rdata   ),
+
+		.tests_passed    (tests_passed    )
+	);
 
 	picorv32_axi #(
 `ifdef SP_TEST
 		.ENABLE_REGS_DUALPORT(0),
 `endif
+`ifdef COMPRESSED_ISA
+		.COMPRESSED_ISA(1),
+`endif
 		.ENABLE_MUL(1),
-		.ENABLE_IRQ(1)
+		.ENABLE_DIV(1),
+		.ENABLE_IRQ(1),
+		.ENABLE_TRACE(1)
 	) uut (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
@@ -78,11 +170,77 @@ module testbench;
 		.mem_axi_rvalid (mem_axi_rvalid ),
 		.mem_axi_rready (mem_axi_rready ),
 		.mem_axi_rdata  (mem_axi_rdata  ),
-		.irq            (irq            )
+		.irq            (irq            ),
+		.trace_valid    (trace_valid    ),
+		.trace_data     (trace_data     )
 	);
 
-	reg [31:0] memory [0:64*1024/4-1];
-	initial $readmemh("firmware/firmware.hex", memory);
+	reg [1023:0] firmware_file;
+	initial begin
+		if(!$value$plusargs("firmware=%s", firmware_file))
+			firmware_file = "firmware/firmware.hex";
+		$readmemh(firmware_file, mem.memory);
+	end
+
+	integer cycle_counter;
+	always @(posedge clk) begin
+		cycle_counter <= resetn ? cycle_counter + 1 : 0;
+		if (resetn && trap) begin
+`ifndef VERILATOR
+			repeat (10) @(posedge clk);
+`endif
+			$display("TRAP after %1d clock cycles", cycle_counter);
+			if (tests_passed) begin
+				$display("ALL TESTS PASSED.");
+				$finish;
+			end else begin
+				$display("ERROR!");
+				if ($test$plusargs("noerror"))
+					$finish;
+				$stop;
+			end
+		end
+	end
+endmodule
+
+module axi4_memory #(
+	parameter AXI_TEST = 0,
+	parameter VERBOSE = 0
+) (
+	input             clk,
+	input             mem_axi_awvalid,
+	output reg        mem_axi_awready = 0,
+	input [31:0]      mem_axi_awaddr,
+	input [ 2:0]      mem_axi_awprot,
+
+	input            mem_axi_wvalid,
+	output reg       mem_axi_wready = 0,
+	input [31:0]     mem_axi_wdata,
+	input [ 3:0]     mem_axi_wstrb,
+
+	output reg       mem_axi_bvalid = 0,
+	input            mem_axi_bready,
+
+	input            mem_axi_arvalid,
+	output reg       mem_axi_arready = 0,
+	input [31:0]     mem_axi_araddr,
+	input [ 2:0]     mem_axi_arprot,
+
+	output reg        mem_axi_rvalid = 0,
+	input             mem_axi_rready,
+	output reg [31:0] mem_axi_rdata,
+
+	output reg tests_passed
+);
+
+	reg [31:0]   memory [0:64*1024/4-1] /* verilator public */;
+	reg verbose;
+	initial verbose = $test$plusargs("verbose") || VERBOSE;
+
+	reg axi_test;
+	initial axi_test = $test$plusargs("axi_test") || AXI_TEST;
+
+	initial tests_passed = 0;
 
 	reg [63:0] xorshift64_state = 64'd88172645463325252;
 
@@ -99,12 +257,12 @@ module testbench;
 	reg [4:0] async_axi_transaction = ~0;
 	reg [4:0] delay_axi_transaction = 0;
 
-`ifdef AXI_TEST
 	always @(posedge clk) begin
-		xorshift64_next;
-		{fast_axi_transaction, async_axi_transaction, delay_axi_transaction} <= xorshift64_state;
+		if (axi_test) begin
+				xorshift64_next;
+				{fast_axi_transaction, async_axi_transaction, delay_axi_transaction} <= xorshift64_state;
+		end
 	end
-`endif
 
 	reg latched_raddr_en = 0;
 	reg latched_waddr_en = 0;
@@ -144,9 +302,8 @@ module testbench;
 	end endtask
 
 	task handle_axi_rvalid; begin
-`ifdef VERBOSE
-		$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
-`endif
+		if(verbose)
+			$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
 		if (latched_raddr < 64*1024) begin
 			mem_axi_rdata <= memory[latched_raddr >> 2];
 			mem_axi_rvalid <= 1;
@@ -158,9 +315,8 @@ module testbench;
 	end endtask
 
 	task handle_axi_bvalid; begin
-`ifdef VERBOSE
-		$display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
-`endif
+		if (verbose)
+			$display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
 		if (latched_waddr < 64*1024) begin
 			if (latched_wstrb[0]) memory[latched_waddr >> 2][ 7: 0] <= latched_wdata[ 7: 0];
 			if (latched_wstrb[1]) memory[latched_waddr >> 2][15: 8] <= latched_wdata[15: 8];
@@ -168,15 +324,21 @@ module testbench;
 			if (latched_wstrb[3]) memory[latched_waddr >> 2][31:24] <= latched_wdata[31:24];
 		end else
 		if (latched_waddr == 32'h1000_0000) begin
-`ifdef VERBOSE
-			if (32 <= latched_wdata && latched_wdata < 128)
-				$display("OUT: '%c'", latched_wdata);
-			else
-				$display("OUT: %3d", latched_wdata);
-`else
-			$write("%c", latched_wdata);
-			$fflush();
+			if (verbose) begin
+				if (32 <= latched_wdata && latched_wdata < 128)
+					$display("OUT: '%c'", latched_wdata[7:0]);
+				else
+					$display("OUT: %3d", latched_wdata);
+			end else begin
+				$write("%c", latched_wdata[7:0]);
+`ifndef VERILATOR
+				$fflush();
 `endif
+			end
+		end else
+		if (latched_waddr == 32'h2000_0000) begin
+			if (latched_wdata == 123456789)
+				tests_passed = 1;
 		end else begin
 			$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
 			$finish;
@@ -234,25 +396,5 @@ module testbench;
 
 		if (!mem_axi_rvalid && latched_raddr_en && !delay_axi_transaction[3]) handle_axi_rvalid;
 		if (!mem_axi_bvalid && latched_waddr_en && latched_wdata_en && !delay_axi_transaction[4]) handle_axi_bvalid;
-	end
-
-	initial begin
-		if ($test$plusargs("vcd")) begin
-			$dumpfile("testbench.vcd");
-			$dumpvars(0, testbench);
-		end
-		repeat (1000000) @(posedge clk);
-		$display("TIMEOUT");
-		$finish;
-	end
-
-	integer cycle_counter;
-	always @(posedge clk) begin
-		cycle_counter <= resetn ? cycle_counter + 1 : 0;
-		if (resetn && trap) begin
-			repeat (10) @(posedge clk);
-			$display("TRAP after %1d clock cycles", cycle_counter);
-			$finish;
-		end
 	end
 endmodule
