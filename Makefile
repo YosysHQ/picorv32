@@ -1,6 +1,5 @@
 
-RISCV_GNU_TOOLCHAIN_REV = 7e48594
-NEWLIB_URL = ftp://sourceware.org/pub/newlib/newlib-2.2.0.tar.gz
+RISCV_GNU_TOOLCHAIN_REV = 805ee1d
 
 SHELL = bash
 TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
@@ -79,10 +78,8 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
 download-tools:
-	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; $(foreach URL,$(NEWLIB_URL), \
-		if ! test -f /var/cache/distfiles/$(notdir $(URL)); then wget -O /var/cache/distfiles/$(notdir $(URL)).part $(URL); \
-			mv /var/cache/distfiles/$(notdir $(URL)).part /var/cache/distfiles/$(notdir $(URL)); fi;) \
-	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-dejagnu riscv-gcc riscv-glibc, \
+	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; \
+	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-dejagnu riscv-gcc riscv-glibc riscv-newlib, \
 		if ! test -d /var/cache/distfiles/$(REPO).git; then rm -rf /var/cache/distfiles/$(REPO).git.part; \
 			git clone --bare https://github.com/riscv/$(REPO) /var/cache/distfiles/$(REPO).git.part; \
 			mv /var/cache/distfiles/$(REPO).git.part /var/cache/distfiles/$(REPO).git; else \
@@ -101,12 +98,14 @@ build-$(1)-tools-bh:
 	if [ -d /var/cache/distfiles/riscv-dejagnu.git ]; then reference_riscv_dejagnu="--reference /var/cache/distfiles/riscv-dejagnu.git"; else reference_riscv_dejagnu=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-gcc.git ]; then reference_riscv_gcc="--reference /var/cache/distfiles/riscv-gcc.git"; else reference_riscv_gcc=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-glibc.git ]; then reference_riscv_glibc="--reference /var/cache/distfiles/riscv-glibc.git"; else reference_riscv_glibc=""; fi; \
+	if [ -d /var/cache/distfiles/riscv-newlib.git ]; then reference_riscv_newlib="--reference /var/cache/distfiles/riscv-newlib.git"; else reference_riscv_newlib=""; fi; \
 	rm -rf riscv-gnu-toolchain-$(1); git clone $$$$reference_riscv_gnu_toolchain https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-$(1); \
 	cd riscv-gnu-toolchain-$(1); git checkout $(RISCV_GNU_TOOLCHAIN_REV); \
 	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-binutils-gdb; \
 	git submodule update --init $$$$reference_riscv_dejagnu riscv-dejagnu; \
 	git submodule update --init $$$$reference_riscv_gcc riscv-gcc; \
 	git submodule update --init $$$$reference_riscv_glibc riscv-glibc; \
+	git submodule update --init $$$$reference_riscv_newlib riscv-newlib; \
 	mkdir build; cd build; ../configure --with-arch=$(2) --prefix=/opt/$(1); make
 
 .PHONY: build-$(1)-tools
