@@ -1,12 +1,13 @@
 
-RISCV_GNU_TOOLCHAIN_REV = 805ee1d
+RISCV_GNU_TOOLCHAIN_GIT_REVISION = 805ee1d
+RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX = /opt/riscv32
 
 SHELL = bash
 TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/sieve.o firmware/multest.o firmware/stats.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
-TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
+TOOLCHAIN_PREFIX = $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i/bin/riscv32-unknown-elf-
 COMPRESSED_ISA = C
 
 test: testbench.vvp firmware/firmware.hex
@@ -87,9 +88,9 @@ download-tools:
 
 define build_tools_template
 build-$(1)-tools:
-	@read -p "This will remove all existing data from /opt/$(1). Type YES to continue: " reply && [[ "$$$$reply" == [Yy][Ee][Ss] || "$$$$reply" == [Yy] ]]
-	sudo bash -c "set -ex; rm -rf /opt/$(1); mkdir -p /opt/$(1); chown $$$${USER}. /opt/$(1)"
-	$(MAKE) build-$(1)-tools-bh
+	@read -p "This will remove all existing data from $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1)). Type YES to continue: " reply && [[ "$$$$reply" == [Yy][Ee][Ss] || "$$$$reply" == [Yy] ]]
+	sudo bash -c "set -ex; rm -rf $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1)); mkdir -p $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1)); chown $$$${USER}. $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1))"
+	+$(MAKE) build-$(1)-tools-bh
 
 build-$(1)-tools-bh:
 	+set -ex; \
@@ -100,13 +101,13 @@ build-$(1)-tools-bh:
 	if [ -d /var/cache/distfiles/riscv-glibc.git ]; then reference_riscv_glibc="--reference /var/cache/distfiles/riscv-glibc.git"; else reference_riscv_glibc=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-newlib.git ]; then reference_riscv_newlib="--reference /var/cache/distfiles/riscv-newlib.git"; else reference_riscv_newlib=""; fi; \
 	rm -rf riscv-gnu-toolchain-$(1); git clone $$$$reference_riscv_gnu_toolchain https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-$(1); \
-	cd riscv-gnu-toolchain-$(1); git checkout $(RISCV_GNU_TOOLCHAIN_REV); \
+	cd riscv-gnu-toolchain-$(1); git checkout $(RISCV_GNU_TOOLCHAIN_GIT_REVISION); \
 	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-binutils-gdb; \
 	git submodule update --init $$$$reference_riscv_dejagnu riscv-dejagnu; \
 	git submodule update --init $$$$reference_riscv_gcc riscv-gcc; \
 	git submodule update --init $$$$reference_riscv_glibc riscv-glibc; \
 	git submodule update --init $$$$reference_riscv_newlib riscv-newlib; \
-	mkdir build; cd build; ../configure --with-arch=$(2) --prefix=/opt/$(1); make
+	mkdir build; cd build; ../configure --with-arch=$(2) --prefix=$(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1)); make
 
 .PHONY: build-$(1)-tools
 endef
@@ -117,13 +118,13 @@ $(eval $(call build_tools_template,riscv32im,RV32IM))
 $(eval $(call build_tools_template,riscv32imc,RV32IMC))
 
 build-tools:
-	@echo "This will remove all existing data from /opt/riscv32i, /opt/riscv32ic, /opt/riscv32im, and /opt/riscv32imc."
+	@echo "This will remove all existing data from $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i, $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)ic, $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)im, and $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)imc."
 	@read -p "Type YES to continue: " reply && [[ "$$reply" == [Yy][Ee][Ss] || "$$reply" == [Yy] ]]
-	sudo bash -c "set -ex; rm -rf /opt/riscv32{i,ic,im,imc}; mkdir -p /opt/riscv32{i,ic,im,imc}; chown $${USER}. /opt/riscv32{i,ic,im,imc}"
-	$(MAKE) build-riscv32i-tools-bh
-	$(MAKE) build-riscv32ic-tools-bh
-	$(MAKE) build-riscv32im-tools-bh
-	$(MAKE) build-riscv32imc-tools-bh
+	sudo bash -c "set -ex; rm -rf $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX){i,ic,im,imc}; mkdir -p $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX){i,ic,im,imc}; chown $${USER}. $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX){i,ic,im,imc}"
+	+$(MAKE) build-riscv32i-tools-bh
+	+$(MAKE) build-riscv32ic-tools-bh
+	+$(MAKE) build-riscv32im-tools-bh
+	+$(MAKE) build-riscv32imc-tools-bh
 
 toc:
 	gawk '/^-+$$/ { y=tolower(x); gsub("[^a-z0-9]+", "-", y); gsub("-$$", "", y); printf("- [%s](#%s)\n", x, y); } { x=$$0; }' README.md
