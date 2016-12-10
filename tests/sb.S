@@ -19,13 +19,7 @@ RVTEST_CODE_BEGIN
 
   TEST_ST_OP( 2, lb, sb, 0xffffffaa, 0, tdat );
   TEST_ST_OP( 3, lb, sb, 0x00000000, 1, tdat );
-#ifdef __RISCVEL
   TEST_ST_OP( 4, lh, sb, 0xffffefa0, 2, tdat );
-#elif defined(__RISCVEB)
-#else
-  TEST_ST_OP( 4, lh, sb, 0xffffa0ef, 2, tdat );
-#error unknown endianness!
-#endif
   TEST_ST_OP( 5, lb, sb, 0x0000000a, 3, tdat );
 
   # Test with negative offset

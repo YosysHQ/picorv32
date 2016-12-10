@@ -69,7 +69,7 @@ firmware/firmware.elf: $(FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
 	chmod -x $@
 
 firmware/start.o: firmware/start.S
-	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32IM$(COMPRESSED_ISA)Xcustom -o $@ $<
+	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32IM$(COMPRESSED_ISA) -o $@ $<
 
 firmware/%.o: firmware/%.c
 	$(TOOLCHAIN_PREFIX)gcc -c -m32 -march=RV32I$(COMPRESSED_ISA) -Os --std=c99 $(GCC_WARNS) -ffreestanding -nostdlib -o $@ $<
