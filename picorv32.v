@@ -113,6 +113,7 @@ module picorv32 #(
 	output reg [31:0] rvfi_pre_rs2,
 	output reg [31:0] rvfi_post_pc,
 	output reg [31:0] rvfi_post_rd,
+	output reg        rvfi_post_trap,
 `endif
 
 	// Trace Interface
@@ -1863,13 +1864,14 @@ module picorv32 #(
 
 `ifdef RISCV_FORMAL
 	always @(posedge clk) begin
-		rvfi_valid <= resetn && launch_next_insn && dbg_valid_insn;
+		rvfi_valid <= resetn && (launch_next_insn || trap) && dbg_valid_insn;
 		rvfi_insn <= dbg_insn_opcode;
 		rvfi_rs1 <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
 		rvfi_rs2 <= dbg_rs2val_valid ? dbg_insn_rs2 : 0;
 		rvfi_pre_pc <= dbg_insn_addr;
 		rvfi_pre_rs1 <= dbg_rs1val_valid ? dbg_rs1val : 0;
 		rvfi_pre_rs2 <= dbg_rs2val_valid ? dbg_rs2val : 0;
+		rvfi_post_trap <= trap;
 
 		if (!resetn) begin
 			rvfi_rd <= 0;
