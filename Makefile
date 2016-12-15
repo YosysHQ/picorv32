@@ -1,5 +1,5 @@
 
-RISCV_GNU_TOOLCHAIN_GIT_REVISION = 805ee1d
+RISCV_GNU_TOOLCHAIN_GIT_REVISION = e3e50c5
 RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX = /opt/riscv32
 
 SHELL = bash
@@ -112,10 +112,10 @@ build-$(1)-tools-bh:
 .PHONY: build-$(1)-tools
 endef
 
-$(eval $(call build_tools_template,riscv32i,RV32I))
-$(eval $(call build_tools_template,riscv32ic,RV32IC))
-$(eval $(call build_tools_template,riscv32im,RV32IM))
-$(eval $(call build_tools_template,riscv32imc,RV32IMC))
+$(eval $(call build_tools_template,riscv32i,rv32i))
+$(eval $(call build_tools_template,riscv32ic,rv32ic))
+$(eval $(call build_tools_template,riscv32im,rv32im))
+$(eval $(call build_tools_template,riscv32imc,rv32imc))
 
 build-tools:
 	@echo "This will remove all existing data from $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i, $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)ic, $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)im, and $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)imc."
