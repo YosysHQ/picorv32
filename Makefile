@@ -49,7 +49,7 @@ testbench_sp.vvp: testbench.v picorv32.v
 	chmod -x testbench_sp.vvp
 
 testbench_synth.vvp: testbench.v synth.v
-	iverilog -o testbench_synth.vvp testbench.v synth.v
+	iverilog -o testbench_synth.vvp -DSYNTH_TEST testbench.v synth.v
 	chmod -x testbench_synth.vvp
 
 synth.v: picorv32.v scripts/yosys/synth_sim.ys
