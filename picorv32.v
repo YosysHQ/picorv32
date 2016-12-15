@@ -250,7 +250,7 @@ module picorv32 #(
 		);
 	end else begin
 		assign pcpi_mul_wr = 0;
-		assign pcpi_mul_rd = 1'bx;
+		assign pcpi_mul_rd = 32'bx;
 		assign pcpi_mul_wait = 0;
 		assign pcpi_mul_ready = 0;
 	end endgenerate
@@ -270,14 +270,14 @@ module picorv32 #(
 		);
 	end else begin
 		assign pcpi_div_wr = 0;
-		assign pcpi_div_rd = 1'bx;
+		assign pcpi_div_rd = 32'bx;
 		assign pcpi_div_wait = 0;
 		assign pcpi_div_ready = 0;
 	end endgenerate
 
 	always @* begin
 		pcpi_int_wr = 0;
-		pcpi_int_rd = 1'bx;
+		pcpi_int_rd = 32'bx;
 		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait,  (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_wait,  ENABLE_DIV && pcpi_div_wait};
 		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready, (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready, ENABLE_DIV && pcpi_div_ready};
 
@@ -362,18 +362,18 @@ module picorv32 #(
 				mem_la_wdata = {2{reg_op2[15:0]}};
 				mem_la_wstrb = reg_op1[1] ? 4'b1100 : 4'b0011;
 				case (reg_op1[1])
-					1'b0: mem_rdata_word = mem_rdata[15: 0];
-					1'b1: mem_rdata_word = mem_rdata[31:16];
+					1'b0: mem_rdata_word = {16'b0, mem_rdata[15: 0]};
+					1'b1: mem_rdata_word = {16'b0, mem_rdata[31:16]};
 				endcase
 			end
 			2: begin
 				mem_la_wdata = {4{reg_op2[7:0]}};
 				mem_la_wstrb = 4'b0001 << reg_op1[1:0];
 				case (reg_op1[1:0])
-					2'b00: mem_rdata_word = mem_rdata[ 7: 0];
-					2'b01: mem_rdata_word = mem_rdata[15: 8];
-					2'b10: mem_rdata_word = mem_rdata[23:16];
-					2'b11: mem_rdata_word = mem_rdata[31:24];
+					2'b00: mem_rdata_word = {24'b0, mem_rdata[ 7: 0]};
+					2'b01: mem_rdata_word = {24'b0, mem_rdata[15: 8]};
+					2'b10: mem_rdata_word = {24'b0, mem_rdata[23:16]};
+					2'b11: mem_rdata_word = {24'b0, mem_rdata[31:24]};
 				endcase
 			end
 		endcase
@@ -391,14 +391,14 @@ module picorv32 #(
 					case (mem_rdata_latched[15:13])
 						3'b000: begin // C.ADDI4SPN
 							mem_rdata_q[14:12] <= 3'b000;
-							mem_rdata_q[31:20] <= {mem_rdata_latched[10:7], mem_rdata_latched[12:11], mem_rdata_latched[5], mem_rdata_latched[6], 2'b00};
+							mem_rdata_q[31:20] <= {2'b0, mem_rdata_latched[10:7], mem_rdata_latched[12:11], mem_rdata_latched[5], mem_rdata_latched[6], 2'b00};
 						end
 						3'b010: begin // C.LW
-							mem_rdata_q[31:20] <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
+							mem_rdata_q[31:20] <= {5'b0, mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
 							mem_rdata_q[14:12] <= 3'b 010;
 						end
 						3'b 110: begin // C.SW
-							{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
+							{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {5'b0, mem_rdata_latched[5], mem_rdata_latched[12:10], mem_rdata_latched[6], 2'b00};
 							mem_rdata_q[14:12] <= 3'b 010;
 						end
 					endcase
@@ -464,7 +464,7 @@ module picorv32 #(
 							mem_rdata_q[14:12] <= 3'b 001;
 						end
 						3'b010: begin // C.LWSP
-							mem_rdata_q[31:20] <= {mem_rdata_latched[3:2], mem_rdata_latched[12], mem_rdata_latched[6:4], 2'b00};
+							mem_rdata_q[31:20] <= {4'b0, mem_rdata_latched[3:2], mem_rdata_latched[12], mem_rdata_latched[6:4], 2'b00};
 							mem_rdata_q[14:12] <= 3'b 010;
 						end
 						3'b100: begin
@@ -486,7 +486,7 @@ module picorv32 #(
 							end
 						end
 						3'b110: begin // C.SWSP
-							{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {mem_rdata_latched[8:7], mem_rdata_latched[12:9], 2'b00};
+							{mem_rdata_q[31:25], mem_rdata_q[11:7]} <= {4'b0, mem_rdata_latched[8:7], mem_rdata_latched[12:9], 2'b00};
 							mem_rdata_q[14:12] <= 3'b 010;
 						end
 					endcase
