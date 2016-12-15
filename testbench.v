@@ -139,6 +139,7 @@ module picorv32_wrapper #(
 	);
 
 	picorv32_axi #(
+`ifndef SYNTH_TEST
 `ifdef SP_TEST
 		.ENABLE_REGS_DUALPORT(0),
 `endif
@@ -149,6 +150,7 @@ module picorv32_wrapper #(
 		.ENABLE_DIV(1),
 		.ENABLE_IRQ(1),
 		.ENABLE_TRACE(1)
+`endif
 	) uut (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
