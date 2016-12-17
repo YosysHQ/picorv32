@@ -107,7 +107,7 @@ build-$(1)-tools-bh:
 	git submodule update --init $$$$reference_riscv_gcc riscv-gcc; \
 	git submodule update --init $$$$reference_riscv_glibc riscv-glibc; \
 	git submodule update --init $$$$reference_riscv_newlib riscv-newlib; \
-	cd riscv-binutils-gdb; git cherry-pick a5971eca338; cd ..; \
+	cd riscv-binutils-gdb; git -c user.email="none" -c user.name="none" cherry-pick a5971eca338; cd ..; \
 	mkdir build; cd build; ../configure --with-arch=$(2) --prefix=$(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1)); make
 
 .PHONY: build-$(1)-tools
