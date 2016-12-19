@@ -103,10 +103,11 @@ module picorv32 #(
 	output reg [31:0] eoi,
 
 `ifdef RISCV_FORMAL
-	output reg rvfi_valid,
-	output reg [4:0] rvfi_rs1,
-	output reg [4:0] rvfi_rs2,
-	output reg [4:0] rvfi_rd,
+	output reg        rvfi_valid,
+	output reg [ 7:0] rvfi_order,
+	output reg [ 4:0] rvfi_rs1,
+	output reg [ 4:0] rvfi_rs2,
+	output reg [ 4:0] rvfi_rd,
 	output reg [31:0] rvfi_insn,
 	output reg [31:0] rvfi_pre_pc,
 	output reg [31:0] rvfi_pre_rs1,
@@ -114,6 +115,11 @@ module picorv32 #(
 	output reg [31:0] rvfi_post_pc,
 	output reg [31:0] rvfi_post_rd,
 	output reg        rvfi_post_trap,
+	output reg [31:0] rvfi_mem_addr,
+	output reg [ 3:0] rvfi_mem_rmask,
+	output reg [ 3:0] rvfi_mem_wmask,
+	output reg [31:0] rvfi_mem_rdata,
+	output reg [31:0] rvfi_mem_wdata,
 `endif
 
 	// Trace Interface
@@ -1865,6 +1871,8 @@ module picorv32 #(
 `ifdef RISCV_FORMAL
 	always @(posedge clk) begin
 		rvfi_valid <= resetn && (launch_next_insn || trap) && dbg_valid_insn;
+		rvfi_order <= 0;
+
 		rvfi_insn <= dbg_insn_opcode;
 		rvfi_rs1 <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
 		rvfi_rs2 <= dbg_rs2val_valid ? dbg_insn_rs2 : 0;
@@ -1884,6 +1892,22 @@ module picorv32 #(
 		if (rvfi_valid) begin
 			rvfi_rd <= 0;
 			rvfi_post_rd <= 0;
+		end
+
+		if (dbg_mem_valid && dbg_mem_ready) begin
+			if (dbg_mem_instr) begin
+				rvfi_mem_addr <= 0;
+				rvfi_mem_rmask <= 0;
+				rvfi_mem_wmask <= 0;
+				rvfi_mem_rdata <= 0;
+				rvfi_mem_wdata <= 0;
+			end else begin
+				rvfi_mem_addr <= dbg_mem_addr;
+				rvfi_mem_rmask <= dbg_mem_wstrb ? 0 : ~0;
+				rvfi_mem_wmask <= dbg_mem_wstrb;
+				rvfi_mem_rdata <= dbg_mem_rdata;
+				rvfi_mem_wdata <= dbg_mem_wdata;
+			end
 		end
 	end
 
