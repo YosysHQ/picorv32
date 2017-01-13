@@ -44,7 +44,7 @@ dhry.elf: $(OBJS) sections.lds
 	chmod -x $@
 else
 dhry.elf: $(OBJS)
-	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc -lc
+	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-T,../firmware/riscv.ld,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc -lc
 	chmod -x $@
 endif
 

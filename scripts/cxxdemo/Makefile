@@ -22,7 +22,7 @@ firmware32.hex: firmware.elf start.elf hex8tohex32.py
 	rm -f start.tmp firmware.tmp
 
 firmware.elf: firmware.o syscalls.o
-	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ -T ../../firmware/riscv.ld $(LDLIBS)
 	chmod -x firmware.elf
 
 start.elf: start.S start.ld
