@@ -1,6 +1,6 @@
 USE_MYSTDLIB = 0
 OBJS = dhry_1.o dhry_2.o stdlib.o
-CFLAGS = -MD -O3 -m32 -march=RV32IM -DTIME -DRISCV
+CFLAGS = -MD -O3 -march=rv32im -DTIME -DRISCV
 TOOLCHAIN_PREFIX = /opt/riscv32im/bin/riscv32-unknown-elf-
 
 ifeq ($(USE_MYSTDLIB),1)
@@ -44,7 +44,7 @@ dhry.elf: $(OBJS) sections.lds
 	chmod -x $@
 else
 dhry.elf: $(OBJS)
-	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc -lc
+	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-T,../firmware/riscv.ld,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc -lc
 	chmod -x $@
 endif
 

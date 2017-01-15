@@ -34,8 +34,8 @@
 
 reset_vec:
 	// no more than 16 bytes here !
-	waitirq zero
-	maskirq zero, zero
+	picorv32_waitirq_insn(zero)
+	picorv32_maskirq_insn(zero, zero)
 	j start
 
 
@@ -48,19 +48,19 @@ irq_vec:
 
 #ifdef ENABLE_QREGS
 
-	setq q2, x1
-	setq q3, x2
+	picorv32_setq_insn(q2, x1)
+	picorv32_setq_insn(q3, x2)
 
 	lui x1, %hi(irq_regs)
 	addi x1, x1, %lo(irq_regs)
 
-	getq x2, q0
+	picorv32_getq_insn(x2, q0)
 	sw x2,   0*4(x1)
 
-	getq x2, q2
+	picorv32_getq_insn(x2, q2)
 	sw x2,   1*4(x1)
 
-	getq x2, q3
+	picorv32_getq_insn(x2, q3)
 	sw x2,   2*4(x1)
 
 #ifdef ENABLE_FASTIRQ
@@ -180,7 +180,7 @@ irq_vec:
 
 	// arg1 = interrupt type
 #ifdef ENABLE_QREGS
-	getq a1, q1
+	picorv32_getq_insn(a1, q1)
 #else
 	addi a1, tp, 0
 #endif
@@ -196,13 +196,13 @@ irq_vec:
 	addi x1, a0, 0
 
 	lw x2,   0*4(x1)
-	setq q0, x2
+	picorv32_setq_insn(q0, x2)
 
 	lw x2,   1*4(x1)
-	setq q1, x2
+	picorv32_setq_insn(q1, x2)
 
 	lw x2,   2*4(x1)
-	setq q2, x2
+	picorv32_setq_insn(q2, x2)
 
 #ifdef ENABLE_FASTIRQ
 	lw x5,   5*4(x1)
@@ -252,8 +252,8 @@ irq_vec:
 	lw x31, 31*4(x1)
 #endif
 
-	getq x1, q1
-	getq x2, q2
+	picorv32_getq_insn(x1, q1)
+	picorv32_getq_insn(x2, q2)
 
 #else // ENABLE_QREGS
 
@@ -319,7 +319,7 @@ irq_vec:
 
 #endif // ENABLE_QREGS
 
-	retirq
+	picorv32_retirq_insn()
 
 #ifndef ENABLE_QREGS
 .balign 0x200
@@ -378,7 +378,7 @@ start:
 #  define TEST(n) \
 	.global n; \
 	addi x1, zero, 1000; \
-	timer zero, x1; \
+	picorv32_timer_insn(zero, x1); \
 	jal zero,n; \
 	.global n ## _ret; \
 	n ## _ret:
