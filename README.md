@@ -23,6 +23,7 @@ PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wi
 - [Pico Co-Processor Interface (PCPI)](#pico-co-processor-interface-pcpi)
 - [Custom Instructions for IRQ Handling](#custom-instructions-for-irq-handling)
 - [Building a pure RV32I Toolchain](#building-a-pure-rv32i-toolchain)
+- [Linking binaries with newlib for PicoRV32](#linking-binaries-with-newlib-for-picorv32)
 - [Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs](#evaluation-timing-and-utilization-on-xilinx-7-series-fpgas)
 
 
@@ -596,13 +597,18 @@ Example:
 Building a pure RV32I Toolchain
 -------------------------------
 
+TL;DR: Run the following commands to build the complete toolchain:
+
+    make download-tools
+    make -j$(nproc) build-tools
+
 The default settings in the [riscv-tools](https://github.com/riscv/riscv-tools) build
 scripts will build a compiler, assembler and linker that can target any RISC-V ISA,
 but the libraries are built for RV32G and RV64G targets. Follow the instructions
 below to build a complete toolchain (including libraries) that target a pure RV32I
 CPU.
 
-The following commands will build the RISC-V gnu toolchain and libraries for a
+The following commands will build the RISC-V GNU toolchain and libraries for a
 pure RV32I target, and install it in `/opt/riscv32i`:
 
     # Ubuntu packages needed:
@@ -614,7 +620,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout 7e48594
+    git checkout 914224e
     git submodule update --init --recursive
 
     mkdir build; cd build
@@ -643,7 +649,25 @@ By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.
 
-*Note: This instructions are for git rev 7e48594 (2016-08-16) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev 914224e (2017-01-06) of riscv-gnu-toolchain.*
+
+
+Linking binaries with newlib for PicoRV32
+-----------------------------------------
+
+The tool chains (see last section for install instructions) come with a version of
+the newlib C standard library.
+
+Use the linker script [firmware/riscv.ld](firmware/riscv.ld) for linking binaries
+against the newlib library. Using this linker script will create a binary that
+has its entry point at 0x10000. (The default linker script does not have a static
+entry point, thus a proper ELF loader would be needed that can determine the
+entry point at runtime while loading the program.)
+
+Newlib comes with a few syscall stubs. You need to provide your own implementation
+of those syscalls and link your program with this implementation, overwriting the
+default stubs from newlib. See `syscalls.c` in [scripts/cxxdemo/](scripts/cxxdemo/)
+for an example of how to do that.
 
 
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs

@@ -51,7 +51,6 @@
 #define regnum_t0   5
 #define regnum_t1   6
 #define regnum_t2   7
-#define regnum_fp   8 // x8 is s0 and also fp
 #define regnum_s0   8
 #define regnum_s1   9
 #define regnum_a0  10
@@ -76,6 +75,9 @@
 #define regnum_t4  29
 #define regnum_t5  30
 #define regnum_t6  31
+
+// x8 is s0 and also fp
+#define regnum_fp   8
 
 #define r_type_insn(_f7, _rs2, _rs1, _f3, _rd, _opc) \
 .word (((_f7) << 25) | ((_rs2) << 20) | ((_rs1) << 15) | ((_f3) << 12) | ((_rd) << 7) | ((_opc) << 0))
