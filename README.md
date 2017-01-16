@@ -624,7 +624,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
     git submodule update --init --recursive
 
     mkdir build; cd build
-    ../configure --with-arch=RV32I --prefix=/opt/riscv32i
+    ../configure --with-arch=rv32i --prefix=/opt/riscv32i
     make -j$(nproc)
 
 The commands will all be named using the prefix `riscv32-unknown-elf-`, which
