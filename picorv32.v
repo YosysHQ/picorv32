@@ -105,16 +105,16 @@ module picorv32 #(
 `ifdef RISCV_FORMAL
 	output reg        rvfi_valid,
 	output reg [ 7:0] rvfi_order,
-	output reg [ 4:0] rvfi_rs1,
-	output reg [ 4:0] rvfi_rs2,
-	output reg [ 4:0] rvfi_rd,
 	output reg [31:0] rvfi_insn,
-	output reg [31:0] rvfi_pre_pc,
-	output reg [31:0] rvfi_pre_rs1,
-	output reg [31:0] rvfi_pre_rs2,
-	output reg [31:0] rvfi_post_pc,
-	output reg [31:0] rvfi_post_rd,
-	output reg        rvfi_post_trap,
+	output reg        rvfi_trap,
+	output reg [ 4:0] rvfi_rs1_addr,
+	output reg [ 4:0] rvfi_rs2_addr,
+	output reg [31:0] rvfi_rs1_rdata,
+	output reg [31:0] rvfi_rs2_rdata,
+	output reg [ 4:0] rvfi_rd_addr,
+	output reg [31:0] rvfi_rd_wdata,
+	output reg [31:0] rvfi_pc_rdata,
+	output reg [31:0] rvfi_pc_wdata,
 	output reg [31:0] rvfi_mem_addr,
 	output reg [ 3:0] rvfi_mem_rmask,
 	output reg [ 3:0] rvfi_mem_wmask,
@@ -1874,24 +1874,24 @@ module picorv32 #(
 		rvfi_order <= 0;
 
 		rvfi_insn <= dbg_insn_opcode;
-		rvfi_rs1 <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
-		rvfi_rs2 <= dbg_rs2val_valid ? dbg_insn_rs2 : 0;
-		rvfi_pre_pc <= dbg_insn_addr;
-		rvfi_pre_rs1 <= dbg_rs1val_valid ? dbg_rs1val : 0;
-		rvfi_pre_rs2 <= dbg_rs2val_valid ? dbg_rs2val : 0;
-		rvfi_post_trap <= trap;
+		rvfi_rs1_addr <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
+		rvfi_rs2_addr <= dbg_rs2val_valid ? dbg_insn_rs2 : 0;
+		rvfi_pc_rdata <= dbg_insn_addr;
+		rvfi_rs1_rdata <= dbg_rs1val_valid ? dbg_rs1val : 0;
+		rvfi_rs2_rdata <= dbg_rs2val_valid ? dbg_rs2val : 0;
+		rvfi_trap <= trap;
 
 		if (!resetn) begin
-			rvfi_rd <= 0;
-			rvfi_post_rd <= 0;
+			rvfi_rd_addr <= 0;
+			rvfi_rd_wdata <= 0;
 		end else
 		if (cpuregs_write) begin
-			rvfi_rd <= latched_rd;
-			rvfi_post_rd <= latched_rd ? cpuregs_wrdata : 0;
+			rvfi_rd_addr <= latched_rd;
+			rvfi_rd_wdata <= latched_rd ? cpuregs_wrdata : 0;
 		end else
 		if (rvfi_valid) begin
-			rvfi_rd <= 0;
-			rvfi_post_rd <= 0;
+			rvfi_rd_addr <= 0;
+			rvfi_rd_wdata <= 0;
 		end
 
 		if (dbg_mem_valid && dbg_mem_ready) begin
@@ -1912,7 +1912,7 @@ module picorv32 #(
 	end
 
 	always @* begin
-		rvfi_post_pc = dbg_insn_addr;
+		rvfi_pc_wdata = dbg_insn_addr;
 	end
 `endif
 
