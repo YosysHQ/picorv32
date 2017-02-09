@@ -1,0 +1,16 @@
+bram picorv32_regs
+  init 0
+  abits 5
+  dbits 32
+  groups 2
+  ports  2 1
+  wrmode 0 1
+  enable 0 1
+  transp 0 0
+  clocks 1 1
+  clkpol 1 1
+endbram
+
+match picorv32_regs
+  make_transp
+endmatch

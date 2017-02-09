@@ -1,0 +1,5 @@
+read_verilog ../../picorv32.v
+chparam -set COMPRESSED_ISA 1 picorv32
+prep -top picorv32
+memory_bram -rules picorv32_regs.txt
+write_verilog -noattr picorv32_presyn.v

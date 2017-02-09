@@ -1,0 +1,7 @@
+firmware.bin
+firmware.elf
+firmware.hex
+firmware.map
+picorv32_presyn.v
+testbench.vcd
+testbench.vvp

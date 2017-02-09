@@ -1,0 +1,5 @@
+A simple example for how to use Yosys to "pre-synthesize" PicoRV32 in
+a way that can utilize an external memory module for the register file.
+
+See also:
+https://github.com/cliffordwolf/picorv32/issues/30
