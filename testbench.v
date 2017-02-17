@@ -12,7 +12,6 @@ module testbench #(
 	parameter AXI_TEST = 0,
 	parameter VERBOSE = 0
 );
-
 	reg clk = 1;
 	reg resetn = 0;
 	wire trap;
@@ -75,8 +74,6 @@ module picorv32_wrapper #(
 	output trace_valid,
 	output [35:0] trace_data
 );
-
-	wire trap;
 	wire tests_passed;
 	reg [31:0] irq;
 
@@ -234,7 +231,6 @@ module axi4_memory #(
 
 	output reg tests_passed
 );
-
 	reg [31:0]   memory [0:64*1024/4-1] /* verilator public */;
 	reg verbose;
 	initial verbose = $test$plusargs("verbose") || VERBOSE;

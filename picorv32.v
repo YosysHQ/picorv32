@@ -34,7 +34,7 @@
   `define assert(assert_expr) assert(assert_expr)
 `else
   `define FORMAL_KEEP
-  `define assert(assert_expr)
+  `define assert(assert_expr) empty_statement
 `endif
 
 /***************************************************************
@@ -175,6 +175,12 @@ module picorv32 #(
 				cpuregs[i] = 0;
 		end
 	end
+
+	task empty_statement;
+		// This task is used by the `assert directive in non-formal mode to
+		// avoid empty statement (which are unsupported by plain Verilog syntax).
+		begin end
+	endtask
 
 `ifdef DEBUGREGS
 	wire [31:0] dbg_reg_x0  = cpuregs[0];
