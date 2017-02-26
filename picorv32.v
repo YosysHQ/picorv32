@@ -19,6 +19,7 @@
 
 `timescale 1 ns / 1 ps
 // `default_nettype none
+// `define DEBUGNETS
 // `define DEBUGREGS
 // `define DEBUGASM
 // `define DEBUG
@@ -33,7 +34,11 @@
   `define FORMAL_KEEP (* keep *)
   `define assert(assert_expr) assert(assert_expr)
 `else
-  `define FORMAL_KEEP
+  `ifdef DEBUGNETS
+    `define FORMAL_KEEP (* keep *)
+  `else
+    `define FORMAL_KEEP
+  `endif
   `define assert(assert_expr) empty_statement
 `endif
 
