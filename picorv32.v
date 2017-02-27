@@ -1906,20 +1906,19 @@ module picorv32 #(
 			rvfi_rd_wdata <= 0;
 		end
 
+		if (dbg_mem_instr) begin
+			rvfi_mem_addr <= 0;
+			rvfi_mem_rmask <= 0;
+			rvfi_mem_wmask <= 0;
+			rvfi_mem_rdata <= 0;
+			rvfi_mem_wdata <= 0;
+		end else
 		if (dbg_mem_valid && dbg_mem_ready) begin
-			if (dbg_mem_instr) begin
-				rvfi_mem_addr <= 0;
-				rvfi_mem_rmask <= 0;
-				rvfi_mem_wmask <= 0;
-				rvfi_mem_rdata <= 0;
-				rvfi_mem_wdata <= 0;
-			end else begin
-				rvfi_mem_addr <= dbg_mem_addr;
-				rvfi_mem_rmask <= dbg_mem_wstrb ? 0 : ~0;
-				rvfi_mem_wmask <= dbg_mem_wstrb;
-				rvfi_mem_rdata <= dbg_mem_rdata;
-				rvfi_mem_wdata <= dbg_mem_wdata;
-			end
+			rvfi_mem_addr <= dbg_mem_addr;
+			rvfi_mem_rmask <= dbg_mem_wstrb ? 0 : ~0;
+			rvfi_mem_wmask <= dbg_mem_wstrb;
+			rvfi_mem_rdata <= dbg_mem_rdata;
+			rvfi_mem_wdata <= dbg_mem_wdata;
 		end
 	end
 
