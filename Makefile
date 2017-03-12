@@ -13,11 +13,8 @@ COMPRESSED_ISA = C
 test: testbench.vvp firmware/firmware.hex
 	vvp -N testbench.vvp
 
-testbench_vcd: testbench.vvp firmware/firmware.hex
+test_vcd: testbench.vvp firmware/firmware.hex
 	vvp -N $< +vcd +trace +noerror
-
-view: testbench_vcd
-	gtkwave $< testbench.gtkw
 
 check: check-yices
 
@@ -136,5 +133,5 @@ clean:
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
 		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench.vcd testbench.trace
 
-.PHONY: test view test_sp test_axi test_synth download-tools build-tools toc clean
+.PHONY: test test_vcd test_sp test_axi test_synth download-tools build-tools toc clean
 
