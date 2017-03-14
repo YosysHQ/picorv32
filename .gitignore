@@ -21,6 +21,8 @@
 /riscv-gnu-toolchain-riscv32im
 /riscv-gnu-toolchain-riscv32imc
 /testbench.vvp
+/testbench_wb.vvp
+/testbench_wb.vcd
 /testbench_sp.vvp
 /testbench_synth.vvp
 /testbench.gtkw
