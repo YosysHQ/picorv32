@@ -81,13 +81,8 @@ module picorv32_wrapper #(
 	wire wb_m2s_we;
 	wire wb_m2s_cyc;
 	wire wb_m2s_stb;
-	//wire [2:0] wb_m2s_cti;
-	reg [2:0] wb_m2s_cti = 3'b000;
-	wire [1:0] wb_m2s_bte;
 	wire [31:0] wb_s2m_dat;
 	wire wb_s2m_ack;
-	wire wb_s2m_err;
-	wire wb_s2m_rty;
 
 	wb_ram #(
 		.depth (16384 * 4),
@@ -104,10 +99,7 @@ module picorv32_wrapper #(
 		.wb_dat_o(wb_s2m_dat),
 		.wb_ack_o(wb_s2m_ack),
 		.wb_sel_i(wb_m2s_sel),
-		.wb_cti_i(wb_m2s_cti),
-		.wb_bte_i(wb_m2s_bte),
 		.wb_we_i(wb_m2s_we),
-		.wb_err_o(),
 
 		.tests_passed(tests_passed)
 	);
@@ -166,126 +158,49 @@ module picorv32_wrapper #(
 endmodule
 
 module wb_ram #(
-	//Wishbone parameters
-	parameter dw = 32,
-	//Memory parameters
 	parameter depth = 256,
-	parameter aw = 32,
 	parameter memfile = "",
 	parameter VERBOSE = 0
 ) (
 	input wb_clk_i,
 	input wb_rst_i,
 
-	input [aw-1:0] wb_adr_i,
-	input [dw-1:0] wb_dat_i,
+	input [31:0] wb_adr_i,
+	input [31:0] wb_dat_i,
 	input [3:0] wb_sel_i,
 	input wb_we_i,
-	input [1:0] wb_bte_i,
-	input [2:0] wb_cti_i,
 	input wb_cyc_i,
 	input wb_stb_i,
 
 	output reg wb_ack_o,
-	output wb_err_o,
-	output reg [dw-1:0] wb_dat_o,
+	output reg [31:0] wb_dat_o,
 
 	output reg tests_passed
 );
-
-	localparam CLASSIC_CYCLE = 1'b0;
-	localparam BURST_CYCLE   = 1'b1;
-
-	localparam READ  = 1'b0;
-	localparam WRITE = 1'b1;
-
-	localparam [2:0]
-		CTI_CLASSIC      = 3'b000,
-		CTI_CONST_BURST  = 3'b001,
-		CTI_INC_BURST    = 3'b010,
-		CTI_END_OF_BURST = 3'b111;
-
-	localparam [1:0]
-		BTE_LINEAR  = 2'd0,
-		BTE_WRAP_4  = 2'd1,
-		BTE_WRAP_8  = 2'd2,
-		BTE_WRAP_16 = 2'd3;
-
-	function wb_is_last;
-		input [2:0] cti;
-		begin
-			case (cti)
-				CTI_CLASSIC      : wb_is_last = 1'b1;
-				CTI_CONST_BURST  : wb_is_last = 1'b0;
-				CTI_INC_BURST    : wb_is_last = 1'b0;
-				CTI_END_OF_BURST : wb_is_last = 1'b1;
-				default : $display("%d : Illegal Wishbone B3 cycle type (%b)", $time, cti);
-			endcase
-		end
-	endfunction
-
-	function [31:0] wb_next_adr;
-		input [31:0] adr_i;
-		input [2:0] cti_i;
-		input [2:0] bte_i;
-		input integer dw;
-
-		reg [31:0] adr;
-		integer shift;
-		begin
-			shift = $clog2(dw/8);
-			adr = adr_i >> shift;
-			if (cti_i == CTI_INC_BURST)
-				case (bte_i)
-				BTE_LINEAR   : adr = adr + 1;
-				BTE_WRAP_4   : adr = {adr[31:2], adr[1:0]+2'd1};
-				BTE_WRAP_8   : adr = {adr[31:3], adr[2:0]+3'd1};
-				BTE_WRAP_16  : adr = {adr[31:4], adr[3:0]+4'd1};
-				endcase // case (burst_type_i)
-
-			wb_next_adr = adr << shift;
-		end
-	endfunction
 
 	reg verbose;
 	initial verbose = $test$plusargs("verbose") || VERBOSE;
 
 	initial tests_passed = 0;
 
-	reg [aw-1:0] adr_r;
-	wire [aw-1:0] next_adr;
+	reg [31:0] adr_r;
 	wire valid = wb_cyc_i & wb_stb_i;
-	reg valid_r;
-	reg is_last_r;
-
-	always @(posedge wb_clk_i)
-		is_last_r <= wb_is_last(wb_cti_i);
-
-	wire new_cycle = (valid & !valid_r) | is_last_r;
-
-	assign next_adr = wb_next_adr(adr_r, wb_cti_i, wb_bte_i, dw);
-
-	wire [aw-1:0] adr = new_cycle ? wb_adr_i : next_adr;
 
 	always @(posedge wb_clk_i) begin
-		adr_r <= adr;
-		valid_r <= valid;
+		adr_r <= wb_adr_i;
 		// Ack generation
-		wb_ack_o <= valid & (!((wb_cti_i == 3'b000) | (wb_cti_i == 3'b111)) | !wb_ack_o);
+		wb_ack_o <= valid & !wb_ack_o;
 		if (wb_rst_i)
 		begin
-			adr_r <= {aw{1'b0}};
-			valid_r <= 1'b0;
+			adr_r <= {32{1'b0}};
 			wb_ack_o <= 1'b0;
 		end
 	end
 
 	wire ram_we = wb_we_i & valid & wb_ack_o;
 
-	assign wb_err_o = 1'b0;
-
-	wire [aw-1:0] waddr = adr_r[aw-1:2];
-	wire [aw-1:0] raddr = adr[aw-1:2];
+	wire [31:0] waddr = adr_r[31:2];
+	wire [31:0] raddr = wb_adr_i[31:2];
 	wire [3:0] we = {4{ram_we}} & wb_sel_i;
 
 	wire [$clog2(depth/4)-1:0] raddr2 = raddr[$clog2(depth/4)-1:0];
@@ -295,10 +210,10 @@ module wb_ram #(
 
 	always @(posedge wb_clk_i) begin
 		if (ram_we)
-			if (adr_r[aw-1:0] == 32'h1000_0000)
+			if (adr_r[31:0] == 32'h1000_0000)
 				$write("%c", wb_dat_i[7:0]);
 			else
-			if (adr_r[aw-1:0] == 32'h2000_0000)
+			if (adr_r[31:0] == 32'h2000_0000)
 				if (wb_dat_i[31:0] == 123456789)
 					tests_passed = 1;
 	end
