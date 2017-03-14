@@ -2690,62 +2690,55 @@ module picorv32_wb #(
 	wire we;
 	assign we = (mem_wstrb[0] | mem_wstrb[1] | mem_wstrb[2] | mem_wstrb[3]);
 
-	always @(posedge wb_clk_i)
-	if (wb_rst_i)
-	begin
-		wbm_adr_o <= 0;
-		wbm_dat_o <= 0;
-		wbm_we_o <= 0;
-		wbm_sel_o <= 0;
-		wbm_stb_o <= 0;
-		wbm_cyc_o <= 0;
-		state <= IDLE;
-	end
-	else
-	begin
-		case (state)
-		IDLE:
-			if (mem_valid)
-			begin
-				wbm_adr_o <= mem_addr;
-				wbm_dat_o <= mem_wdata;
-				wbm_we_o <= we;
-				wbm_sel_o <= mem_wstrb;
-
-				wbm_stb_o <= 1'b1;
-				wbm_cyc_o <= 1'b1;
-				state <= WBSTART;
-			end
-			else
-			begin
-				mem_ready <= 1'b0;
-
-				wbm_stb_o <= 1'b0;
-				wbm_cyc_o <= 1'b0;
-				wbm_we_o <= 1'b0;
-			end
-		WBSTART:
-			if (wbm_ack_i)
-			begin
-				mem_rdata <= wbm_dat_i;
-				mem_ready <= 1'b1;
-
-				state <= WBEND;
-
-				wbm_stb_o <= 1'b0;
-				wbm_cyc_o <= 1'b0;
-				wbm_we_o <= 1'b0;
-			end
-
-		WBEND:
-			begin
-				mem_ready <= 1'b0;
-
-				state <= IDLE;
-			end
-
-		default:
+	always @(posedge wb_clk_i) begin
+		if (wb_rst_i) begin
+			wbm_adr_o <= 0;
+			wbm_dat_o <= 0;
+			wbm_we_o <= 0;
+			wbm_sel_o <= 0;
+			wbm_stb_o <= 0;
+			wbm_cyc_o <= 0;
 			state <= IDLE;
-		endcase
+		end else begin
+			case (state)
+				IDLE: begin
+					if (mem_valid) begin
+						wbm_adr_o <= mem_addr;
+						wbm_dat_o <= mem_wdata;
+						wbm_we_o <= we;
+						wbm_sel_o <= mem_wstrb;
+
+						wbm_stb_o <= 1'b1;
+						wbm_cyc_o <= 1'b1;
+						state <= WBSTART;
+					end else begin
+						mem_ready <= 1'b0;
+
+						wbm_stb_o <= 1'b0;
+						wbm_cyc_o <= 1'b0;
+						wbm_we_o <= 1'b0;
+					end
+				end
+				WBSTART:begin
+					if (wbm_ack_i) begin
+						mem_rdata <= wbm_dat_i;
+						mem_ready <= 1'b1;
+
+						state <= WBEND;
+
+						wbm_stb_o <= 1'b0;
+						wbm_cyc_o <= 1'b0;
+						wbm_we_o <= 1'b0;
+					end
+				end
+				WBEND: begin
+					mem_ready <= 1'b0;
+
+					state <= IDLE;
+				end
+				default:
+					state <= IDLE;
+			endcase
+		end
 	end
 endmodule
