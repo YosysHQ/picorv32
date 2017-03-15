@@ -11,7 +11,7 @@ TOOLCHAIN_PREFIX = $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i/bin/riscv32-unknown-el
 COMPRESSED_ISA = C
 
 test: testbench.vvp firmware/firmware.hex
-	vvp -N testbench.vvp
+	vvp -N $<
 
 test_vcd: testbench.vvp firmware/firmware.hex
 	vvp -N $< +vcd +trace +noerror
@@ -35,29 +35,29 @@ check.smt2: picorv32.v
 		  -p 'write_smt2 -wires check.smt2'
 
 test_sp: testbench_sp.vvp firmware/firmware.hex
-	vvp -N testbench_sp.vvp
+	vvp -N $<
 
 test_axi: testbench.vvp firmware/firmware.hex
-	vvp -N testbench.vvp +axi_test
+	vvp -N $< +axi_test
 
 test_synth: testbench_synth.vvp firmware/firmware.hex
-	vvp -N testbench_synth.vvp
+	vvp -N $<
 
 testbench.vvp: testbench.v picorv32.v
-	iverilog -o testbench.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL testbench.v picorv32.v
-	chmod -x testbench.vvp
+	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL $^
+	chmod -x $@
 
 testbench_wb.vvp: testbench_wb.v picorv32.v
 	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL $^
 	chmod -x $@
 
 testbench_sp.vvp: testbench.v picorv32.v
-	iverilog -o testbench_sp.vvp $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL -DSP_TEST testbench.v picorv32.v
-	chmod -x testbench_sp.vvp
+	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL -DSP_TEST $^
+	chmod -x $@
 
 testbench_synth.vvp: testbench.v synth.v
-	iverilog -o testbench_synth.vvp -DSYNTH_TEST testbench.v synth.v
-	chmod -x testbench_synth.vvp
+	iverilog -o $@ -DSYNTH_TEST $^
+	chmod -x $@
 
 synth.v: picorv32.v scripts/yosys/synth_sim.ys
 	yosys -qv3 -l synth.log scripts/yosys/synth_sim.ys
