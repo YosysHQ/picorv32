@@ -294,14 +294,13 @@ module wb_ram #(
 	reg [31:0] mem [0:depth/4-1] /* verilator public */;
 
 	always @(posedge wb_clk_i) begin
-		if (adr_r[aw-1:0] == 32'h1000_0000 && wb_stb_i && !wb_ack_o)
-		begin
-			$write("%c", wb_dat_i[7:0]);
-		end else
-		if (adr_r[aw-1:0] == 32'h2000_0000 && wb_stb_i && !wb_ack_o) begin
-			if (wb_dat_i[31:0] == 123456789)
-				tests_passed = 1;
-		end
+		if (ram_we)
+			if (adr_r[aw-1:0] == 32'h1000_0000)
+				$write("%c", wb_dat_i[7:0]);
+			else
+			if (adr_r[aw-1:0] == 32'h2000_0000)
+				if (wb_dat_i[31:0] == 123456789)
+					tests_passed = 1;
 	end
 
 	always @(posedge wb_clk_i) begin
