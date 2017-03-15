@@ -10,6 +10,9 @@ GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedanti
 TOOLCHAIN_PREFIX = $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i/bin/riscv32-unknown-elf-
 COMPRESSED_ISA = C
 
+# Add things like "export http_proxy=... https_proxy=..." here
+GIT_ENV =
+
 test: testbench.vvp firmware/firmware.hex
 	vvp -N $<
 
@@ -86,7 +89,7 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 		-DTEST_FUNC_TXT='"$(notdir $(basename $<))"' -DTEST_FUNC_RET=$(notdir $(basename $<))_ret $<
 
 download-tools:
-	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; \
+	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; $(GIT_ENV); \
 	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-dejagnu riscv-gcc riscv-glibc riscv-newlib, \
 		if ! test -d /var/cache/distfiles/$(REPO).git; then rm -rf /var/cache/distfiles/$(REPO).git.part; \
 			git clone --bare https://github.com/riscv/$(REPO) /var/cache/distfiles/$(REPO).git.part; \
@@ -100,7 +103,7 @@ build-$(1)-tools:
 	+$(MAKE) build-$(1)-tools-bh
 
 build-$(1)-tools-bh:
-	+set -ex; \
+	+set -ex; $(GIT_ENV); \
 	if [ -d /var/cache/distfiles/riscv-gnu-toolchain.git ]; then reference_riscv_gnu_toolchain="--reference /var/cache/distfiles/riscv-gnu-toolchain.git"; else reference_riscv_gnu_toolchain=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-binutils-gdb.git ]; then reference_riscv_binutils_gdb="--reference /var/cache/distfiles/riscv-binutils-gdb.git"; else reference_riscv_binutils_gdb=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-dejagnu.git ]; then reference_riscv_dejagnu="--reference /var/cache/distfiles/riscv-dejagnu.git"; else reference_riscv_dejagnu=""; fi; \
