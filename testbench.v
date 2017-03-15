@@ -176,7 +176,7 @@ module picorv32_wrapper #(
 
 	reg [1023:0] firmware_file;
 	initial begin
-		if(!$value$plusargs("firmware=%s", firmware_file))
+		if (!$value$plusargs("firmware=%s", firmware_file))
 			firmware_file = "firmware/firmware.hex";
 		$readmemh(firmware_file, mem.memory);
 	end
@@ -300,7 +300,7 @@ module axi4_memory #(
 	end endtask
 
 	task handle_axi_rvalid; begin
-		if(verbose)
+		if (verbose)
 			$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
 		if (latched_raddr < 64*1024) begin
 			mem_axi_rdata <= memory[latched_raddr >> 2];
