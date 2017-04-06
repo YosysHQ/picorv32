@@ -2610,13 +2610,14 @@ module picorv32_wb #(
 
 	// Trace Interface
 	output        trace_valid,
-	output [35:0] trace_data
+	output [35:0] trace_data,
+
+	output mem_instr
 );
 	wire        mem_valid;
 	wire [31:0] mem_addr;
 	wire [31:0] mem_wdata;
 	wire [ 3:0] mem_wstrb;
-	wire        mem_instr;
 	reg         mem_ready;
 	reg [31:0] mem_rdata;
 
