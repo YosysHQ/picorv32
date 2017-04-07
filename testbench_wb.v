@@ -68,6 +68,7 @@ module picorv32_wrapper #(
 );
 	wire tests_passed;
 	reg [31:0] irq;
+	wire mem_instr;
 
 	always @* begin
 		irq = 0;
@@ -101,6 +102,7 @@ module picorv32_wrapper #(
 		.wb_sel_i(wb_m2s_sel),
 		.wb_we_i(wb_m2s_we),
 
+		.mem_instr(mem_instr),
 		.tests_passed(tests_passed)
 	);
 
@@ -122,6 +124,7 @@ module picorv32_wrapper #(
 		.irq (irq),
 		.trace_valid (trace_valid),
 		.trace_data (trace_data),
+		.mem_instr(mem_instr),
 
 		.wb_clk_i(wb_clk),
 		.wb_rst_i(wb_rst),
@@ -175,6 +178,7 @@ module wb_ram #(
 	output reg wb_ack_o,
 	output reg [31:0] wb_dat_o,
 
+	input mem_instr,
 	output reg tests_passed
 );
 
@@ -209,13 +213,28 @@ module wb_ram #(
 	reg [31:0] mem [0:depth/4-1] /* verilator public */;
 
 	always @(posedge wb_clk_i) begin
-		if (ram_we)
+		if (ram_we) begin
+			if (verbose)
+				$display("WR: ADDR=%08x DATA=%08x STRB=%04b",
+					adr_r, wb_dat_i, we);
+
 			if (adr_r[31:0] == 32'h1000_0000)
-				$write("%c", wb_dat_i[7:0]);
+				if (verbose) begin
+					if (32 <= wb_dat_i[7:0] && wb_dat_i[7:0] < 128)
+						$display("OUT: '%c'", wb_dat_i[7:0]);
+					else
+						$display("OUT: %3d", wb_dat_i[7:0]);
+				end else begin
+					$write("%c", wb_dat_i[7:0]);
+`ifndef VERILATOR
+					$fflush();
+`endif
+				end
 			else
 			if (adr_r[31:0] == 32'h2000_0000)
 				if (wb_dat_i[31:0] == 123456789)
 					tests_passed = 1;
+		end
 	end
 
 	always @(posedge wb_clk_i) begin
@@ -232,15 +251,11 @@ module wb_ram #(
 			if (we[3])
 				mem[waddr2][31:24] <= wb_dat_i[31:24];
 
-			if (ram_we)
-				if (verbose)
-					$display("WR: ADDR=%08x DATA=%08x STRB=%04b",
-						adr_r, wb_dat_i, we);
 		end
 
 		if (valid & wb_ack_o & !ram_we)
 			if (verbose)
-				$display("RD: ADDR=%08x DATA=%08x%s", adr_r, mem[raddr2], 0 ? " INSN" : "");
+				$display("RD: ADDR=%08x DATA=%08x%s", adr_r, mem[raddr2], mem_instr ? " INSN" : "");
 
 		wb_dat_o <= mem[raddr2];
 	end
