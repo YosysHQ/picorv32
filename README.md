@@ -612,15 +612,16 @@ The following commands will build the RISC-V GNU toolchain and libraries for a
 pure RV32I target, and install it in `/opt/riscv32i`:
 
     # Ubuntu packages needed:
-    sudo apt-get install autoconf automake autotools-dev curl libmpc-dev libmpfr-dev \
-            libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc
+    sudo apt-get install autoconf automake autotools-dev curl libmpc-dev \
+            libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo \
+	    gperf libtool patchutils bc zlib1g-dev git
 
     sudo mkdir /opt/riscv32i
     sudo chown $USER /opt/riscv32i
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout 914224e
+    git checkout 0c8f87d
     git submodule update --init --recursive
 
     mkdir build; cd build
@@ -649,7 +650,7 @@ By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.
 
-*Note: This instructions are for git rev 914224e (2017-01-06) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev 0c8f87d (2017-04-05) of riscv-gnu-toolchain.*
 
 
 Linking binaries with newlib for PicoRV32

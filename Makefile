@@ -1,5 +1,5 @@
 
-RISCV_GNU_TOOLCHAIN_GIT_REVISION = 914224e
+RISCV_GNU_TOOLCHAIN_GIT_REVISION = 0c8f87d
 RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX = /opt/riscv32
 
 SHELL = bash
@@ -11,7 +11,7 @@ TOOLCHAIN_PREFIX = $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i/bin/riscv32-unknown-el
 COMPRESSED_ISA = C
 
 # Add things like "export http_proxy=... https_proxy=..." here
-GIT_ENV =
+GIT_ENV = true
 
 test: testbench.vvp firmware/firmware.hex
 	vvp -N $<
