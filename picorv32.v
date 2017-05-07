@@ -835,7 +835,7 @@ module picorv32 #(
 			instr_lui     <= mem_rdata_latched[6:0] == 7'b0110111;
 			instr_auipc   <= mem_rdata_latched[6:0] == 7'b0010111;
 			instr_jal     <= mem_rdata_latched[6:0] == 7'b1101111;
-			instr_jalr    <= mem_rdata_latched[6:0] == 7'b1100111;
+			instr_jalr    <= mem_rdata_latched[6:0] == 7'b1100111 && mem_rdata_latched[14:12] == 3'b000;
 			instr_retirq  <= mem_rdata_latched[6:0] == 7'b0001011 && mem_rdata_latched[31:25] == 7'b0000010 && ENABLE_IRQ;
 			instr_waitirq <= mem_rdata_latched[6:0] == 7'b0001011 && mem_rdata_latched[31:25] == 7'b0000100 && ENABLE_IRQ;
 
@@ -890,9 +890,11 @@ module picorv32 #(
 					2'b01: begin // Quadrant 1
 						case (mem_rdata_latched[15:13])
 							3'b000: begin // C.NOP / C.ADDI
-								is_alu_reg_imm <= 1;
-								decoded_rd <= mem_rdata_latched[11:7];
-								decoded_rs1 <= mem_rdata_latched[11:7];
+								if (!mem_rdata_latched[12:2] || mem_rdata_latched[11:7]) begin
+									is_alu_reg_imm <= 1;
+									decoded_rd <= mem_rdata_latched[11:7];
+									decoded_rs1 <= mem_rdata_latched[11:7];
+								end
 							end
 							3'b001: begin // C.JAL
 								instr_jal <= 1;
@@ -904,18 +906,20 @@ module picorv32 #(
 								decoded_rs1 <= 0;
 							end
 							3'b 011: begin
-								if (mem_rdata_latched[11:7] == 2) begin // C.ADDI16SP
-									is_alu_reg_imm <= 1;
-									decoded_rd <= mem_rdata_latched[11:7];
-									decoded_rs1 <= mem_rdata_latched[11:7];
-								end else begin // C.LUI
-									instr_lui <= 1;
-									decoded_rd <= mem_rdata_latched[11:7];
-									decoded_rs1 <= 0;
+								if (mem_rdata_latched[12] || mem_rdata_latched[6:2]) begin
+									if (mem_rdata_latched[11:7] == 2) begin // C.ADDI16SP
+										is_alu_reg_imm <= 1;
+										decoded_rd <= mem_rdata_latched[11:7];
+										decoded_rs1 <= mem_rdata_latched[11:7];
+									end else begin // C.LUI
+										instr_lui <= 1;
+										decoded_rd <= mem_rdata_latched[11:7];
+										decoded_rs1 <= 0;
+									end
 								end
 							end
 							3'b100: begin
-								if (mem_rdata_latched[11] == 1'b0) begin // C.SRLI, C.SRAI
+								if (!mem_rdata_latched[11] && !mem_rdata_latched[12]) begin // C.SRLI, C.SRAI
 									is_alu_reg_imm <= 1;
 									decoded_rd <= 8 + mem_rdata_latched[9:7];
 									decoded_rs1 <= 8 + mem_rdata_latched[9:7];
@@ -951,18 +955,22 @@ module picorv32 #(
 					2'b10: begin // Quadrant 2
 						case (mem_rdata_latched[15:13])
 							3'b000: begin // C.SLLI
-								is_alu_reg_imm <= 1;
-								decoded_rd <= mem_rdata_latched[11:7];
-								decoded_rs1 <= mem_rdata_latched[11:7];
-								decoded_rs2 <= {mem_rdata_latched[12], mem_rdata_latched[6:2]};
+								if (!mem_rdata_latched[12]) begin
+									is_alu_reg_imm <= 1;
+									decoded_rd <= mem_rdata_latched[11:7];
+									decoded_rs1 <= mem_rdata_latched[11:7];
+									decoded_rs2 <= {mem_rdata_latched[12], mem_rdata_latched[6:2]};
+								end
 							end
 							3'b010: begin // C.LWSP
-								is_lb_lh_lw_lbu_lhu <= 1;
-								decoded_rd <= mem_rdata_latched[11:7];
-								decoded_rs1 <= 2;
+								if (mem_rdata_latched[11:7]) begin
+									is_lb_lh_lw_lbu_lhu <= 1;
+									decoded_rd <= mem_rdata_latched[11:7];
+									decoded_rs1 <= 2;
+								end
 							end
 							3'b100: begin
-								if (mem_rdata_latched[12] == 0 && mem_rdata_latched[6:2] == 0) begin // C.JR
+								if (mem_rdata_latched[12] == 0 && mem_rdata_latched[11:7] != 0 && mem_rdata_latched[6:2] == 0) begin // C.JR
 									instr_jalr <= 1;
 									decoded_rd <= 0;
 									decoded_rs1 <= mem_rdata_latched[11:7];
