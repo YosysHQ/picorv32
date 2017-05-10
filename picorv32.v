@@ -1249,6 +1249,11 @@ module picorv32 #(
 			BARREL_SHIFTER && (instr_srl || instr_srli || instr_sra || instr_srai):
 				alu_out = alu_shr;
 		endcase
+
+`ifdef RISCV_FORMAL_BLACKBOX_ALU
+		alu_out_0 = $anyseq;
+		alu_out = $anyseq;
+`endif
 	end
 
 	reg clear_prefetched_high_word_q;
@@ -1303,11 +1308,20 @@ module picorv32 #(
 	always @* begin
 		decoded_rs = 'bx;
 		if (ENABLE_REGS_DUALPORT) begin
+`ifndef RISCV_FORMAL_BLACKBOX_REGS
 			cpuregs_rs1 = decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 			cpuregs_rs2 = decoded_rs2 ? cpuregs[decoded_rs2] : 0;
+`else
+			cpuregs_rs1 = decoded_rs1 ? $anyseq : 0;
+			cpuregs_rs2 = decoded_rs2 ? $anyseq : 0;
+`endif
 		end else begin
 			decoded_rs = (cpu_state == cpu_state_ld_rs2) ? decoded_rs2 : decoded_rs1;
+`ifndef RISCV_FORMAL_BLACKBOX_REGS
 			cpuregs_rs1 = decoded_rs ? cpuregs[decoded_rs] : 0;
+`else
+			cpuregs_rs1 = decoded_rs ? $anyseq : 0;
+`endif
 			cpuregs_rs2 = cpuregs_rs1;
 		end
 	end
