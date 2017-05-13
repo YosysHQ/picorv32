@@ -890,11 +890,9 @@ module picorv32 #(
 					2'b01: begin // Quadrant 1
 						case (mem_rdata_latched[15:13])
 							3'b000: begin // C.NOP / C.ADDI
-								if (!mem_rdata_latched[12:2] || mem_rdata_latched[11:7]) begin
-									is_alu_reg_imm <= 1;
-									decoded_rd <= mem_rdata_latched[11:7];
-									decoded_rs1 <= mem_rdata_latched[11:7];
-								end
+								is_alu_reg_imm <= 1;
+								decoded_rd <= mem_rdata_latched[11:7];
+								decoded_rs1 <= mem_rdata_latched[11:7];
 							end
 							3'b001: begin // C.JAL
 								instr_jal <= 1;
