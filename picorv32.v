@@ -1175,7 +1175,7 @@ module picorv32 #(
 	reg [regindex_bits-1:0] latched_rd;
 
 	reg [31:0] current_pc;
-	assign next_pc = latched_store && latched_branch ? reg_out : reg_next_pc;
+	assign next_pc = latched_store && latched_branch ? reg_out & ~1 : reg_next_pc;
 
 	reg [3:0] pcpi_timeout_counter;
 	reg pcpi_timeout;
@@ -1430,7 +1430,7 @@ module picorv32 #(
 				(* parallel_case *)
 				case (1'b1)
 					latched_branch: begin
-						current_pc = latched_store ? (latched_stalu ? alu_out_q : reg_out) : reg_next_pc;
+						current_pc = latched_store ? (latched_stalu ? alu_out_q : reg_out) & ~1 : reg_next_pc;
 						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + (latched_compr ? 2 : 4), current_pc);)
 					end
 					latched_store && !latched_branch: begin
