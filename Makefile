@@ -47,15 +47,15 @@ test_synth: testbench_synth.vvp firmware/firmware.hex
 	vvp -N $<
 
 testbench.vvp: testbench.v picorv32.v
-	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL $^
+	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_wb.vvp: testbench_wb.v picorv32.v
-	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL $^
+	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_sp.vvp: testbench.v picorv32.v
-	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DRISCV_FORMAL -DSP_TEST $^
+	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST $^
 	chmod -x $@
 
 testbench_synth.vvp: testbench.v synth.v

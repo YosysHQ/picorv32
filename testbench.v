@@ -135,6 +135,26 @@ module picorv32_wrapper #(
 		.tests_passed    (tests_passed    )
 	);
 
+`ifdef RISCV_FORMAL
+	wire        rvfi_valid;
+	wire [7:0]  rvfi_order;
+	wire [31:0] rvfi_insn;
+	wire        rvfi_trap;
+	wire [4:0]  rvfi_rs1_addr;
+	wire [4:0]  rvfi_rs2_addr;
+	wire [31:0] rvfi_rs1_rdata;
+	wire [31:0] rvfi_rs2_rdata;
+	wire [4:0]  rvfi_rd_addr;
+	wire [31:0] rvfi_rd_wdata;
+	wire [31:0] rvfi_pc_rdata;
+	wire [31:0] rvfi_pc_wdata;
+	wire [31:0] rvfi_mem_addr;
+	wire [3:0]  rvfi_mem_rmask;
+	wire [3:0]  rvfi_mem_wmask;
+	wire [31:0] rvfi_mem_rdata;
+	wire [31:0] rvfi_mem_wdata;
+`endif
+
 	picorv32_axi #(
 `ifndef SYNTH_TEST
 `ifdef SP_TEST
@@ -170,9 +190,52 @@ module picorv32_wrapper #(
 		.mem_axi_rready (mem_axi_rready ),
 		.mem_axi_rdata  (mem_axi_rdata  ),
 		.irq            (irq            ),
+`ifdef RISCV_FORMAL
+		.rvfi_valid     (rvfi_valid     ),
+		.rvfi_order     (rvfi_order     ),
+		.rvfi_insn      (rvfi_insn      ),
+		.rvfi_trap      (rvfi_trap      ),
+		.rvfi_rs1_addr  (rvfi_rs1_addr  ),
+		.rvfi_rs2_addr  (rvfi_rs2_addr  ),
+		.rvfi_rs1_rdata (rvfi_rs1_rdata ),
+		.rvfi_rs2_rdata (rvfi_rs2_rdata ),
+		.rvfi_rd_addr   (rvfi_rd_addr   ),
+		.rvfi_rd_wdata  (rvfi_rd_wdata  ),
+		.rvfi_pc_rdata  (rvfi_pc_rdata  ),
+		.rvfi_pc_wdata  (rvfi_pc_wdata  ),
+		.rvfi_mem_addr  (rvfi_mem_addr  ),
+		.rvfi_mem_rmask (rvfi_mem_rmask ),
+		.rvfi_mem_wmask (rvfi_mem_wmask ),
+		.rvfi_mem_rdata (rvfi_mem_rdata ),
+		.rvfi_mem_wdata (rvfi_mem_wdata ),
+`endif
 		.trace_valid    (trace_valid    ),
 		.trace_data     (trace_data     )
 	);
+
+`ifdef RISCV_FORMAL
+	riscv_formal_monitor_rv32ic rvfi_monitor (
+		.clock         (clk           ),
+		.reset         (!resetn       ),
+		.rvfi_valid    (rvfi_valid    ),
+		.rvfi_order    (rvfi_order    ),
+		.rvfi_insn     (rvfi_insn     ),
+		.rvfi_trap     (rvfi_trap     ),
+		.rvfi_rs1_addr (rvfi_rs1_addr ),
+		.rvfi_rs2_addr (rvfi_rs2_addr ),
+		.rvfi_rs1_rdata(rvfi_rs1_rdata),
+		.rvfi_rs2_rdata(rvfi_rs2_rdata),
+		.rvfi_rd_addr  (rvfi_rd_addr  ),
+		.rvfi_rd_wdata (rvfi_rd_wdata ),
+		.rvfi_pc_rdata (rvfi_pc_rdata ),
+		.rvfi_pc_wdata (rvfi_pc_wdata ),
+		.rvfi_mem_addr (rvfi_mem_addr ),
+		.rvfi_mem_rmask(rvfi_mem_rmask),
+		.rvfi_mem_wmask(rvfi_mem_wmask),
+		.rvfi_mem_rdata(rvfi_mem_rdata),
+		.rvfi_mem_wdata(rvfi_mem_wdata)
+	);
+`endif
 
 	reg [1023:0] firmware_file;
 	initial begin

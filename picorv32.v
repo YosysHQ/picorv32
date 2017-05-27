@@ -2386,6 +2386,26 @@ module picorv32_axi #(
 	input  [31:0] irq,
 	output [31:0] eoi,
 
+`ifdef RISCV_FORMAL
+	output        rvfi_valid,
+	output [ 7:0] rvfi_order,
+	output [31:0] rvfi_insn,
+	output        rvfi_trap,
+	output [ 4:0] rvfi_rs1_addr,
+	output [ 4:0] rvfi_rs2_addr,
+	output [31:0] rvfi_rs1_rdata,
+	output [31:0] rvfi_rs2_rdata,
+	output [ 4:0] rvfi_rd_addr,
+	output [31:0] rvfi_rd_wdata,
+	output [31:0] rvfi_pc_rdata,
+	output [31:0] rvfi_pc_wdata,
+	output [31:0] rvfi_mem_addr,
+	output [ 3:0] rvfi_mem_rmask,
+	output [ 3:0] rvfi_mem_wmask,
+	output [31:0] rvfi_mem_rdata,
+	output [31:0] rvfi_mem_wdata,
+`endif
+
 	// Trace Interface
 	output        trace_valid,
 	output [35:0] trace_data
@@ -2477,6 +2497,26 @@ module picorv32_axi #(
 
 		.irq(irq),
 		.eoi(eoi),
+
+`ifdef RISCV_FORMAL
+		.rvfi_valid    (rvfi_valid    ),
+		.rvfi_order    (rvfi_order    ),
+		.rvfi_insn     (rvfi_insn     ),
+		.rvfi_trap     (rvfi_trap     ),
+		.rvfi_rs1_addr (rvfi_rs1_addr ),
+		.rvfi_rs2_addr (rvfi_rs2_addr ),
+		.rvfi_rs1_rdata(rvfi_rs1_rdata),
+		.rvfi_rs2_rdata(rvfi_rs2_rdata),
+		.rvfi_rd_addr  (rvfi_rd_addr  ),
+		.rvfi_rd_wdata (rvfi_rd_wdata ),
+		.rvfi_pc_rdata (rvfi_pc_rdata ),
+		.rvfi_pc_wdata (rvfi_pc_wdata ),
+		.rvfi_mem_addr (rvfi_mem_addr ),
+		.rvfi_mem_rmask(rvfi_mem_rmask),
+		.rvfi_mem_wmask(rvfi_mem_wmask),
+		.rvfi_mem_rdata(rvfi_mem_rdata),
+		.rvfi_mem_wdata(rvfi_mem_wdata),
+`endif
 
 		.trace_valid(trace_valid),
 		.trace_data (trace_data)
@@ -2628,6 +2668,26 @@ module picorv32_wb #(
 	input  [31:0] irq,
 	output [31:0] eoi,
 
+`ifdef RISCV_FORMAL
+	output        rvfi_valid,
+	output [ 7:0] rvfi_order,
+	output [31:0] rvfi_insn,
+	output        rvfi_trap,
+	output [ 4:0] rvfi_rs1_addr,
+	output [ 4:0] rvfi_rs2_addr,
+	output [31:0] rvfi_rs1_rdata,
+	output [31:0] rvfi_rs2_rdata,
+	output [ 4:0] rvfi_rd_addr,
+	output [31:0] rvfi_rd_wdata,
+	output [31:0] rvfi_pc_rdata,
+	output [31:0] rvfi_pc_wdata,
+	output [31:0] rvfi_mem_addr,
+	output [ 3:0] rvfi_mem_rmask,
+	output [ 3:0] rvfi_mem_wmask,
+	output [31:0] rvfi_mem_rdata,
+	output [31:0] rvfi_mem_wdata,
+`endif
+
 	// Trace Interface
 	output        trace_valid,
 	output [35:0] trace_data,
@@ -2697,6 +2757,26 @@ module picorv32_wb #(
 
 		.irq(irq),
 		.eoi(eoi),
+
+`ifdef RISCV_FORMAL
+		.rvfi_valid    (rvfi_valid    ),
+		.rvfi_order    (rvfi_order    ),
+		.rvfi_insn     (rvfi_insn     ),
+		.rvfi_trap     (rvfi_trap     ),
+		.rvfi_rs1_addr (rvfi_rs1_addr ),
+		.rvfi_rs2_addr (rvfi_rs2_addr ),
+		.rvfi_rs1_rdata(rvfi_rs1_rdata),
+		.rvfi_rs2_rdata(rvfi_rs2_rdata),
+		.rvfi_rd_addr  (rvfi_rd_addr  ),
+		.rvfi_rd_wdata (rvfi_rd_wdata ),
+		.rvfi_pc_rdata (rvfi_pc_rdata ),
+		.rvfi_pc_wdata (rvfi_pc_wdata ),
+		.rvfi_mem_addr (rvfi_mem_addr ),
+		.rvfi_mem_rmask(rvfi_mem_rmask),
+		.rvfi_mem_wmask(rvfi_mem_wmask),
+		.rvfi_mem_rdata(rvfi_mem_rdata),
+		.rvfi_mem_wdata(rvfi_mem_wdata),
+`endif
 
 		.trace_valid(trace_valid),
 		.trace_data (trace_data)
