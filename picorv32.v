@@ -112,6 +112,8 @@ module picorv32 #(
 	output reg [ 7:0] rvfi_order,
 	output reg [31:0] rvfi_insn,
 	output reg        rvfi_trap,
+	output reg        rvfi_halt,
+	output reg        rvfi_intr,
 	output reg [ 4:0] rvfi_rs1_addr,
 	output reg [ 4:0] rvfi_rs2_addr,
 	output reg [31:0] rvfi_rs1_rdata,
@@ -1912,6 +1914,8 @@ module picorv32 #(
 		rvfi_rs1_rdata <= dbg_rs1val_valid ? dbg_rs1val : 0;
 		rvfi_rs2_rdata <= dbg_rs2val_valid ? dbg_rs2val : 0;
 		rvfi_trap <= trap;
+		rvfi_halt <= trap;
+		rvfi_intr <= 0;
 
 		if (!resetn) begin
 			rvfi_rd_addr <= 0;
