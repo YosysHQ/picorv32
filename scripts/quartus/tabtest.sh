@@ -37,7 +37,7 @@ set_global_assignment -name SDC_FILE test_${1}.sdc
 	EOT
 
 	echo "Running tab_${ip}_${dev}_${grade}/test_${1}.."
-     
+
     if ! $QUARTUS_BIN/quartus_map test_${1}; then
         exit 1
     fi
@@ -47,7 +47,7 @@ set_global_assignment -name SDC_FILE test_${1}.sdc
     if ! $QUARTUS_BIN/quartus_sta test_${1} -c test_${1}; then
         exit 1
     fi
-        
+
 	cp output_files/test_${1}.sta.summary test_${1}.txt
 }
 

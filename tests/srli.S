@@ -48,11 +48,11 @@ RVTEST_CODE_BEGIN
   TEST_IMM_DEST_BYPASS( 22, 0, srl, 0x7fffc000, 0xffff8000, 1  );
   TEST_IMM_DEST_BYPASS( 23, 1, srl, 0x0003fffe, 0xffff8000, 14 );
   TEST_IMM_DEST_BYPASS( 24, 2, srl, 0x0001ffff, 0xffff8000, 15 );
-  
+
   TEST_IMM_SRC1_BYPASS( 25, 0, srl, 0x7fffc000, 0xffff8000, 1  );
   TEST_IMM_SRC1_BYPASS( 26, 1, srl, 0x0003fffe, 0xffff8000, 14 );
   TEST_IMM_SRC1_BYPASS( 27, 2, srl, 0x0001ffff, 0xffff8000, 15 );
-  
+
 
   TEST_IMM_ZEROSRC1( 28, srli, 0, 31 );
   TEST_IMM_ZERODEST( 29, srli, 33, 20 );

@@ -62,7 +62,7 @@ ssize_t write(int file, const void *ptr, size_t len)
 	return len;
 }
 
-int close(int file) 
+int close(int file)
 {
 	// close is called before _exit()
 	return 0;

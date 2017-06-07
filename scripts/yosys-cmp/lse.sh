@@ -29,7 +29,7 @@ cat > lse.prj << EOT
 -fsm_encoding_style Auto
 -use_io_insertion 1
 -use_io_reg auto
--ifd 
+-ifd
 -resolve_mixed_drivers 0
 -RWCheckOnRam 0
 -fix_gated_clocks 1

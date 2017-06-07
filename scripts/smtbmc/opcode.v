@@ -86,7 +86,7 @@ function opcode_sys;
 		if (opcode[31:20] == 12'hC81 && opcode[19:12] == 3'b010 && opcode[6:0] == 7'b1110011) opcode_sys = 1; // RDTIMEH
 		if (opcode[31:20] == 12'hC82 && opcode[19:12] == 3'b010 && opcode[6:0] == 7'b1110011) opcode_sys = 1; // RDINSTRETH
 	end
-	
+
 endfunction
 
 function opcode_valid;

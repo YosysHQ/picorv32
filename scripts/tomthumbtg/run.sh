@@ -9,7 +9,7 @@ if [ ! -f testgen.tgz ]; then
 fi
 
 rm -rf tests testgen/
-tar xvzf testgen.tgz 
+tar xvzf testgen.tgz
 
 iverilog -o testbench_a -s testbench testbench.v ../../picorv32.v -DTWO_STAGE_SHIFT=0 -DBARREL_SHIFTER=0 -DTWO_CYCLE_COMPARE=0 -DTWO_CYCLE_ALU=0
 iverilog -o testbench_b -s testbench testbench.v ../../picorv32.v -DTWO_STAGE_SHIFT=1 -DBARREL_SHIFTER=0 -DTWO_CYCLE_COMPARE=0 -DTWO_CYCLE_ALU=0
