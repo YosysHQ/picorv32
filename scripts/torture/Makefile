@@ -58,7 +58,7 @@ tests/test_$(1).S: tests/generated.ok
 	touch tests/test_$(1).S
 
 tests/test_$(1).elf: tests/test_$(1).S
-	riscv32-unknown-elf-gcc -m32 `sed '/march=/ ! d; s,^// ,-,;' config.vh` -ffreestanding -nostdlib \
+	riscv32-unknown-elf-gcc `sed '/march=/ ! d; s,^// ,-,; y/RVIMC/rvimc/;' config.vh` -ffreestanding -nostdlib \
 			-Wl,-Bstatic,-T,sections.lds -I. -o tests/test_$(1).elf tests/test_$(1).S
 
 tests/test_$(1).bin: tests/test_$(1).elf
