@@ -190,7 +190,7 @@ module picorv32 #(
 	endtask
 
 `ifdef DEBUGREGS
-	wire [31:0] dbg_reg_x0  = cpuregs[0];
+	wire [31:0] dbg_reg_x0  = 0;
 	wire [31:0] dbg_reg_x1  = cpuregs[1];
 	wire [31:0] dbg_reg_x2  = cpuregs[2];
 	wire [31:0] dbg_reg_x3  = cpuregs[3];
@@ -1301,7 +1301,7 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (resetn && cpuregs_write)
+		if (resetn && cpuregs_write && latched_rd)
 			cpuregs[latched_rd] <= cpuregs_wrdata;
 	end
 
