@@ -674,34 +674,31 @@ for an example of how to do that.
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
 -----------------------------------------------------------
 
-The following evaluations have been performed with Vivado 2016.1.
+The following evaluations have been performed with Vivado 2017.2.
 
 #### Timing on Xilinx 7-Series FPGAs
 
 The `picorv32_axi` module with enabled `TWO_CYCLE_ALU` has been placed and
 routed for Xilinx Artix-7T, Kintex-7T, Virtex-7T, Kintex UltraScale, and Virtex
 UltraScale devices in all speed grades. A binary search is used to find the
-lowest clock period for which the design meets timing.
+shortest clock period for which the design meets timing.
 
 See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 
-| Family                   | Device               | Speedgrade | Clock Period (Freq.) |
-|:------------------------ |:-------------------- |:----------:| --------------------:|
-| Xilinx Artix-7T          | xc7a15t-fgg484-1     | -1         |     4.1 ns (243 MHz) |
-| Xilinx Artix-7T          | xc7a15t-fgg484-2     | -2         |     3.5 ns (285 MHz) |
-| Xilinx Artix-7T          | xc7a15t-fgg484-3     | -3         |     3.1 ns (322 MHz) |
-| Xilinx Kintex-7T         | xc7k70t-fbg676-1     | -1         |     2.8 ns (357 MHz) |
-| Xilinx Kintex-7T         | xc7k70t-fbg676-2     | -2         |     2.2 ns (454 MHz) |
-| Xilinx Kintex-7T         | xc7k70t-fbg676-3     | -3         |     2.1 ns (476 MHz) |
-| Xilinx Virtex-7T         | xc7v585t-ffg1761-1   | -1         |     2.7 ns (370 MHz) |
-| Xilinx Virtex-7T         | xc7v585t-ffg1761-2   | -2         |     2.2 ns (454 MHz) |
-| Xilinx Virtex-7T         | xc7v585t-ffg1761-3   | -3         |     2.1 ns (476 MHz) |
-| Xilinx Kintex UltraScale | xcku035-fbva676-1-c  | -1         |     2.3 ns (434 MHz) |
-| Xilinx Kintex UltraScale | xcku035-fbva676-2-e  | -2         |     2.0 ns (500 MHz) |
-| Xilinx Kintex UltraScale | xcku035-fbva676-3-e  | -3         |     1.8 ns (555 MHz) |
-| Xilinx Virtex UltraScale | xcvu065-ffvc1517-1-i | -1         |     2.3 ns (434 MHz) |
-| Xilinx Virtex UltraScale | xcvu065-ffvc1517-2-e | -2         |     2.1 ns (476 MHz) |
-| Xilinx Virtex UltraScale | xcvu065-ffvc1517-3-e | -3         |     1.9 ns (526 MHz) |
+| Device                    | Device               | Speedgrade | Clock Period (Freq.) |
+|:------------------------- |:---------------------|:----------:| --------------------:|
+| Xilinx Kintex-7T          | xc7k70t-fbg676-2     | -2         |     2.4 ns (416 MHz) |
+| Xilinx Kintex-7T          | xc7k70t-fbg676-3     | -3         |     2.3 ns (434 MHz) |
+| Xilinx Virtex-7T          | xc7v585t-ffg1761-2   | -2         |     2.3 ns (434 MHz) |
+| Xilinx Virtex-7T          | xc7v585t-ffg1761-3   | -3         |     2.3 ns (434 MHz) |
+| Xilinx Kintex UltraScale  | xcku035-fbva676-2-e  | -2         |     2.1 ns (476 MHz) |
+| Xilinx Kintex UltraScale  | xcku035-fbva676-3-e  | -3         |     1.8 ns (555 MHz) |
+| Xilinx Virtex UltraScale  | xcvu065-ffvc1517-2-e | -2         |     1.9 ns (526 MHz) |
+| Xilinx Virtex UltraScale  | xcvu065-ffvc1517-3-e | -3         |     1.8 ns (555 MHz) |
+| Xilinx Kintex UltraScale+ | xcku3p-ffva676-2-e   | -2         |     1.5 ns (666 MHz) |
+| Xilinx Kintex UltraScale+ | xcku3p-ffva676-3-e   | -3         |     1.3 ns (769 MHz) |
+| Xilinx Virtex UltraScale+ | xcvu3p-ffvc1517-2-e  | -2         |     1.5 ns (666 MHz) |
+| Xilinx Virtex UltraScale+ | xcvu3p-ffvc1517-3-e  | -3         |     1.4 ns (714 MHz) |
 
 #### Utilization on Xilinx 7-Series FPGAs
 
@@ -721,7 +718,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        725 |             48 |             441 |
-| PicoRV32 (regular) |        874 |             48 |             572 |
-| PicoRV32 (large)   |       2072 |             88 |            1022 |
+| PicoRV32 (small)   |        757 |             48 |             442 |
+| PicoRV32 (regular) |        910 |             48 |             583 |
+| PicoRV32 (large)   |       2090 |             88 |            1085 |
 

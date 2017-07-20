@@ -8,7 +8,7 @@ mkdir -p tab_${ip}_${dev}_${grade}
 cd tab_${ip}_${dev}_${grade}
 
 best_speed=99
-speed=30
+speed=20
 step=16
 
 synth_case() {
@@ -18,17 +18,12 @@ synth_case() {
 	fi
 
 	case "${dev}" in
-		xc7a) xl_device="xc7a15t-fgg484-${grade}" ;;
 		xc7k) xl_device="xc7k70t-fbg676-${grade}" ;;
 		xc7v) xl_device="xc7v585t-ffg1761-${grade}" ;;
-		xcku) xl_device="xcku035-fbva676-${grade}" ;;
-		xcvu) xl_device="xcvu065-ffvc1517-${grade}" ;;
-	esac
-
-	case "${dev}-${grade}" in
-		xcku-1) xl_device="${xl_device}-c" ;;
-		xcvu-1) xl_device="${xl_device}-i" ;;
-		xcku-?|xcvu-?) xl_device="${xl_device}-e" ;;
+		xcku) xl_device="xcku035-fbva676-${grade}-e" ;;
+		xcvu) xl_device="xcvu065-ffvc1517-${grade}-e" ;;
+		xckup) xl_device="xcku3p-ffva676-${grade}-e" ;;
+		xcvup) xl_device="xcvu3p-ffvc1517-${grade}-e" ;;
 	esac
 
 	cat > test_${1}.tcl <<- EOT
@@ -60,19 +55,24 @@ synth_case() {
 	mv test_${1}.log test_${1}.txt
 }
 
+got_violated=false
+got_met=false
+
 countdown=2
 while [ $countdown -gt 0 ]; do
 	synth_case $speed
 
 	if grep -q '^Slack.*(VIOLATED)' test_${speed}.txt; then
 		echo "        tab_${ip}_${dev}_${grade}/test_${speed} VIOLATED"
-		[ $speed -eq 38 ] || step=$((step / 2))
+		step=$((step / 2))
 		speed=$((speed + step))
+		got_violated=true
 	elif grep -q '^Slack.*(MET)' test_${speed}.txt; then
 		echo "        tab_${ip}_${dev}_${grade}/test_${speed} MET"
 		[ $speed -lt $best_speed ] && best_speed=$speed
 		step=$((step / 2))
 		speed=$((speed - step))
+		got_met=true
 	else
 		echo "ERROR: No slack line found in $PWD/test_${speed}.txt!"
 		exit 1
@@ -84,6 +84,17 @@ while [ $countdown -gt 0 ]; do
 		step=1
 	fi
 done
+
+if ! $got_violated; then
+	echo "ERROR: No timing violated in $PWD!"
+	exit 1
+fi
+
+if ! $got_met; then
+	echo "ERROR: No timing met in $PWD!"
+	exit 1
+fi
+
 
 echo "-----------------------"
 echo "Best speed for tab_${ip}_${dev}_${grade}: $best_speed"

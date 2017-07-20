@@ -13,6 +13,8 @@ do
 		xc7v) d="Xilinx Virtex-7T" ;;
 		xcku) d="Xilinx Kintex UltraScale" ;;
 		xcvu) d="Xilinx Virtex UltraScale" ;;
+		xckup) d="Xilinx Kintex UltraScale+" ;;
+		xcvup) d="Xilinx Virtex UltraScale+" ;;
 	esac
 	speedtxt=$( printf '%s.%s ns (%d MHz)' ${speed%?} ${speed#?} $((10000 / speed)) )
 	printf '| %-25s | %-10s | %20s |\n' "$d" "-$grade" "$speedtxt"
