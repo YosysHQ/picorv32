@@ -25,6 +25,12 @@ test_wb: testbench_wb.vvp firmware/firmware.hex
 test_wb_vcd: testbench_wb.vvp firmware/firmware.hex
 	vvp -N $< +vcd +trace +noerror
 
+test_ez: testbench_ez.vvp
+	vvp -N $<
+
+test_ez_vcd: testbench_ez.vvp
+	vvp -N $< +vcd
+
 check: check-yices
 
 check-%: check.smt2
@@ -51,6 +57,10 @@ testbench.vvp: testbench.v picorv32.v
 	chmod -x $@
 
 testbench_wb.vvp: testbench_wb.v picorv32.v
+	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	chmod -x $@
+
+testbench_ez.vvp: testbench_ez.v picorv32.v
 	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
@@ -144,7 +154,7 @@ clean:
 		riscv-gnu-toolchain-riscv32im riscv-gnu-toolchain-riscv32imc
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
-		testbench.vvp testbench_sp.vvp testbench_synth.vvp \
+		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp \
 		testbench_wb.vvp testbench.vcd testbench.trace
 
-.PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_synth download-tools build-tools toc clean
+.PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_ez_vcd test_synth download-tools build-tools toc clean

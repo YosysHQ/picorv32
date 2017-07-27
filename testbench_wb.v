@@ -17,7 +17,7 @@ module testbench #(
 
 	initial begin
 		if ($test$plusargs("vcd")) begin
-			$dumpfile("testbench_wb.vcd");
+			$dumpfile("testbench.vcd");
 			$dumpvars(0, testbench);
 		end
 		repeat (1000000) @(posedge clk);
