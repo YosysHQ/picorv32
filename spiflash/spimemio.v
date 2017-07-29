@@ -11,12 +11,15 @@ module spimemio (
 	output reg spi_mosi,
 	input spi_miso
 );
+	parameter ENABLE_PREFETCH = 1;
+
 	reg [23:0] addr_q;
 	reg addr_q_vld;
 
 	reg [31:0] buffer;
 	reg [6:0] xfer_cnt;
 	reg xfer_wait;
+	reg prefetch;
 
 	always @(posedge clk) begin
 		ready <= 0;
@@ -27,6 +30,7 @@ module spimemio (
 			buffer <= 8'hAB << 24;
 			addr_q_vld <= 0;
 			xfer_wait <= 0;
+			prefetch <= 0;
 		end else
 		if (xfer_cnt) begin
 			if (spi_cs) begin
@@ -50,8 +54,10 @@ module spimemio (
 			if (addr_q_vld && addr_q == addr) begin
 				addr_q <= addr + 4;
 				addr_q_vld <= 1;
-				xfer_cnt <= 32;
+				if (!prefetch)
+					xfer_cnt <= 32;
 				xfer_wait <= 1;
+				prefetch <= 0;
 			end else begin
 				spi_cs <= 1;
 				buffer <= {8'h 03, addr};
@@ -59,7 +65,18 @@ module spimemio (
 				addr_q_vld <= 1;
 				xfer_cnt <= 64;
 				xfer_wait <= 1;
+				prefetch <= 0;
 			end
+		end else if (ENABLE_PREFETCH && !prefetch) begin
+			prefetch <= 1;
+			xfer_cnt <= 32;
+		end
+
+		if (ENABLE_PREFETCH && resetn && prefetch && valid && !ready && addr_q != addr) begin
+			prefetch <= 0;
+			xfer_cnt <= 0;
+			xfer_wait <= 0;
+			spi_sclk <= 1;
 		end
 	end
 endmodule
