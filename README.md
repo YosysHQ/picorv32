@@ -91,16 +91,22 @@ This Verilog file contains the following Verilog modules:
 | `picorv32`               | The PicoRV32 CPU                                                      |
 | `picorv32_axi`           | The version of the CPU with AXI4-Lite interface                       |
 | `picorv32_axi_adapter`   | Adapter from PicoRV32 Memory Interface to AXI4-Lite                   |
+| `picorv32_wb`            | The version of the CPU with Wishbone Master interface                 |
 | `picorv32_pcpi_mul`      | A PCPI core that implements the `MUL[H[SU|U]]` instructions           |
 | `picorv32_pcpi_fast_mul` | A version of `picorv32_pcpi_fast_mul` using a single cycle multiplier |
 | `picorv32_pcpi_div`      | A PCPI core that implements the `DIV[U]/REM[U]` instructions          |
 
 Simply copy this file into your project.
 
-#### Makefile and testbench.v
+#### Makefile and testbenches
 
-A basic test environment. Run `make test`, `make test_sp` and/or `make test_axi` to run
-the test firmware in different hardware configurations.
+A basic test environment. Run `make test` to run the standard test bench (`testbench.v`)
+in the standard configurations. There are other test benches and configurations. See
+the `test_*` make target in the Makefile for details.
+
+Run `make test_ez` to run `testbench_ez.v`, a very simple test bench that does
+not require an external firmware .hex file. This can be useful in environments
+where the RISC-V compiler toolchain is not available.
 
 *Note: The test bench is using Icarus Verilog. However, Icarus Verilog 0.9.7
 (the latest release at the time of writing) has a few bugs that prevent the
