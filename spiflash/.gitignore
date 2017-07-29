@@ -1,0 +1,11 @@
+/testbench.vcd
+/testbench.vvp
+/firmware.elf
+/firmware_vma.elf
+/firmware.hex
+/firmware.bin
+/design.asc
+/design.bin
+/design.blif
+/design.log
+/design.rpt

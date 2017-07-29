@@ -1,0 +1,81 @@
+
+# Pinout for the iCE40-HX8K Breakout Board
+
+set_io clk J3
+
+set_io spi_cs R12
+set_io spi_sclk R11
+set_io spi_miso P11
+set_io spi_mosi P12
+
+# All the GPIO pins below are connected to pins that are floating
+# on the iCE40-HX8K Breakout Board, expect the marked LED pins.
+
+set_io trap C3 # LED7
+
+set_io gpio_o[0] C14
+set_io gpio_o[1] D13
+set_io gpio_o[2] C12
+set_io gpio_o[3] E11
+set_io gpio_o[4] C13
+set_io gpio_o[5] E10
+set_io gpio_o[6] C11
+set_io gpio_o[7] D11
+set_io gpio_o[8] C10
+set_io gpio_o[9] D10
+set_io gpio_o[10] L10
+set_io gpio_o[11] E9
+set_io gpio_o[12] B5  # LED0
+set_io gpio_o[13] B4  # LED1
+set_io gpio_o[14] A2  # LED2
+set_io gpio_o[15] A1  # LED3
+set_io gpio_o[16] C5  # LED4
+set_io gpio_o[17] C4  # LED5
+set_io gpio_o[18] B3  # LED6
+set_io gpio_o[19] D9
+set_io gpio_o[20] F9
+set_io gpio_o[21] D8
+set_io gpio_o[22] D7
+set_io gpio_o[23] D6
+set_io gpio_o[24] E6
+set_io gpio_o[25] D5
+set_io gpio_o[26] D4
+set_io gpio_o[27] E5
+set_io gpio_o[28] D3
+set_io gpio_o[29] M13
+set_io gpio_o[30] M14
+set_io gpio_o[31] L12
+
+set_io gpio_i[0] L13
+set_io gpio_i[1] L14
+set_io gpio_i[2] K12
+set_io gpio_i[3] J10
+set_io gpio_i[4] J11
+set_io gpio_i[5] K13
+set_io gpio_i[6] J12
+set_io gpio_i[7] J13
+set_io gpio_i[8] J16
+set_io gpio_i[9] H13
+set_io gpio_i[10] H12
+set_io gpio_i[11] G10
+set_io gpio_i[12] G11
+set_io gpio_i[13] G13
+set_io gpio_i[14] G12
+set_io gpio_i[15] F12
+set_io gpio_i[16] F11
+set_io gpio_i[17] E14
+set_io gpio_i[18] F13
+set_io gpio_i[19] E13
+set_io gpio_i[20] N6
+set_io gpio_i[21] P4
+set_io gpio_i[22] N5
+set_io gpio_i[23] P5
+set_io gpio_i[24] M7
+set_io gpio_i[25] N7
+set_io gpio_i[26] P6
+set_io gpio_i[27] M8
+set_io gpio_i[28] L9
+set_io gpio_i[29] P7
+set_io gpio_i[30] N9
+set_io gpio_i[31] M9
+
