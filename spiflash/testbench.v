@@ -5,9 +5,10 @@ module testbench;
 	initial begin
 		$dumpfile("testbench.vcd");
 		$dumpvars(0, testbench);
-		repeat (10000) @(posedge clk);
-		$display("<END>");
-		$finish;
+		repeat (100000) @(posedge clk);
+		$display("");
+		$display("[TIMEOUT]");
+		$stop;
 	end
 
 	wire [31:0] gpio_i = 0;
@@ -17,6 +18,17 @@ module testbench;
 	wire spi_sclk;
 	wire spi_mosi;
 	wire spi_miso;
+
+	always @(gpio_o) begin
+		$write("<GPIO:%02x>", gpio_o[7:0]);
+		if (gpio_o == 63) begin
+			$display("[OK]");
+			$finish;
+		end
+		if (gpio_o % 8 == 7) begin
+			$display("");
+		end
+	end
 
 	top uut (
 		.clk     (clk     ),

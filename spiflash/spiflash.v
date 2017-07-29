@@ -4,7 +4,7 @@ module spiflash (
 	input      spi_mosi,
 	input      spi_sclk
 );
-	localparam verbose = 1;
+	localparam verbose = 0;
 	
 	reg [7:0] buffer;
 	integer bitcount = 0;
@@ -29,12 +29,7 @@ module spiflash (
 
 	task spi_action;
 		begin
-			if (verbose) begin
-				if (bytecount == 1)
-					$write("<SPI>");
-				$write("<SPI:%02x", buffer);
-				spi_in = buffer;
-			end
+			spi_in = buffer;
 
 			if (bytecount == 1) begin
 				spi_cmd = buffer;
@@ -60,12 +55,15 @@ module spiflash (
 				end
 			end
 
+			spi_out = buffer;
+			spi_io_vld = 1;
+
 			if (verbose) begin
-				$write(":%02x>", buffer);
-				spi_out = buffer;
-				spi_io_vld = 1;
-				$fflush;
+				if (bytecount == 1)
+					$write("<SPI-START>");
+				$write("<SPI:%02x:%02x>", spi_in, spi_out);
 			end
+
 		end
 	endtask
 
