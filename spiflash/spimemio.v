@@ -1,3 +1,22 @@
+/*
+ *  Interface module for SPI flash and PicoRV32 native memory interface
+ *
+ *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
+ *
+ *  Permission to use, copy, modify, and/or distribute this software for any
+ *  purpose with or without fee is hereby granted, provided that the above
+ *  copyright notice and this permission notice appear in all copies.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ *  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ *  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ *  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ *  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ */
+
 module spimemio (
 	input clk, resetn,
 
@@ -6,10 +25,12 @@ module spimemio (
 	input [23:0] addr,
 	output reg [31:0] rdata,
 
-	output reg spi_cs,
-	output reg spi_sclk,
-	output reg spi_mosi,
-	input spi_miso
+	output reg flash_csb,
+	output reg flash_clk,
+	output     flash_io0,
+	input      flash_io1,
+	input      flash_io2,
+	input      flash_io3
 );
 	parameter ENABLE_PREFETCH = 1;
 
@@ -21,11 +42,17 @@ module spimemio (
 	reg xfer_wait;
 	reg prefetch;
 
+	reg spi_mosi;
+	wire spi_miso;
+
+	assign flash_io0 = spi_mosi;
+	assign spi_miso = flash_io1;
+
 	always @(posedge clk) begin
 		ready <= 0;
 		if (!resetn) begin
-			spi_cs <= 1;
-			spi_sclk <= 1;
+			flash_csb <= 1;
+			flash_clk <= 1;
 			xfer_cnt <= 8;
 			buffer <= 8'hAB << 24;
 			addr_q_vld <= 0;
@@ -33,14 +60,14 @@ module spimemio (
 			prefetch <= 0;
 		end else
 		if (xfer_cnt) begin
-			if (spi_cs) begin
-				spi_cs <= 0;
+			if (flash_csb) begin
+				flash_csb <= 0;
 			end else
-			if (spi_sclk) begin
-				spi_sclk <= 0;
+			if (flash_clk) begin
+				flash_clk <= 0;
 				spi_mosi <= buffer[31];
 			end else begin
-				spi_sclk <= 1;
+				flash_clk <= 1;
 				buffer <= {buffer, spi_miso};
 				xfer_cnt <= xfer_cnt - 1;
 			end
@@ -59,7 +86,7 @@ module spimemio (
 				xfer_wait <= 1;
 				prefetch <= 0;
 			end else begin
-				spi_cs <= 1;
+				flash_csb <= 1;
 				buffer <= {8'h 03, addr};
 				addr_q <= addr + 4;
 				addr_q_vld <= 1;
@@ -76,7 +103,7 @@ module spimemio (
 			prefetch <= 0;
 			xfer_cnt <= 0;
 			xfer_wait <= 0;
-			spi_sclk <= 1;
+			flash_clk <= 1;
 		end
 	end
 endmodule

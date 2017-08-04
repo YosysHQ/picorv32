@@ -3,10 +3,12 @@
 
 set_io clk J3
 
-set_io spi_cs R12
-set_io spi_sclk R11
-set_io spi_miso P11
-set_io spi_mosi P12
+set_io flash_csb R12
+set_io flash_clk R11
+set_io flash_io0 P12
+set_io flash_io1 P11
+set_io flash_io2 T9  # center on J3
+set_io flash_io3 P8  # center on J3
 
 # All the GPIO pins below are connected to pins that are floating
 # on the iCE40-HX8K Breakout Board, expect the marked LED pins.

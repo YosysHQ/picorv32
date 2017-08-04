@@ -1,8 +1,29 @@
+/*
+ *  A simple simulation model for an SPI flash
+ *
+ *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
+ *
+ *  Permission to use, copy, modify, and/or distribute this software for any
+ *  purpose with or without fee is hereby granted, provided that the above
+ *  copyright notice and this permission notice appear in all copies.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ *  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ *  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ *  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ *  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ */
+
 module spiflash (
-	input      spi_cs,
-	output reg spi_miso,
-	input      spi_mosi,
-	input      spi_sclk
+	input csb,
+	input clk,
+	inout io0, // MOSI
+	inout io1, // MISO
+	inout io2,
+	inout io3
 );
 	localparam verbose = 0;
 	
@@ -17,8 +38,14 @@ module spiflash (
 	reg [7:0] spi_out;
 	reg spi_io_vld;
 
+	reg qspi_active = 0;
 	reg powered_up = 0;
 	reg in_xfer = 0;
+
+	reg  spi_miso;
+
+	wire spi_mosi = io0;
+	assign io1 = spi_miso;
 
 	// 16 MB (128Mb) Flash
 	reg [7:0] memory [0:16*1024*1024-1];
@@ -37,6 +64,8 @@ module spiflash (
 					powered_up = 1;
 				if (spi_cmd == 8'hB9)
 					powered_up = 0;
+				if (spi_cmd == 8'hFF)
+					qspi_active = 0;
 			end
 
 			if (powered_up && spi_cmd == 'h03) begin
@@ -67,8 +96,8 @@ module spiflash (
 		end
 	endtask
 
-	always @(spi_cs) begin
-		if (spi_cs) begin
+	always @(csb) begin
+		if (csb) begin
 			if (verbose && in_xfer) begin
 				$display("");
 				$fflush;
@@ -81,15 +110,15 @@ module spiflash (
 		end
 	end
 
-	always @(spi_cs, spi_sclk) begin
+	always @(csb, clk) begin
 		spi_io_vld = 0;
-		if (!spi_cs && !spi_sclk) begin
+		if (!csb && !clk) begin
 			spi_miso = buffer[7];
 		end
 	end
 
-	always @(posedge spi_sclk) begin
-		if (!spi_cs) begin
+	always @(posedge clk) begin
+		if (!csb) begin
 			buffer = {buffer, spi_mosi};
 			bitcount = bitcount + 1;
 			if (bitcount == 8) begin
