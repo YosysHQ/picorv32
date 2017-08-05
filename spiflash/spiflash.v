@@ -15,6 +15,13 @@
  *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
+ *
+ *  Supported commands:
+ *     AB, B9, FF, 03, EB, ED
+ *
+ *  Well written SPI flash data sheets:
+ *     Cypress S25FL064L http://www.cypress.com/file/316661/download
+ *
  */
 
 module spiflash (
@@ -30,8 +37,10 @@ module spiflash (
 	reg [7:0] buffer;
 	integer bitcount = 0;
 	integer bytecount = 0;
+	integer dummycount = 0;
 
 	reg [7:0] spi_cmd;
+	reg [7:0] xip_cmd = 0;
 	reg [23:0] spi_addr;
 
 	reg [7:0] spi_in;
@@ -40,12 +49,40 @@ module spiflash (
 
 	reg qspi_active = 0;
 	reg powered_up = 0;
-	reg in_xfer = 0;
 
-	reg  spi_miso;
+	localparam [3:0] mode_spi         = 1;
+	localparam [3:0] mode_qspi_rd     = 2;
+	localparam [3:0] mode_qspi_wr     = 3;
+	localparam [3:0] mode_qspi_ddr_rd = 4;
+	localparam [3:0] mode_qspi_ddr_wr = 5;
 
-	wire spi_mosi = io0;
-	assign io1 = spi_miso;
+	reg [3:0] mode = 0;
+	reg [3:0] next_mode = 0;
+
+	reg io0_oe = 0;
+	reg io1_oe = 0;
+	reg io2_oe = 0;
+	reg io3_oe = 0;
+
+	reg io0_dout = 0;
+	reg io1_dout = 0;
+	reg io2_dout = 0;
+	reg io3_dout = 0;
+
+	assign io0 = io0_oe ? io0_dout : 1'bz;
+	assign io1 = io1_oe ? io1_dout : 1'bz;
+	assign io2 = io2_oe ? io2_dout : 1'bz;
+	assign io3 = io3_oe ? io3_dout : 1'bz;
+
+	wire io0_delayed;
+	wire io1_delayed;
+	wire io2_delayed;
+	wire io3_delayed;
+
+	assign #1 io0_delayed = io0;
+	assign #1 io1_delayed = io1;
+	assign #1 io2_delayed = io2;
+	assign #1 io3_delayed = io3;
 
 	// 16 MB (128Mb) Flash
 	reg [7:0] memory [0:16*1024*1024-1];
@@ -60,15 +97,18 @@ module spiflash (
 
 			if (bytecount == 1) begin
 				spi_cmd = buffer;
-				if (spi_cmd == 8'hAB)
+
+				if (spi_cmd == 8'h ab)
 					powered_up = 1;
-				if (spi_cmd == 8'hB9)
+
+				if (spi_cmd == 8'h b9)
 					powered_up = 0;
-				if (spi_cmd == 8'hFF)
+
+				if (spi_cmd == 8'h ff)
 					qspi_active = 0;
 			end
 
-			if (powered_up && spi_cmd == 'h03) begin
+			if (powered_up && spi_cmd == 'h 03) begin
 				if (bytecount == 2)
 					spi_addr[23:16] = buffer;
 
@@ -79,6 +119,56 @@ module spiflash (
 					spi_addr[7:0] = buffer;
 
 				if (bytecount >= 4) begin
+					buffer = memory[spi_addr];
+					spi_addr = spi_addr + 1;
+				end
+			end
+
+			if (powered_up && spi_cmd == 'h eb) begin
+				if (bytecount == 1)
+					mode = mode_qspi_rd;
+
+				if (bytecount == 2)
+					spi_addr[23:16] = buffer;
+
+				if (bytecount == 3)
+					spi_addr[15:8] = buffer;
+
+				if (bytecount == 4)
+					spi_addr[7:0] = buffer;
+
+				if (bytecount == 5) begin
+					xip_cmd = (buffer == 8'h a5) ? spi_cmd : 8'h 00;
+					mode = mode_qspi_wr;
+					dummycount = 1;
+				end
+
+				if (bytecount >= 5) begin
+					buffer = memory[spi_addr];
+					spi_addr = spi_addr + 1;
+				end
+			end
+
+			if (powered_up && spi_cmd == 'h ed) begin
+				if (bytecount == 1)
+					next_mode = mode_qspi_ddr_rd;
+
+				if (bytecount == 2)
+					spi_addr[23:16] = buffer;
+
+				if (bytecount == 3)
+					spi_addr[15:8] = buffer;
+
+				if (bytecount == 4)
+					spi_addr[7:0] = buffer;
+
+				if (bytecount == 5) begin
+					xip_cmd = (buffer == 8'h a5) ? spi_cmd : 8'h 00;
+					mode = mode_qspi_ddr_wr;
+					dummycount = 1;
+				end
+
+				if (bytecount >= 5) begin
 					buffer = memory[spi_addr];
 					spi_addr = spi_addr + 1;
 				end
@@ -96,37 +186,159 @@ module spiflash (
 		end
 	endtask
 
+	task ddr_rd_edge;
+		begin
+			buffer = {buffer, io3_delayed, io2_delayed, io1_delayed, io0_delayed};
+			bitcount = bitcount + 4;
+			if (bitcount == 8) begin
+				bitcount = 0;
+				bytecount = bytecount + 1;
+				spi_action;
+			end
+		end
+	endtask
+
+	task ddr_wr_edge;
+		begin
+			io0_oe = 1;
+			io1_oe = 1;
+			io2_oe = 1;
+			io3_oe = 1;
+
+			io0_dout = buffer[4];
+			io1_dout = buffer[5];
+			io2_dout = buffer[6];
+			io3_dout = buffer[7];
+
+			buffer = {buffer, 4'h 0};
+			bitcount = bitcount + 4;
+			if (bitcount == 8) begin
+				bitcount = 0;
+				bytecount = bytecount + 1;
+				spi_action;
+			end
+		end
+	endtask
+
 	always @(csb) begin
 		if (csb) begin
-			if (verbose && in_xfer) begin
+			if (verbose) begin
 				$display("");
 				$fflush;
 			end
 			buffer = 0;
-			in_xfer = 0;
 			bitcount = 0;
 			bytecount = 0;
-			spi_miso = 0;
+			mode = mode_spi;
+			io0_oe = 0;
+			io1_oe = 0;
+			io2_oe = 0;
+			io3_oe = 0;
+		end else
+		if (xip_cmd) begin
+			buffer = xip_cmd;
+			bitcount = 0;
+			bytecount = 1;
+			spi_action;
 		end
 	end
 
 	always @(csb, clk) begin
 		spi_io_vld = 0;
 		if (!csb && !clk) begin
-			spi_miso = buffer[7];
+			if (dummycount > 0) begin
+				io0_oe = 0;
+				io1_oe = 0;
+				io2_oe = 0;
+				io3_oe = 0;
+			end else
+			case (mode)
+				mode_spi: begin
+					io0_oe = 0;
+					io1_oe = 1;
+					io2_oe = 0;
+					io3_oe = 0;
+					io1_dout = buffer[7];
+				end
+				mode_qspi_rd: begin
+					io0_oe = 0;
+					io1_oe = 0;
+					io2_oe = 0;
+					io3_oe = 0;
+				end
+				mode_qspi_wr: begin
+					io0_oe = 1;
+					io1_oe = 1;
+					io2_oe = 1;
+					io3_oe = 1;
+					io0_dout = buffer[4];
+					io1_dout = buffer[5];
+					io2_dout = buffer[6];
+					io3_dout = buffer[7];
+				end
+				mode_qspi_ddr_rd: begin
+					ddr_rd_edge;
+				end
+				mode_qspi_ddr_wr: begin
+					ddr_wr_edge;
+				end
+			endcase
+			if (next_mode) begin
+				case (next_mode)
+					mode_qspi_ddr_rd: begin
+						io0_oe = 0;
+						io1_oe = 0;
+						io2_oe = 0;
+						io3_oe = 0;
+					end
+					mode_qspi_ddr_wr: begin
+						io0_oe = 1;
+						io1_oe = 1;
+						io2_oe = 1;
+						io3_oe = 1;
+						io0_dout = buffer[4];
+						io1_dout = buffer[5];
+						io2_dout = buffer[6];
+						io3_dout = buffer[7];
+					end
+				endcase
+				mode = next_mode;
+				next_mode = 0;
+			end
 		end
 	end
 
 	always @(posedge clk) begin
 		if (!csb) begin
-			buffer = {buffer, spi_mosi};
-			bitcount = bitcount + 1;
-			if (bitcount == 8) begin
-				in_xfer = 1;
-				bitcount = 0;
-				bytecount = bytecount + 1;
-				spi_action;
-			end
+			if (dummycount > 0) begin
+				dummycount = dummycount - 1;
+			end else
+			case (mode)
+				mode_spi: begin
+					buffer = {buffer, io0};
+					bitcount = bitcount + 1;
+					if (bitcount == 8) begin
+						bitcount = 0;
+						bytecount = bytecount + 1;
+						spi_action;
+					end
+				end
+				mode_qspi_rd, mode_qspi_wr: begin
+					buffer = {buffer, io3, io2, io1, io0};
+					bitcount = bitcount + 4;
+					if (bitcount == 8) begin
+						bitcount = 0;
+						bytecount = bytecount + 1;
+						spi_action;
+					end
+				end
+				mode_qspi_ddr_rd: begin
+					ddr_rd_edge;
+				end
+				mode_qspi_ddr_wr: begin
+					ddr_wr_edge;
+				end
+			endcase
 		end
 	end
 endmodule

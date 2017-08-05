@@ -1,13 +1,19 @@
 
-test: testbench.vvp firmware.hex
+testbench: testbench.vvp firmware.hex
 	vvp -N $<
+
+testbench.vvp: spiflash.v spimemio.v testbench.v top.v ../picorv32.v
+	iverilog -s testbench -o $@ $^
+
+spiflash_tb: spiflash_tb.vvp firmware.hex
+	vvp -N $<
+
+spiflash_tb.vvp: spiflash.v spiflash_tb.v
+	iverilog -s testbench -o $@ $^
 
 prog: design.bin firmware.bin
 	iceprog design.bin
 	iceprog -o 1M firmware.bin
-
-testbench.vvp: spiflash.v spimemio.v testbench.v top.v ../picorv32.v
-	iverilog -s testbench -o $@ $^
 
 firmware.elf: firmware.s
 	riscv32-unknown-elf-gcc -c -o firmware.elf firmware.s
@@ -32,9 +38,9 @@ design.bin: design.asc
 	icepack design.asc design.bin
 
 clean:
-	rm -f testbench.vvp testbench.vcd
+	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
 	rm -f firmware.elf firmware_vma.elf firmware.hex firmware.bin
 	rm -f design.blif design.log design.asc design.rpt design.bin
 
-.PHONY: test prog clean
+.PHONY: testbench spiflash_tb prog clean
 

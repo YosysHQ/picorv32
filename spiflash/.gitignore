@@ -1,5 +1,7 @@
 /testbench.vcd
 /testbench.vvp
+/spiflash_tb.vcd
+/spiflash_tb.vvp
 /firmware.elf
 /firmware_vma.elf
 /firmware.hex
