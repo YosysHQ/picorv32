@@ -23,7 +23,7 @@ li      x5,0x00008067   # ret
 sw      x5,80(x0)
 
 # setup gpio address in x5
-li      x5,0xc0000000
+li      x5,0x02000000
 sw      x0,0(x5)
 
 # initial entry point into RAM code

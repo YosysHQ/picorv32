@@ -6,8 +6,8 @@
 /firmware_vma.elf
 /firmware.hex
 /firmware.bin
-/design.asc
-/design.bin
-/design.blif
-/design.log
-/design.rpt
+/hx8kdemo.asc
+/hx8kdemo.bin
+/hx8kdemo.blif
+/hx8kdemo.log
+/hx8kdemo.rpt

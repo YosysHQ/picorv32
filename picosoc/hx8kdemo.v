@@ -17,56 +17,42 @@
  *
  */
 
-module testbench;
-	reg clk;
-	always #5 clk = (clk === 1'b0);
+module hx8kdemo (
+	input clk,
 
-	reg resetn = 0;
+	input ser_tx,
+	input ser_rx,
 
-	initial begin
-		$dumpfile("testbench.vcd");
-		$dumpvars(0, testbench);
+	output [7:0] leds,
 
-		repeat (100) @(posedge clk);
-		resetn <= 1;
+	output flash_csb,
+	output flash_clk,
+	inout  flash_io0,
+	inout  flash_io1,
+	inout  flash_io2,
+	inout  flash_io3
+);
+	reg [5:0] reset_cnt = 0;
+	wire resetn = &reset_cnt;
 
-		repeat (100000) @(posedge clk);
-
-		$display("");
-		$display("[TIMEOUT]");
-		$stop;
+	always @(posedge clk) begin
+		reset_cnt <= reset_cnt + !resetn;
 	end
 
-	wire [31:0] gpio_i = 0;
-	wire [31:0] gpio_o;
+	wire flash_io0_oe, flash_io0_do, flash_io0_di;
+	wire flash_io1_oe, flash_io1_do, flash_io1_di;
+	wire flash_io2_oe, flash_io2_do, flash_io2_di;
+	wire flash_io3_oe, flash_io3_do, flash_io3_di;
 
-	wire flash_csb;
-	wire flash_clk;
-
-	wire flash_io0;
-	wire flash_io1;
-	wire flash_io2;
-	wire flash_io3;
-
-	wire flash_io0_oe;
-	wire flash_io1_oe;
-	wire flash_io2_oe;
-	wire flash_io3_oe;
-
-	wire flash_io0_do;
-	wire flash_io1_do;
-	wire flash_io2_do;
-	wire flash_io3_do;
-
-	wire flash_io0_di = flash_io0;
-	wire flash_io1_di = flash_io1;
-	wire flash_io2_di = flash_io2;
-	wire flash_io3_di = flash_io3;
-
-	assign flash_io0 = flash_io0_oe ? flash_io0_do : 1'bz;
-	assign flash_io1 = flash_io1_oe ? flash_io1_do : 1'bz;
-	assign flash_io2 = flash_io2_oe ? flash_io2_do : 1'bz;
-	assign flash_io3 = flash_io3_oe ? flash_io3_do : 1'bz;
+	SB_IO #(
+		.PIN_TYPE(6'b 1010_01),
+		.PULLUP(1'b 0)
+	) flash_io_buf [3:0] (
+		.PACKAGE_PIN({flash_io3, flash_io2, flash_io1, flash_io0}),
+		.OUTPUT_ENABLE({flash_io3_oe, flash_io2_oe, flash_io1_oe, flash_io0_oe}),
+		.D_OUT_0({flash_io3_do, flash_io2_do, flash_io1_do, flash_io0_do}),
+		.D_IN_0({flash_io3_di, flash_io2_di, flash_io1_di, flash_io0_di})
+	);
 
 	wire        iomem_valid;
 	reg         iomem_ready;
@@ -77,6 +63,8 @@ module testbench;
 
 	reg [31:0] gpio;
 
+	assign leds = gpio >> 12;
+
 	always @(posedge clk) begin
 		iomem_ready <= 0;
 		if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h 02) begin
@@ -86,17 +74,6 @@ module testbench;
 			if (iomem_wstrb[1]) gpio[15: 8] <= iomem_wdata[15: 8];
 			if (iomem_wstrb[2]) gpio[23:16] <= iomem_wdata[23:16];
 			if (iomem_wstrb[3]) gpio[31:24] <= iomem_wdata[31:24];
-		end
-	end
-
-	always @(gpio) begin
-		$write("<GPIO:%02x>", gpio[7:0]);
-		if (gpio == 63) begin
-			$display("[OK]");
-			$finish;
-		end
-		if (gpio % 8 == 7) begin
-			$display("");
 		end
 	end
 
@@ -128,14 +105,5 @@ module testbench;
 		.iomem_addr   (iomem_addr  ),
 		.iomem_wdata  (iomem_wdata ),
 		.iomem_rdata  (iomem_rdata )
-	);
-
-	spiflash spiflash (
-		.csb(flash_csb),
-		.clk(flash_clk),
-		.io0(flash_io0),
-		.io1(flash_io1),
-		.io2(flash_io2),
-		.io3(flash_io3)
 	);
 endmodule
