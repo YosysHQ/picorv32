@@ -1,6 +1,6 @@
 
-PicoRV32 SPI-Flash Demo
-=======================
+PicoSoC - A simple example SoC using PicoRV32
+=============================================
 
 This is a simple PicoRV32 example design that can run code directly from an SPI
 flash chip. This example design uses the Lattice iCE40-HX8K Breakout Board.
@@ -18,7 +18,7 @@ and upload them to a connected iCE40-HX8K Breakout Board.
 
 | File                        | Description                                                     |
 | --------------------------- | --------------------------------------------------------------- |
-| [top.v](top.v)              | Top-level Verilog module for the design                         |
+| [picosoc.v](picosoc.v)      | Top-level Verilog module for the design                         |
 | [spimemio.v](spimemio.v)    | Memory controller that interfaces to external SPI flash         |
 | [spiflash.v](spiflash.v)    | Simulation model of an SPI flash (used by testbench.v)          |
 | [testbench.v](testbench.v)  | Simple test bench for the design (requires firmware.hex).       |

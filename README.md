@@ -128,6 +128,11 @@ Simple instruction-level tests from [riscv-tests](https://github.com/riscv/riscv
 
 Another simple test firmware that runs the Dhrystone benchmark.
 
+#### picosoc/
+
+A simple example SoC using PicoRV32 that can execute code directly from a
+memory mapped SPI flash.
+
 #### scripts/
 
 Various scripts and examples for different (synthesis) tools and hardware architectures.

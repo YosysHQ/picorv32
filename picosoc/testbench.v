@@ -1,5 +1,5 @@
 /*
- *  Test bench for the "spiflash" SoC
+ *  PicoSoC - A simple example SoC using PicoRV32
  *
  *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
  *
@@ -51,7 +51,7 @@ module testbench;
 		end
 	end
 
-	top uut (
+	picosoc uut (
 		.clk      (clk      ),
 		.gpio_i   (gpio_i   ),
 		.gpio_o   (gpio_o   ),

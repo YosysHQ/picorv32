@@ -1,5 +1,5 @@
 /*
- *  Interface module for SPI flash and PicoRV32 native memory interface
+ *  PicoSoC - A simple example SoC using PicoRV32
  *
  *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
  *

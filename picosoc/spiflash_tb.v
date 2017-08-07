@@ -1,5 +1,5 @@
 /*
- *  A simple test bench for the SPI flash simulation model
+ *  PicoSoC - A simple example SoC using PicoRV32
  *
  *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
  *

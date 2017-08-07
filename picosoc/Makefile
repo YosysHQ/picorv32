@@ -2,7 +2,7 @@
 testbench: testbench.vvp firmware.hex
 	vvp -N $<
 
-testbench.vvp: spiflash.v spimemio.v testbench.v top.v ../picorv32.v
+testbench.vvp: spiflash.v spimemio.v testbench.v picosoc.v ../picorv32.v
 	iverilog -s testbench -o $@ $^
 
 spiflash_tb: spiflash_tb.vvp firmware.hex
@@ -27,8 +27,8 @@ firmware.hex: firmware_vma.elf
 firmware.bin: firmware.elf
 	riscv32-unknown-elf-objcopy -O binary firmware.elf firmware.bin
 
-design.blif: spimemio.v top.v ../picorv32.v
-	yosys -ql design.log -p 'synth_ice40 -top top -blif design.blif' $^
+design.blif: spimemio.v picosoc.v ../picorv32.v
+	yosys -ql design.log -p 'synth_ice40 -top picosoc -blif design.blif' $^
 
 design.asc: pinout.pcf design.blif
 	arachne-pnr -d 8k -o design.asc -p pinout.pcf design.blif

@@ -1,5 +1,5 @@
 /*
- *  A simple simulation model for an SPI flash
+ *  PicoSoC - A simple example SoC using PicoRV32
  *
  *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
  *

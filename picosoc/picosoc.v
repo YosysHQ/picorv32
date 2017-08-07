@@ -1,5 +1,5 @@
 /*
- *  Top-level for "spiflash" SoC demo
+ *  PicoSoC - A simple example SoC using PicoRV32
  *
  *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
  *
@@ -17,7 +17,7 @@
  *
  */
 
-module top (
+module picosoc (
 	input clk,
 	output trap,
 
