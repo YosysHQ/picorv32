@@ -19,8 +19,23 @@ hx8kprog: hx8kdemo.bin firmware.bin
 	iceprog hx8kdemo.bin
 	iceprog -o 1M firmware.bin
 
+hx8ksim: hx8kdemo_tb.vvp firmware.hex
+	vvp -N $<
+
+hx8ksynsim: hx8kdemo_syn_tb.vvp firmware.hex
+	vvp -N $<
+
 hx8kdemo.blif: hx8kdemo.v spimemio.v picosoc.v ../picorv32.v
 	yosys -ql hx8kdemo.log -p 'synth_ice40 -top hx8kdemo -blif hx8kdemo.blif' $^
+
+hx8kdemo_tb.vvp: hx8kdemo_tb.v hx8kdemo.v spimemio.v picosoc.v ../picorv32.v spiflash.v
+	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v`
+
+hx8kdemo_syn_tb.vvp: hx8kdemo_tb.v hx8kdemo_syn.v spiflash.v
+	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v`
+
+hx8kdemo_syn.v: hx8kdemo.blif
+	yosys -p 'read_blif -wideports hx8kdemo.blif; write_verilog hx8kdemo_syn.v'
 
 hx8kdemo.asc: hx8kdemo.pcf hx8kdemo.blif
 	arachne-pnr -d 8k -o hx8kdemo.asc -p hx8kdemo.pcf hx8kdemo.blif
@@ -49,6 +64,7 @@ clean:
 	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
 	rm -f firmware.elf firmware_vma.elf firmware.hex firmware.bin
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
+	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 
-.PHONY: testbench spiflash_tb hx8kprog clean
+.PHONY: testbench spiflash_tb hx8kprog hx8ksim hx8ksynsim clean
 

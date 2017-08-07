@@ -11,3 +11,6 @@
 /hx8kdemo.blif
 /hx8kdemo.log
 /hx8kdemo.rpt
+/hx8kdemo_syn.v
+/hx8kdemo_syn_tb.vvp
+/hx8kdemo_tb.vvp
