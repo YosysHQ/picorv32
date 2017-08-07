@@ -15,14 +15,22 @@
  *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- *
- *  Supported commands:
- *     AB, B9, FF, 03, EB, ED
- *
- *  Well written SPI flash data sheets:
- *     Cypress S25FL064L http://www.cypress.com/file/316661/download
- *
  */
+
+`timescale 1 ns / 1 ps
+
+//
+// Simple SPI flash simulation model
+//
+// This model samples io input signals 1ns before the SPI clock edge and
+// updates output signals 1ns after the SPI clock edge.
+//
+// Supported commands:
+//    AB, B9, FF, 03, EB, ED
+//
+// Well written SPI flash data sheets:
+//    Cypress S25FL064L http://www.cypress.com/file/316661/download
+//
 
 module spiflash (
 	input csb,
@@ -47,7 +55,6 @@ module spiflash (
 	reg [7:0] spi_out;
 	reg spi_io_vld;
 
-	reg qspi_active = 0;
 	reg powered_up = 0;
 
 	localparam [3:0] mode_spi         = 1;
@@ -69,10 +76,10 @@ module spiflash (
 	reg io2_dout = 0;
 	reg io3_dout = 0;
 
-	assign io0 = io0_oe ? io0_dout : 1'bz;
-	assign io1 = io1_oe ? io1_dout : 1'bz;
-	assign io2 = io2_oe ? io2_dout : 1'bz;
-	assign io3 = io3_oe ? io3_dout : 1'bz;
+	assign #1 io0 = io0_oe ? io0_dout : 1'bz;
+	assign #1 io1 = io1_oe ? io1_dout : 1'bz;
+	assign #1 io2 = io2_oe ? io2_dout : 1'bz;
+	assign #1 io3 = io3_oe ? io3_dout : 1'bz;
 
 	wire io0_delayed;
 	wire io1_delayed;
@@ -105,7 +112,7 @@ module spiflash (
 					powered_up = 0;
 
 				if (spi_cmd == 8'h ff)
-					qspi_active = 0;
+					xip_cmd = 0;
 			end
 
 			if (powered_up && spi_cmd == 'h 03) begin

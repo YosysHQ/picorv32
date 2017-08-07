@@ -27,10 +27,21 @@ module spimemio (
 
 	output reg flash_csb,
 	output reg flash_clk,
-	output     flash_io0,
-	input      flash_io1,
-	input      flash_io2,
-	input      flash_io3
+
+	output reg flash_io0_oe,
+	output reg flash_io1_oe,
+	output reg flash_io2_oe,
+	output reg flash_io3_oe,
+
+	output reg flash_io0_do,
+	output reg flash_io1_do,
+	output reg flash_io2_do,
+	output reg flash_io3_do,
+
+	input      flash_io0_di,
+	input      flash_io1_di,
+	input      flash_io2_di,
+	input      flash_io3_di
 );
 	parameter ENABLE_PREFETCH = 1;
 
@@ -39,36 +50,49 @@ module spimemio (
 
 	reg [31:0] buffer;
 	reg [6:0] xfer_cnt;
+	reg pulse_csb_8;
 	reg xfer_wait;
 	reg prefetch;
-
-	reg spi_mosi;
-	wire spi_miso;
-
-	assign flash_io0 = spi_mosi;
-	assign spi_miso = flash_io1;
 
 	always @(posedge clk) begin
 		ready <= 0;
 		if (!resetn) begin
-			flash_csb <= 1;
-			flash_clk <= 1;
-			xfer_cnt <= 8;
-			buffer <= 8'hAB << 24;
 			addr_q_vld <= 0;
 			xfer_wait <= 0;
 			prefetch <= 0;
+
+			xfer_cnt <= 16;
+			pulse_csb_8 <= 1;
+			buffer <= {8'h FF, 8'h AB, 16'h 0000};
+
+			flash_csb <= 1;
+			flash_clk <= 1;
+
+			flash_io0_oe <= 0;
+			flash_io1_oe <= 0;
+			flash_io2_oe <= 0;
+			flash_io3_oe <= 0;
+
+			flash_io0_do <= 0;
+			flash_io1_do <= 0;
+			flash_io2_do <= 0;
+			flash_io3_do <= 0;
 		end else
 		if (xfer_cnt) begin
+			if (xfer_cnt == 8 && pulse_csb_8) begin
+				pulse_csb_8 <= 0;
+				flash_csb <= 1;
+			end else
 			if (flash_csb) begin
 				flash_csb <= 0;
 			end else
 			if (flash_clk) begin
 				flash_clk <= 0;
-				spi_mosi <= buffer[31];
+				flash_io0_oe <= 1;
+				flash_io0_do <= buffer[31];
 			end else begin
 				flash_clk <= 1;
-				buffer <= {buffer, spi_miso};
+				buffer <= {buffer, flash_io1_di};
 				xfer_cnt <= xfer_cnt - 1;
 			end
 		end else

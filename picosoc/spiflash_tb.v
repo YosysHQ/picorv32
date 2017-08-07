@@ -17,6 +17,8 @@
  *
  */
 
+`timescale 1 ns / 1 ps
+
 module testbench;
 	reg flash_csb = 1;
 	reg flash_clk = 0;
@@ -69,10 +71,10 @@ module testbench;
 
 	task xfer_begin;
 		begin
-			#50;
+			#5;
 			flash_csb = 0;
 			$display("-- BEGIN");
-			#50;
+			#5;
 		end
 	endtask
 
@@ -83,17 +85,17 @@ module testbench;
 			flash_io2_oe = 0;
 			flash_io3_oe = 0;
 
-			#50;
+			#5;
 			flash_clk = 1;
-			#50;
+			#5;
 			flash_clk = 0;
-			#50;
+			#5;
 		end
 	endtask
 
 	task xfer_end;
 		begin
-			#50;
+			#5;
 			flash_csb = 1;
 			flash_io0_oe = 0;
 			flash_io1_oe = 0;
@@ -101,7 +103,7 @@ module testbench;
 			flash_io3_oe = 0;
 			$display("-- END");
 			$display("");
-			#50;
+			#5;
 		end
 	endtask
 
@@ -116,15 +118,15 @@ module testbench;
 
 			for (i = 0; i < 8; i=i+1) begin
 				flash_io0_dout = data[7-i];
-				#50;
+				#5;
+				flash_clk = 1;
 				rdata[7-i] = flash_io1;
-				flash_clk <= 1;
-				#50;
+				#5;
 				flash_clk = 0;
 			end
 
 			$display("--  SPI SDR  %02x %02x", data, rdata);
-			#50;
+			#5;
 		end
 	endtask
 
@@ -142,23 +144,23 @@ module testbench;
 			flash_io2_dout = data[6];
 			flash_io3_dout = data[7];
 
-			#50;
+			#5;
 			flash_clk = 1;
-			#50;
-			flash_clk = 0;
 
+			#5;
+			flash_clk = 0;
 			flash_io0_dout = data[0];
 			flash_io1_dout = data[1];
 			flash_io2_dout = data[2];
 			flash_io3_dout = data[3];
 
-			#50;
+			#5;
 			flash_clk = 1;
-			#50;
+			#5;
 			flash_clk = 0;
 
 			$display("-- QSPI SDR  %02x --", data);
-			#50;
+			#5;
 		end
 	endtask
 
@@ -170,26 +172,28 @@ module testbench;
 			flash_io2_oe = 0;
 			flash_io3_oe = 0;
 
-			#50;
+			#5;
+			flash_clk = 1;
 			rdata[4] = flash_io0;
 			rdata[5] = flash_io1;
 			rdata[6] = flash_io2;
 			rdata[7] = flash_io3;
-			flash_clk <= 1;
-			#50;
+
+			#5;
 			flash_clk = 0;
 
-			#50;
+			#5;
+			flash_clk = 1;
 			rdata[0] = flash_io0;
 			rdata[1] = flash_io1;
 			rdata[2] = flash_io2;
 			rdata[3] = flash_io3;
-			flash_clk <= 1;
-			#50;
+
+			#5;
 			flash_clk = 0;
 
 			$display("-- QSPI SDR  -- %02x", rdata);
-			#50;
+			#5;
 		end
 	endtask
 
@@ -202,24 +206,23 @@ module testbench;
 			flash_io2_oe = 1;
 			flash_io3_oe = 1;
 
-			flash_io0_dout <= data[4];
-			flash_io1_dout <= data[5];
-			flash_io2_dout <= data[6];
-			flash_io3_dout <= data[7];
+			flash_io0_dout = data[4];
+			flash_io1_dout = data[5];
+			flash_io2_dout = data[6];
+			flash_io3_dout = data[7];
 
-			#50;
+			#5;
 			flash_clk = 1;
+			flash_io0_dout = data[0];
+			flash_io1_dout = data[1];
+			flash_io2_dout = data[2];
+			flash_io3_dout = data[3];
 
-			flash_io0_dout <= data[0];
-			flash_io1_dout <= data[1];
-			flash_io2_dout <= data[2];
-			flash_io3_dout <= data[3];
-
-			#50;
+			#5;
 			flash_clk = 0;
 
 			$display("-- QSPI DDR  %02x --", data);
-			#50;
+			#5;
 		end
 	endtask
 
@@ -231,22 +234,22 @@ module testbench;
 			flash_io2_oe = 0;
 			flash_io3_oe = 0;
 
-			#50;
+			#5;
+			flash_clk = 1;
 			rdata[4] = flash_io0;
 			rdata[5] = flash_io1;
 			rdata[6] = flash_io2;
 			rdata[7] = flash_io3;
-			flash_clk <= 1;
 
-			#50;
+			#5;
+			flash_clk = 0;
 			rdata[0] = flash_io0;
 			rdata[1] = flash_io1;
 			rdata[2] = flash_io2;
 			rdata[3] = flash_io3;
-			flash_clk <= 0;
 
 			$display("-- QSPI DDR  -- %02x", rdata);
-			#50;
+			#5;
 		end
 	endtask
 
@@ -351,7 +354,7 @@ module testbench;
 		xfer_qspi_ddr_rd; expect(word1[31:24]);
 		xfer_end;
 
-		#500;
+		#5;
 
 		if (errcount) begin
 			$display("FAIL");

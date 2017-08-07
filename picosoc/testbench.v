@@ -17,6 +17,8 @@
  *
  */
 
+`timescale 1 ns / 1 ps
+
 module testbench;
 	reg clk;
 	always #5 clk = (clk === 1'b0);
@@ -36,9 +38,6 @@ module testbench;
 		$display("[TIMEOUT]");
 		$stop;
 	end
-
-	wire [31:0] gpio_i = 0;
-	wire [31:0] gpio_o;
 
 	wire flash_csb;
 	wire flash_clk;

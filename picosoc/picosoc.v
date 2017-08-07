@@ -88,30 +88,31 @@ module picosoc (
 	);
 
 	spimemio spimemio (
-		.clk(clk),
-		.resetn(resetn),
-		.valid (mem_valid && mem_addr[31:24] == 8'h 01),
-		.ready (spimem_ready),
-		.addr  (mem_addr[23:0]),
-		.rdata (spimem_rdata),
+		.clk    (clk),
+		.resetn (resetn),
+		.valid  (mem_valid && mem_addr[31:24] == 8'h 01),
+		.ready  (spimem_ready),
+		.addr   (mem_addr[23:0]),
+		.rdata  (spimem_rdata),
 
-		.flash_csb (flash_csb),
-		.flash_clk (flash_clk),
+		.flash_csb    (flash_csb   ),
+		.flash_clk    (flash_clk   ),
 
-		.flash_io0 (flash_io0_do),
-		.flash_io1 (flash_io1_di),
-		.flash_io2 (flash_io2_di),
-		.flash_io3 (flash_io3_di)
+		.flash_io0_oe (flash_io0_oe),
+		.flash_io1_oe (flash_io1_oe),
+		.flash_io2_oe (flash_io2_oe),
+		.flash_io3_oe (flash_io3_oe),
+
+		.flash_io0_do (flash_io0_do),
+		.flash_io1_do (flash_io1_do),
+		.flash_io2_do (flash_io2_do),
+		.flash_io3_do (flash_io3_do),
+
+		.flash_io0_di (flash_io0_di),
+		.flash_io1_di (flash_io1_di),
+		.flash_io2_di (flash_io2_di),
+		.flash_io3_di (flash_io3_di)
 	);
-
-	assign flash_io0_oe = 1;
-	assign flash_io1_oe = 0;
-	assign flash_io2_oe = 0;
-	assign flash_io3_oe = 0;
-
-	assign flash_io1_do = 0;
-	assign flash_io2_do = 0;
-	assign flash_io3_do = 0;
 
 	reg [31:0] memory [0:MEM_WORDS-1];
 
