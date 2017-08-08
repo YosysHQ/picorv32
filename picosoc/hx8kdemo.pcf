@@ -13,12 +13,12 @@ set_io flash_io3 P8  # center on J3
 set_io ser_tx B12
 set_io ser_rx B10
 
-set_io leds[0] B5  # LED0
-set_io leds[1] B4  # LED1
-set_io leds[2] A2  # LED2
-set_io leds[3] A1  # LED3
-set_io leds[4] C5  # LED4
-set_io leds[5] C4  # LED5
-set_io leds[6] B3  # LED6
-set_io leds[7] C3  # LED7
+set_io leds[7] B5  # D9
+set_io leds[6] B4  # D8
+set_io leds[5] A2  # D7
+set_io leds[4] A1  # D6
+set_io leds[3] C5  # D5
+set_io leds[2] C4  # D4
+set_io leds[1] B3  # D3
+set_io leds[0] C3  # D2
 

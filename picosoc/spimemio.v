@@ -105,6 +105,7 @@ module spimemio (
 			state <= 0;
 			xfer_resetn <= 0;
 			rd_valid <= 0;
+			buffer_wen <= 0;
 			din_cont <= 0;
 			din_qspi <= 0;
 			din_ddr <= 0;
@@ -220,6 +221,7 @@ module spimemio (
 				rd_inc <= 0;
 				rd_valid <= 0;
 				xfer_resetn <= 0;
+				buffer_wen <= 0;
 				state <= 4;
 			end
 		end
