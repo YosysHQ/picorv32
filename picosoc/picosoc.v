@@ -69,8 +69,12 @@ module picosoc (
 	assign iomem_addr = mem_addr;
 	assign iomem_wdata = mem_wdata;
 
-	assign mem_ready = (iomem_valid && iomem_ready) || spimem_ready || ram_ready;
-	assign mem_rdata = (iomem_valid && iomem_ready) ? iomem_rdata : spimem_ready ? spimem_rdata : ram_ready ? ram_rdata : 32'h xxxx_xxxx;
+	wire spimemio_cfgreg_sel = (mem_addr == 32'h 0200_0000);
+	wire [31:0] spimemio_cfgreg_do;
+
+	assign mem_ready = (iomem_valid && iomem_ready) || spimem_ready || ram_ready || spimemio_cfgreg_sel;
+	assign mem_rdata = (iomem_valid && iomem_ready) ? iomem_rdata : spimem_ready ? spimem_rdata : ram_ready ? ram_rdata :
+			spimemio_cfgreg_sel ? spimemio_cfgreg_do : 32'h xxxx_xxxx;
 
 	picorv32 #(
 		.STACKADDR(STACKADDR),
@@ -111,7 +115,11 @@ module picosoc (
 		.flash_io0_di (flash_io0_di),
 		.flash_io1_di (flash_io1_di),
 		.flash_io2_di (flash_io2_di),
-		.flash_io3_di (flash_io3_di)
+		.flash_io3_di (flash_io3_di),
+
+		.cfgreg_we(spimemio_cfgreg_sel ? mem_wstrb : 4'b 0000),
+		.cfgreg_di(mem_wdata),
+		.cfgreg_do(spimemio_cfgreg_do)
 	);
 
 	reg [31:0] memory [0:MEM_WORDS-1];

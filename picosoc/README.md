@@ -27,3 +27,32 @@ and upload them to a connected iCE40-HX8K Breakout Board.
 | [hx8kdemo.v](hx8kdemo.v)      | FPGA-based example implementation on iCE40-HX8K Breakout Board  |
 | [hx8kdemo.pcf](hx8kdemo.pcf)  | Pin constraints for implementation on iCE40-HX8K Breakout Board |
 
+### Memory map:
+
+| Address Range            | Description                             |
+| ------------------------ | --------------------------------------- |
+| 0x00000000 .. 0x00FFFFFF | Internal SRAM                           |
+| 0x01000000 .. 0x01FFFFFF | External Serial Flash                   |
+| 0x02000000 .. 0x02000003 | SPI Flash Controller Config Register    |
+| 0x03000000 .. 0x00FFFFFF | Memory mapped user peripherals          |
+
+The example design (hx8kdemo.v) and generic test bench (testbench.v) have 32
+GPIO pins mapped to the 32 bit word at address 0x03000000.
+
+### SPI Flash Controller Config Register:
+
+| Bit(s) | Description                                               |
+| -----: | --------------------------------------------------------- |
+|     31 | MEMIO Enable (reset=1, set to 0 to bit bang SPI commands) |
+|  30:20 | Reserved (read 0)                                         |
+|  19:16 | IO Output enable bits in bit bang mode                    |
+|  15:14 | Reserved (read 0)                                         |
+|     13 | Chip select (CS) line in bit bang mode                    |
+|     12 | Serial clock line in bit bang mode                        |
+|   11:8 | IO data bits in bit bang mode                             |
+|      7 | Reserved (read 0)                                         |
+|      6 | DDR Enable bit (reset=0)                                  |
+|      5 | QSPI Enable bit (reset=0)                                 |
+|      4 | Continous Read Enable bit (reset=0)                       |
+|    3:0 | Number of QSPI dummy cycles (reset=0)                     |
+
