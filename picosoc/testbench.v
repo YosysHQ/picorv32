@@ -24,6 +24,10 @@ module testbench;
 	always #5 clk = (clk === 1'b0);
 
 	reg resetn = 0;
+	integer cycles = 0;
+
+	always @(posedge clk)
+		cycles <= cycles + 1;
 
 	initial begin
 		$dumpfile("testbench.vcd");
@@ -92,6 +96,7 @@ module testbench;
 		$write("<GPIO:%02x>", gpio[7:0]);
 		if (gpio == 63) begin
 			$display("[OK]");
+			$display("Finished after %0d cycles.", cycles);
 			$finish;
 		end
 		if (gpio % 8 == 7) begin

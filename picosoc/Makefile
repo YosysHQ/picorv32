@@ -46,14 +46,14 @@ hx8kdemo.bin: hx8kdemo.asc
 
 # ---- Example Firmware ----
 
-firmware.elf: firmware.s
-	riscv32-unknown-elf-gcc -c -o firmware.elf firmware.s
+firmware.elf: sections.lds firmware.S
+	riscv32-unknown-elf-gcc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf firmware.S
 
-firmware_vma.elf: firmware.elf
-	riscv32-unknown-elf-objcopy --change-section-vma .text=0x00100000 firmware.elf firmware_vma.elf
+firmware_up.elf: firmware.elf
+	riscv32-unknown-elf-objcopy --change-addresses 0x100000 firmware.elf firmware_up.elf
 
-firmware.hex: firmware_vma.elf
-	riscv32-unknown-elf-objcopy -O verilog firmware_vma.elf firmware.hex
+firmware.hex: firmware_up.elf
+	riscv32-unknown-elf-objcopy -O verilog firmware_up.elf firmware.hex
 
 firmware.bin: firmware.elf
 	riscv32-unknown-elf-objcopy -O binary firmware.elf firmware.bin
@@ -62,7 +62,7 @@ firmware.bin: firmware.elf
 
 clean:
 	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
-	rm -f firmware.elf firmware_vma.elf firmware.hex firmware.bin
+	rm -f firmware.elf firmware_up.elf firmware.hex firmware.bin
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 
