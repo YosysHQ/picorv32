@@ -78,6 +78,8 @@ module testbench;
 	wire [31:0] iomem_wdata;
 	reg  [31:0] iomem_rdata;
 
+	wire ser_tx_rx;
+
 	reg [31:0] gpio;
 
 	always @(posedge clk) begin
@@ -107,6 +109,9 @@ module testbench;
 	picosoc uut (
 		.clk          (clk         ),
 		.resetn       (resetn      ),
+
+		.ser_tx       (ser_tx_rx   ),
+		.ser_rx       (ser_tx_rx   ),
 
 		.flash_csb    (flash_csb   ),
 		.flash_clk    (flash_clk   ),

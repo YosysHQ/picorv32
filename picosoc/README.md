@@ -34,7 +34,12 @@ and upload them to a connected iCE40-HX8K Breakout Board.
 | 0x00000000 .. 0x00FFFFFF | Internal SRAM                           |
 | 0x01000000 .. 0x01FFFFFF | External Serial Flash                   |
 | 0x02000000 .. 0x02000003 | SPI Flash Controller Config Register    |
-| 0x03000000 .. 0x00FFFFFF | Memory mapped user peripherals          |
+| 0x02000004 .. 0x02000007 | UART Clock Divider Register             |
+| 0x02000008 .. 0x0200000B | UART Send/Recv Data Register            |
+| 0x03000000 .. 0xFFFFFFFF | Memory mapped user peripherals          |
+
+Reading from the UART Send/Recv Data Register will return the last received
+byte, or -1 (all 32 bits set) when the receive buffer is empty.
 
 The example design (hx8kdemo.v) and generic test bench (testbench.v) have 32
 GPIO pins mapped to the 32 bit word at address 0x03000000.

@@ -20,7 +20,7 @@
 module hx8kdemo (
 	input clk,
 
-	input ser_tx,
+	output ser_tx,
 	input ser_rx,
 
 	output [7:0] leds,
@@ -89,6 +89,9 @@ module hx8kdemo (
 	picosoc soc (
 		.clk          (clk         ),
 		.resetn       (resetn      ),
+
+		.ser_tx       (ser_tx      ),
+		.ser_rx       (ser_rx      ),
 
 		.flash_csb    (flash_csb   ),
 		.flash_clk    (flash_clk   ),

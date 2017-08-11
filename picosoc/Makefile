@@ -4,7 +4,7 @@
 testbench: testbench.vvp firmware.hex
 	vvp -N $<
 
-testbench.vvp: spiflash.v spimemio.v testbench.v picosoc.v ../picorv32.v
+testbench.vvp: spiflash.v spimemio.v simpleuart.v testbench.v picosoc.v ../picorv32.v
 	iverilog -s testbench -o $@ $^
 
 spiflash_tb: spiflash_tb.vvp firmware.hex
@@ -25,10 +25,10 @@ hx8ksim: hx8kdemo_tb.vvp firmware.hex
 hx8ksynsim: hx8kdemo_syn_tb.vvp firmware.hex
 	vvp -N $<
 
-hx8kdemo.blif: hx8kdemo.v spimemio.v picosoc.v ../picorv32.v
+hx8kdemo.blif: hx8kdemo.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
 	yosys -ql hx8kdemo.log -p 'synth_ice40 -top hx8kdemo -blif hx8kdemo.blif' $^
 
-hx8kdemo_tb.vvp: hx8kdemo_tb.v hx8kdemo.v spimemio.v picosoc.v ../picorv32.v spiflash.v
+hx8kdemo_tb.vvp: hx8kdemo_tb.v hx8kdemo.v spimemio.v simpleuart.v picosoc.v ../picorv32.v spiflash.v
 	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v`
 
 hx8kdemo_syn_tb.vvp: hx8kdemo_tb.v hx8kdemo_syn.v spiflash.v

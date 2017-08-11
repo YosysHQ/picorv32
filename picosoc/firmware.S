@@ -51,6 +51,40 @@ sw      x5,192(x0)
 li      x5,0x00008067   // ret
 sw      x5,196(x0)
 
+// write a few chars to UART
+li      x5,0x02000004
+li      x6,104
+sw      x6,0(x5)
+li      x5,0x02000008
+li      x6,'H'
+sw      x6,0(x5)
+li      x6,'e'
+sw      x6,0(x5)
+li      x6,'l'
+sw      x6,0(x5)
+li      x6,'l'
+sw      x6,0(x5)
+li      x6,'o'
+sw      x6,0(x5)
+li      x6,' '
+sw      x6,0(x5)
+li      x6,'W'
+sw      x6,0(x5)
+li      x6,'o'
+sw      x6,0(x5)
+li      x6,'r'
+sw      x6,0(x5)
+li      x6,'l'
+sw      x6,0(x5)
+li      x6,'d'
+sw      x6,0(x5)
+li      x6,'!'
+sw      x6,0(x5)
+li      x6,'\r'
+sw      x6,0(x5)
+li      x6,'\n'
+sw      x6,0(x5)
+
 #if 0
 // switch spimemio to continous qspi ddr mode
 li      x5,0x02000000
