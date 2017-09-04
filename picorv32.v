@@ -109,7 +109,7 @@ module picorv32 #(
 
 `ifdef RISCV_FORMAL
 	output reg        rvfi_valid,
-	output reg [ 7:0] rvfi_order,
+	output reg [63:0] rvfi_order,
 	output reg [31:0] rvfi_insn,
 	output reg        rvfi_trap,
 	output reg        rvfi_halt,
@@ -1905,7 +1905,7 @@ module picorv32 #(
 `ifdef RISCV_FORMAL
 	always @(posedge clk) begin
 		rvfi_valid <= resetn && (launch_next_insn || trap) && dbg_valid_insn;
-		rvfi_order <= 0;
+		rvfi_order <= resetn ? rvfi_order + rvfi_valid : 0;
 
 		rvfi_insn <= dbg_insn_opcode;
 		rvfi_rs1_addr <= dbg_rs1val_valid ? dbg_insn_rs1 : 0;
@@ -2392,7 +2392,7 @@ module picorv32_axi #(
 
 `ifdef RISCV_FORMAL
 	output        rvfi_valid,
-	output [ 7:0] rvfi_order,
+	output [63:0] rvfi_order,
 	output [31:0] rvfi_insn,
 	output        rvfi_trap,
 	output [ 4:0] rvfi_rs1_addr,
@@ -2674,7 +2674,7 @@ module picorv32_wb #(
 
 `ifdef RISCV_FORMAL
 	output        rvfi_valid,
-	output [ 7:0] rvfi_order,
+	output [63:0] rvfi_order,
 	output [31:0] rvfi_insn,
 	output        rvfi_trap,
 	output [ 4:0] rvfi_rs1_addr,
