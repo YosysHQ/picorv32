@@ -1301,27 +1301,27 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (resetn && cpuregs_write && latched_rd)
+		if (resetn && cpuregs_write && latched_rd) begin
+`ifndef RISCV_FORMAL_BLACKBOX_REGS
 			cpuregs[latched_rd] <= cpuregs_wrdata;
+`else
+			// blackbox regs on write side because branching instructions
+			// require a stable value on register read port, abstracting
+			// on the read port in the block below would be more efficient
+			// but would require a more complex abstraction.
+			cpuregs[latched_rd] <= $anyseq;
+`endif
+		end
 	end
 
 	always @* begin
 		decoded_rs = 'bx;
 		if (ENABLE_REGS_DUALPORT) begin
-`ifndef RISCV_FORMAL_BLACKBOX_REGS
 			cpuregs_rs1 = decoded_rs1 ? cpuregs[decoded_rs1] : 0;
 			cpuregs_rs2 = decoded_rs2 ? cpuregs[decoded_rs2] : 0;
-`else
-			cpuregs_rs1 = decoded_rs1 ? $anyseq : 0;
-			cpuregs_rs2 = decoded_rs2 ? $anyseq : 0;
-`endif
 		end else begin
 			decoded_rs = (cpu_state == cpu_state_ld_rs2) ? decoded_rs2 : decoded_rs1;
-`ifndef RISCV_FORMAL_BLACKBOX_REGS
 			cpuregs_rs1 = decoded_rs ? cpuregs[decoded_rs] : 0;
-`else
-			cpuregs_rs1 = decoded_rs ? $anyseq : 0;
-`endif
 			cpuregs_rs2 = cpuregs_rs1;
 		end
 	end
