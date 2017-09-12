@@ -30,6 +30,7 @@
 //
 // Well written SPI flash data sheets:
 //    Cypress S25FL064L http://www.cypress.com/file/316661/download
+//    Cypress S25FL128L http://www.cypress.com/file/316171/download
 //
 
 module spiflash (
