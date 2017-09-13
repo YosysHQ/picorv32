@@ -1903,6 +1903,9 @@ module picorv32 #(
 	end
 
 `ifdef RISCV_FORMAL
+	reg dbg_irq_call;
+	reg dbg_irq_enter;
+	reg [31:0] dbg_irq_ret;
 	always @(posedge clk) begin
 		rvfi_valid <= resetn && (launch_next_insn || trap) && dbg_valid_insn;
 		rvfi_order <= resetn ? rvfi_order + rvfi_valid : 0;
@@ -1915,13 +1918,26 @@ module picorv32 #(
 		rvfi_rs2_rdata <= dbg_rs2val_valid ? dbg_rs2val : 0;
 		rvfi_trap <= trap;
 		rvfi_halt <= trap;
-		rvfi_intr <= 0;
+		rvfi_intr <= dbg_irq_enter;
+
+		if (!resetn) begin
+			dbg_irq_call <= 0;
+			dbg_irq_enter <= 0;
+		end else
+		if (rvfi_valid) begin
+			dbg_irq_call <= 0;
+			dbg_irq_enter <= dbg_irq_call;
+		end else
+		if (irq_state == 1) begin
+			dbg_irq_call <= 1;
+			dbg_irq_ret <= next_pc;
+		end
 
 		if (!resetn) begin
 			rvfi_rd_addr <= 0;
 			rvfi_rd_wdata <= 0;
 		end else
-		if (cpuregs_write) begin
+		if (cpuregs_write && !irq_state) begin
 			rvfi_rd_addr <= latched_rd;
 			rvfi_rd_wdata <= latched_rd ? cpuregs_wrdata : 0;
 		end else
@@ -1930,24 +1946,41 @@ module picorv32 #(
 			rvfi_rd_wdata <= 0;
 		end
 
-		if (dbg_mem_instr) begin
-			rvfi_mem_addr <= 0;
-			rvfi_mem_rmask <= 0;
-			rvfi_mem_wmask <= 0;
-			rvfi_mem_rdata <= 0;
-			rvfi_mem_wdata <= 0;
-		end else
-		if (dbg_mem_valid && dbg_mem_ready) begin
-			rvfi_mem_addr <= dbg_mem_addr;
-			rvfi_mem_rmask <= dbg_mem_wstrb ? 0 : ~0;
-			rvfi_mem_wmask <= dbg_mem_wstrb;
-			rvfi_mem_rdata <= dbg_mem_rdata;
-			rvfi_mem_wdata <= dbg_mem_wdata;
+		casez (dbg_insn_opcode)
+			32'b 0000000_?????_000??_???_?????_0001011: begin // getq
+				rvfi_rs1_addr <= 0;
+				rvfi_rs1_rdata <= 0;
+			end
+			32'b 0000001_?????_?????_???_000??_0001011: begin // setq
+				rvfi_rd_addr <= 0;
+				rvfi_rd_wdata <= 0;
+			end
+			32'b 0000010_?????_00000_???_00000_0001011: begin // retirq
+				rvfi_rs1_addr <= 0;
+				rvfi_rs1_rdata <= 0;
+			end
+		endcase
+
+		if (!dbg_irq_call) begin
+			if (dbg_mem_instr) begin
+				rvfi_mem_addr <= 0;
+				rvfi_mem_rmask <= 0;
+				rvfi_mem_wmask <= 0;
+				rvfi_mem_rdata <= 0;
+				rvfi_mem_wdata <= 0;
+			end else
+			if (dbg_mem_valid && dbg_mem_ready) begin
+				rvfi_mem_addr <= dbg_mem_addr;
+				rvfi_mem_rmask <= dbg_mem_wstrb ? 0 : ~0;
+				rvfi_mem_wmask <= dbg_mem_wstrb;
+				rvfi_mem_rdata <= dbg_mem_rdata;
+				rvfi_mem_wdata <= dbg_mem_wdata;
+			end
 		end
 	end
 
 	always @* begin
-		rvfi_pc_wdata = dbg_insn_addr;
+		rvfi_pc_wdata = dbg_irq_call ? dbg_irq_ret : dbg_insn_addr;
 	end
 `endif
 
