@@ -24,6 +24,7 @@
 /testbench_wb.vvp
 /testbench_ez.vvp
 /testbench_sp.vvp
+/testbench_rvf.vvp
 /testbench_synth.vvp
 /testbench.gtkw
 /testbench.vcd

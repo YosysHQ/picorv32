@@ -19,6 +19,9 @@ test: testbench.vvp firmware/firmware.hex
 test_vcd: testbench.vvp firmware/firmware.hex
 	vvp -N $< +vcd +trace +noerror
 
+test_rvf: testbench_rvf.vvp firmware/firmware.hex
+	vvp -N $< +vcd +trace +noerror
+
 test_wb: testbench_wb.vvp firmware/firmware.hex
 	vvp -N $<
 
@@ -31,18 +34,6 @@ test_ez: testbench_ez.vvp
 test_ez_vcd: testbench_ez.vvp
 	vvp -N $< +vcd
 
-check: check-yices
-
-check-%: check.smt2
-	yosys-smtbmc -s $(subst check-,,$@) -t 30 --dump-vcd check.vcd check.smt2
-	yosys-smtbmc -s $(subst check-,,$@) -t 25 --dump-vcd check.vcd -i check.smt2
-
-check.smt2: picorv32.v
-	yosys -v2 -p 'read_verilog -formal picorv32.v' \
-	          -p 'prep -top picorv32 -nordff' \
-		  -p 'assertpmux -noinit; opt -fast' \
-		  -p 'write_smt2 -wires check.smt2'
-
 test_sp: testbench_sp.vvp firmware/firmware.hex
 	vvp -N $<
 
@@ -54,6 +45,10 @@ test_synth: testbench_synth.vvp firmware/firmware.hex
 
 testbench.vvp: testbench.v picorv32.v
 	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	chmod -x $@
+
+testbench_rvf.vvp: testbench.v picorv32.v rvfimon.v
+	iverilog -o $@ -D RISCV_FORMAL $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_wb.vvp: testbench_wb.v picorv32.v
@@ -71,6 +66,18 @@ testbench_sp.vvp: testbench.v picorv32.v
 testbench_synth.vvp: testbench.v synth.v
 	iverilog -o $@ -DSYNTH_TEST $^
 	chmod -x $@
+
+check: check-yices
+
+check-%: check.smt2
+	yosys-smtbmc -s $(subst check-,,$@) -t 30 --dump-vcd check.vcd check.smt2
+	yosys-smtbmc -s $(subst check-,,$@) -t 25 --dump-vcd check.vcd -i check.smt2
+
+check.smt2: picorv32.v
+	yosys -v2 -p 'read_verilog -formal picorv32.v' \
+	          -p 'prep -top picorv32 -nordff' \
+		  -p 'assertpmux -noinit; opt -fast' \
+		  -p 'write_smt2 -wires check.smt2'
 
 synth.v: picorv32.v scripts/yosys/synth_sim.ys
 	yosys -qv3 -l synth.log scripts/yosys/synth_sim.ys
@@ -155,6 +162,6 @@ clean:
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
 		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp \
-		testbench_wb.vvp testbench.vcd testbench.trace
+		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench.trace
 
 .PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_ez_vcd test_synth download-tools build-tools toc clean

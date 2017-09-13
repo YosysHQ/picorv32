@@ -137,9 +137,11 @@ module picorv32_wrapper #(
 
 `ifdef RISCV_FORMAL
 	wire        rvfi_valid;
-	wire [7:0]  rvfi_order;
+	wire [63:0] rvfi_order;
 	wire [31:0] rvfi_insn;
 	wire        rvfi_trap;
+	wire        rvfi_halt;
+	wire        rvfi_intr;
 	wire [4:0]  rvfi_rs1_addr;
 	wire [4:0]  rvfi_rs2_addr;
 	wire [31:0] rvfi_rs1_rdata;
@@ -195,6 +197,8 @@ module picorv32_wrapper #(
 		.rvfi_order     (rvfi_order     ),
 		.rvfi_insn      (rvfi_insn      ),
 		.rvfi_trap      (rvfi_trap      ),
+		.rvfi_halt      (rvfi_halt      ),
+		.rvfi_intr      (rvfi_intr      ),
 		.rvfi_rs1_addr  (rvfi_rs1_addr  ),
 		.rvfi_rs2_addr  (rvfi_rs2_addr  ),
 		.rvfi_rs1_rdata (rvfi_rs1_rdata ),
@@ -214,26 +218,28 @@ module picorv32_wrapper #(
 	);
 
 `ifdef RISCV_FORMAL
-	riscv_formal_monitor_rv32ic rvfi_monitor (
-		.clock         (clk           ),
-		.reset         (!resetn       ),
-		.rvfi_valid    (rvfi_valid    ),
-		.rvfi_order    (rvfi_order    ),
-		.rvfi_insn     (rvfi_insn     ),
-		.rvfi_trap     (rvfi_trap     ),
-		.rvfi_rs1_addr (rvfi_rs1_addr ),
-		.rvfi_rs2_addr (rvfi_rs2_addr ),
-		.rvfi_rs1_rdata(rvfi_rs1_rdata),
-		.rvfi_rs2_rdata(rvfi_rs2_rdata),
-		.rvfi_rd_addr  (rvfi_rd_addr  ),
-		.rvfi_rd_wdata (rvfi_rd_wdata ),
-		.rvfi_pc_rdata (rvfi_pc_rdata ),
-		.rvfi_pc_wdata (rvfi_pc_wdata ),
-		.rvfi_mem_addr (rvfi_mem_addr ),
-		.rvfi_mem_rmask(rvfi_mem_rmask),
-		.rvfi_mem_wmask(rvfi_mem_wmask),
-		.rvfi_mem_rdata(rvfi_mem_rdata),
-		.rvfi_mem_wdata(rvfi_mem_wdata)
+	picorv32_rvfimon rvfi_monitor (
+		.clock          (clk           ),
+		.reset          (!resetn       ),
+		.rvfi_valid     (rvfi_valid    ),
+		.rvfi_order     (rvfi_order    ),
+		.rvfi_insn      (rvfi_insn     ),
+		.rvfi_trap      (rvfi_trap     ),
+		.rvfi_halt      (rvfi_halt     ),
+		.rvfi_intr      (rvfi_intr     ),
+		.rvfi_rs1_addr  (rvfi_rs1_addr ),
+		.rvfi_rs2_addr  (rvfi_rs2_addr ),
+		.rvfi_rs1_rdata (rvfi_rs1_rdata),
+		.rvfi_rs2_rdata (rvfi_rs2_rdata),
+		.rvfi_rd_addr   (rvfi_rd_addr  ),
+		.rvfi_rd_wdata  (rvfi_rd_wdata ),
+		.rvfi_pc_rdata  (rvfi_pc_rdata ),
+		.rvfi_pc_wdata  (rvfi_pc_wdata ),
+		.rvfi_mem_addr  (rvfi_mem_addr ),
+		.rvfi_mem_rmask (rvfi_mem_rmask),
+		.rvfi_mem_wmask (rvfi_mem_wmask),
+		.rvfi_mem_rdata (rvfi_mem_rdata),
+		.rvfi_mem_wdata (rvfi_mem_wdata)
 	);
 `endif
 
