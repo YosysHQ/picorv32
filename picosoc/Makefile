@@ -49,8 +49,8 @@ hx8kdemo.bin: hx8kdemo.asc
 
 # ---- Example Firmware ----
 
-firmware.elf: sections.lds firmware.S
-	riscv32-unknown-elf-gcc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf firmware.S
+firmware.elf: sections.lds start.s firmware.c
+	riscv32-unknown-elf-gcc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf start.s firmware.c
 
 firmware.hex: firmware.elf
 	riscv32-unknown-elf-objcopy -O verilog firmware.elf /dev/stdout | sed -e '2,65537 d;' > firmware.hex
