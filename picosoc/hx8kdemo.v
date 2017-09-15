@@ -30,7 +30,17 @@ module hx8kdemo (
 	inout  flash_io0,
 	inout  flash_io1,
 	inout  flash_io2,
-	inout  flash_io3
+	inout  flash_io3,
+
+	output debug_ser_tx,
+	output debug_ser_rx,
+
+	output debug_flash_csb,
+	output debug_flash_clk,
+	output debug_flash_io0,
+	output debug_flash_io1,
+	output debug_flash_io2,
+	output debug_flash_io3
 );
 	reg [5:0] reset_cnt = 0;
 	wire resetn = &reset_cnt;
@@ -62,14 +72,11 @@ module hx8kdemo (
 	reg  [31:0] iomem_rdata;
 
 	reg [31:0] gpio;
-	reg [4:0] gpio_shr;
-
-	assign leds = gpio >> gpio_shr;
+	assign leds = gpio;
 
 	always @(posedge clk) begin
 		if (!resetn) begin
 			gpio <= 0;
-			gpio_shr <= 0;
 		end else begin
 			iomem_ready <= 0;
 			if (iomem_valid && !iomem_ready && iomem_addr[31:24] == 8'h 03) begin
@@ -79,9 +86,6 @@ module hx8kdemo (
 				if (iomem_wstrb[1]) gpio[15: 8] <= iomem_wdata[15: 8];
 				if (iomem_wstrb[2]) gpio[23:16] <= iomem_wdata[23:16];
 				if (iomem_wstrb[3]) gpio[31:24] <= iomem_wdata[31:24];
-			end
-			if (&leds && gpio_shr < 10) begin
-				gpio_shr <= gpio_shr + 1;
 			end
 		end
 	end
@@ -118,4 +122,14 @@ module hx8kdemo (
 		.iomem_wdata  (iomem_wdata ),
 		.iomem_rdata  (iomem_rdata )
 	);
+
+	assign debug_ser_tx = ser_tx;
+	assign debug_ser_rx = ser_rx;
+
+	assign debug_flash_csb = flash_csb;
+	assign debug_flash_clk = flash_clk;
+	assign debug_flash_io0 = flash_io0_di;
+	assign debug_flash_io1 = flash_io1_di;
+	assign debug_flash_io2 = flash_io2_di;
+	assign debug_flash_io3 = flash_io3_di;
 endmodule
