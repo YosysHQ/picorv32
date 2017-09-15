@@ -41,7 +41,7 @@ module testbench;
 	wire flash_io3;
 
 	always @(leds) begin
-		$display("%b", leds);
+		#1 $display("%b", leds);
 	end
 
 	hx8kdemo uut (
