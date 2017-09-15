@@ -38,6 +38,9 @@ and upload them to a connected iCE40-HX8K Breakout Board.
 | 0x02000008 .. 0x0200000B | UART Send/Recv Data Register            |
 | 0x03000000 .. 0xFFFFFFFF | Memory mapped user peripherals          |
 
+The addresses in the internal SRAM region beyond the end of the physical
+SRAM map to the corresponding addresses in serial flash.
+
 Reading from the UART Send/Recv Data Register will return the last received
 byte, or -1 (all 32 bits set) when the receive buffer is empty.
 

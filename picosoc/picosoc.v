@@ -51,7 +51,7 @@ module picosoc (
 );
 	parameter integer MEM_WORDS = 256;
 	parameter [31:0] STACKADDR = (4*MEM_WORDS);       // end of memory
-	parameter [31:0] PROGADDR_RESET = 32'h 0110_0000; // 1 MB into flash
+	parameter [31:0] PROGADDR_RESET = 32'h 0010_0000; // 1 MB into flash
 
 	wire mem_valid;
 	wire mem_instr;
@@ -87,7 +87,7 @@ module picosoc (
 
 	assign mem_rdata = (iomem_valid && iomem_ready) ? iomem_rdata : spimem_ready ? spimem_rdata : ram_ready ? ram_rdata :
 			spimemio_cfgreg_sel ? spimemio_cfgreg_do : simpleuart_reg_div_sel ? simpleuart_reg_div_do :
-			simpleuart_reg_dat_sel ? simpleuart_reg_dat_do : 32'h xxxx_xxxx;
+			simpleuart_reg_dat_sel ? simpleuart_reg_dat_do : 32'h 0000_0000;
 
 	picorv32 #(
 		.STACKADDR(STACKADDR),
@@ -107,7 +107,7 @@ module picosoc (
 	spimemio spimemio (
 		.clk    (clk),
 		.resetn (resetn),
-		.valid  (mem_valid && mem_addr[31:24] == 8'h 01),
+		.valid  (mem_valid && mem_addr >= 4*MEM_WORDS && mem_addr < 32'h 0200_0000),
 		.ready  (spimem_ready),
 		.addr   (mem_addr[23:0]),
 		.rdata  (spimem_rdata),
@@ -157,7 +157,7 @@ module picosoc (
 
 	always @(posedge clk) begin
 		ram_ready <= 0;
-		if (mem_valid && !mem_ready && mem_addr[31:24] == 8'h 00) begin
+		if (mem_valid && !mem_ready && mem_addr < 4*MEM_WORDS) begin
 			ram_ready <= 1;
 			ram_rdata <= memory[mem_addr >> 2];
 			if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
