@@ -3,7 +3,6 @@
 /spiflash_tb.vcd
 /spiflash_tb.vvp
 /firmware.elf
-/firmware_up.elf
 /firmware.hex
 /firmware.bin
 /hx8kdemo.asc
