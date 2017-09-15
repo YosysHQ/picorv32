@@ -7,11 +7,27 @@ set_io flash_csb R12
 set_io flash_clk R11
 set_io flash_io0 P12
 set_io flash_io1 P11
-set_io flash_io2 T9  # center on J3
-set_io flash_io3 P8  # center on J3
+
+# for QSPI mode the flash chip on the iCE40-HX8K Breakout Board
+# must be replaced with one that supports QSPI and the IO2 and IO3
+# pins must be soldered to T9 and P8 (center on J3)
+set_io flash_io2 T9
+set_io flash_io3 P8
 
 set_io ser_tx B12
 set_io ser_rx B10
+
+# left on J3
+set_io debug_ser_tx T1
+set_io debug_ser_rx R3
+
+# right on J3
+set_io debug_flash_csb T15
+set_io debug_flash_clk R16
+set_io debug_flash_io0 N12
+set_io debug_flash_io1 P13
+set_io debug_flash_io2 T13
+set_io debug_flash_io3 T14
 
 set_io leds[7] B5  # D9
 set_io leds[6] B4  # D8
