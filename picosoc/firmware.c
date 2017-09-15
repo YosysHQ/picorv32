@@ -1,5 +1,9 @@
 #include <stdint.h>
 
+// a pointer to this is a null pointer, but the compiler does not
+// know that because "sram" is a linker symbol from sections.lds.
+extern uint32_t sram;
+
 #define reg_spictrl (*(volatile uint32_t*)0x02000000)
 #define reg_uart_clkdiv (*(volatile uint32_t*)0x02000004)
 #define reg_uart_data (*(volatile uint32_t*)0x02000008)
@@ -53,12 +57,12 @@ extern uint32_t cmd_read_spi_flash_id_worker_end;
 void cmd_read_spi_flash_id()
 {
 	uint32_t *src_ptr = &cmd_read_spi_flash_id_worker_begin;
-	uint32_t *dst_ptr = (uint32_t*)0;
+	uint32_t *dst_ptr = &sram;
 
 	while (src_ptr != &cmd_read_spi_flash_id_worker_end)
 		*(dst_ptr++) = *(src_ptr++);
 
-	((void(*)())0)();
+	((void(*)())&sram)();
 }
 
 // --------------------------------------------------------
