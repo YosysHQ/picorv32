@@ -36,3 +36,26 @@ addi x31, zero, 0
 li sp, 4*256
 call main
 j start
+
+.global cmd_read_spi_flash_id_worker_begin
+.global cmd_read_spi_flash_id_worker_end
+
+cmd_read_spi_flash_id_worker_begin:
+li t0,0x02000008
+li t1,'F'
+sw t1,0(t0)
+li t1,'I'
+sw t1,0(t0)
+li t1,'X'
+sw t1,0(t0)
+li t1,'M'
+sw t1,0(t0)
+li t1,'E'
+sw t1,0(t0)
+li t1,'\r'
+sw t1,0(t0)
+li t1,'\n'
+sw t1,0(t0)
+ret
+cmd_read_spi_flash_id_worker_end:
+
