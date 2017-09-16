@@ -19,11 +19,11 @@ and upload them to a connected iCE40-HX8K Breakout Board.
 | File                          | Description                                                     |
 | ----------------------------- | --------------------------------------------------------------- |
 | [picosoc.v](picosoc.v)        | Top-level PicoSoC Verilog module                                |
-| [picosoc.v](picosoc.v)        | Top-level PicoSoC Verilog module                                |
 | [spimemio.v](spimemio.v)      | Memory controller that interfaces to external SPI flash         |
-| [spiflash.v](spiflash.v)      | Simulation model of an SPI flash (used by testbench.v)          |
-| [testbench.v](testbench.v)    | Simple test bench for the design (requires firmware.hex).       |
-| [firmware.s](firmware.s)      | Assembler source for firmware.hex/firmware.bin.                 |
+| [simpleuart.v](simpleuart.v)  | Simple UART core connected directly to SoC TX/RX lines          |
+| [start.s](start.s)            | Assembler source for firmware.hex/firmware.bin                  |
+| [firmware.c](firmware.c)      | C source for firmware.hex/firmware.bin                          |
+| [sections.lds](sections.lds)  | Linker script for firmware.hex/firmware.bin                     |
 | [hx8kdemo.v](hx8kdemo.v)      | FPGA-based example implementation on iCE40-HX8K Breakout Board  |
 | [hx8kdemo.pcf](hx8kdemo.pcf)  | Pin constraints for implementation on iCE40-HX8K Breakout Board |
 
