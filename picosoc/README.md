@@ -38,8 +38,8 @@ and upload them to a connected iCE40-HX8K Breakout Board.
 | 0x02000008 .. 0x0200000B | UART Send/Recv Data Register            |
 | 0x03000000 .. 0xFFFFFFFF | Memory mapped user peripherals          |
 
-The addresses in the internal SRAM region beyond the end of the physical
-SRAM map to the corresponding addresses in serial flash.
+Reading from the addresses in the internal SRAM region beyond the end of the
+physical SRAM will read from the corresponding addresses in serial flash.
 
 Reading from the UART Send/Recv Data Register will return the last received
 byte, or -1 (all 32 bits set) when the receive buffer is empty.
@@ -52,15 +52,15 @@ GPIO pins mapped to the 32 bit word at address 0x03000000.
 | Bit(s) | Description                                               |
 | -----: | --------------------------------------------------------- |
 |     31 | MEMIO Enable (reset=1, set to 0 to bit bang SPI commands) |
-|  30:20 | Reserved (read 0)                                         |
-|  19:16 | IO Output enable bits in bit bang mode                    |
-|  15:14 | Reserved (read 0)                                         |
-|     13 | Chip select (CS) line in bit bang mode                    |
-|     12 | Serial clock line in bit bang mode                        |
-|   11:8 | IO data bits in bit bang mode                             |
-|      7 | Reserved (read 0)                                         |
-|      6 | DDR Enable bit (reset=0)                                  |
-|      5 | QSPI Enable bit (reset=0)                                 |
-|      4 | Continous Read Enable bit (reset=0)                       |
-|    3:0 | Number of QSPI dummy cycles (reset=0)                     |
+|  30:23 | Reserved (read 0)                                         |
+|     22 | DDR Enable bit (reset=0)                                  |
+|     21 | QSPI Enable bit (reset=0)                                 |
+|     20 | Continous Read Enable bit (reset=0)                       |
+|  19:16 | Number of QSPI dummy cycles (reset=0)                     |
+|  15:12 | Reserved (read 0)                                         |
+|   11:8 | IO Output enable bits in bit bang mode                    |
+|    7:6 | Reserved (read 0)                                         |
+|      5 | Chip select (CS) line in bit bang mode                    |
+|      4 | Serial clock line in bit bang mode                        |
+|    3:0 | IO data bits in bit bang mode                             |
 

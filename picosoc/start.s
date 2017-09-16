@@ -35,27 +35,67 @@ addi x31, zero, 0
 
 li sp, 4*256
 call main
-j start
+
+loop:
+j loop
 
 .global cmd_read_spi_flash_id_worker_begin
 .global cmd_read_spi_flash_id_worker_end
 
 cmd_read_spi_flash_id_worker_begin:
-li t0,0x02000008
-li t1,'F'
-sw t1,0(t0)
-li t1,'I'
-sw t1,0(t0)
-li t1,'X'
-sw t1,0(t0)
-li t1,'M'
-sw t1,0(t0)
-li t1,'E'
-sw t1,0(t0)
-li t1,'\r'
-sw t1,0(t0)
-li t1,'\n'
-sw t1,0(t0)
+
+# address of SPI ctrl reg
+li t0, 0x02000000
+
+# Manual Ctrl
+li t1, 0x00
+sb t1, 3(t0)
+
+# CS high, IO0 is output
+li t1, 0x120
+sh t1, 0(t0)
+
+# CS low
+sb zero, 0(t0)
+
+# Send 0x9F (EDEC-ID Read)
+li t2, 0x9F
+li t3, 8
+cmd_read_spi_flash_id_worker_L1:
+srli t4, t2, 7
+andi t4, t4, 0x01
+sb   t4, 0(t0)
+ori  t4, t4, 0x10
+slli t2, t2, 1
+addi t3, t3, -1
+sb   t4, 0(t0)
+bnez t3, cmd_read_spi_flash_id_worker_L1
+
+# Read 16 bytes and store in zero page
+li   t3, 0
+li   a2, 16
+cmd_read_spi_flash_id_worker_L2:
+li   a0, 8
+li   a1, 0
+cmd_read_spi_flash_id_worker_L3:
+sb   zero, 0(t0)
+li   t4, 0x10
+sb   t4, 0(t0)
+lb   t4, 0(t0)
+andi t4, t4, 2
+srli t4, t4, 1
+slli a1, a1, 1
+or   a1, a1, t4
+addi a0, a0, -1
+bnez a0, cmd_read_spi_flash_id_worker_L3
+sb   a1, 0(t3)
+addi t3, t3, 1
+bne  t3, a2, cmd_read_spi_flash_id_worker_L2
+
+# back to MEMIO mode
+li t1, 0x80
+sb t1, 3(t0)
+
 ret
 cmd_read_spi_flash_id_worker_end:
 

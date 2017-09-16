@@ -9,12 +9,26 @@ extern uint32_t sram;
 #define reg_uart_data (*(volatile uint32_t*)0x02000008)
 #define reg_leds (*(volatile uint32_t*)0x03000000)
 
+void putchar(char c)
+{
+	if (c == '\n')
+		putchar('\r');
+	reg_uart_data = c;
+}
+
 void print(const char *p)
 {
-	while (*p) {
-		if (*p == '\n')
-			reg_uart_data = '\r';
-		reg_uart_data = *(p++);
+	while (*p)
+		putchar(*(p++));
+}
+
+void print_hex(uint32_t v, int digits)
+{
+	for (int i = 7; i >= 0; i--) {
+		char c = "0123456789abcdef"[(v >> (4*i)) & 15];
+		if (c == '0' && i >= digits) continue;
+		putchar(c);
+		digits = i;
 	}
 }
 
@@ -63,6 +77,12 @@ void cmd_read_spi_flash_id()
 		*(dst_ptr++) = *(src_ptr++);
 
 	((void(*)())&sram)();
+
+	for (int i = 0; i < 16; i++) {
+		putchar(' ');
+		print_hex(((uint8_t*)&sram)[i], 2);
+	}
+	putchar('\n');
 }
 
 // --------------------------------------------------------
@@ -93,7 +113,7 @@ void main()
 			print("Command> ");
 			char cmd = getchar();
 			if (cmd > 32 && cmd < 127)
-				reg_uart_data = cmd;
+				putchar(cmd);
 			print("\n");
 
 			switch (cmd)

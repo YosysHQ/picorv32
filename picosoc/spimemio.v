@@ -74,27 +74,27 @@ module spimemio (
 	reg softreset;
 
 	reg       config_en;      // cfgreg[31]
-	reg [3:0] config_oe;      // cfgreg[19:16]
-	reg       config_csb;     // cfgreg[13]
-	reg       config_clk;     // cfgref[12]
-	reg [3:0] config_do;      // cfgreg[11:8]
-	reg       config_ddr;     // cfgreg[6]
-	reg       config_qspi;    // cfgreg[5]
-	reg       config_cont;    // cfgreg[4]
-	reg [3:0] config_dummy;   // cfgreg[3:0]
+	reg       config_ddr;     // cfgreg[22]
+	reg       config_qspi;    // cfgreg[21]
+	reg       config_cont;    // cfgreg[20]
+	reg [3:0] config_dummy;   // cfgreg[19:16]
+	reg [3:0] config_oe;      // cfgreg[11:8]
+	reg       config_csb;     // cfgreg[5]
+	reg       config_clk;     // cfgref[4]
+	reg [3:0] config_do;      // cfgreg[3:0]
 
 	assign cfgreg_do[31] = config_en;
-	assign cfgreg_do[30:20] = 0;
-	assign cfgreg_do[19:16] = {flash_io3_oe, flash_io2_oe, flash_io1_oe, flash_io0_oe};
-	assign cfgreg_do[15:14] = 0;
-	assign cfgreg_do[13] = flash_csb;
-	assign cfgreg_do[12] = flash_clk;
-	assign cfgreg_do[11:8] = {flash_io3_di, flash_io2_di, flash_io1_di, flash_io0_di};
-	assign cfgreg_do[7] = 0;
-	assign cfgreg_do[6] = config_ddr;
-	assign cfgreg_do[5] = config_qspi;
-	assign cfgreg_do[4] = config_cont;
-	assign cfgreg_do[3:0] = config_dummy;
+	assign cfgreg_do[30:23] = 0;
+	assign cfgreg_do[22] = config_ddr;
+	assign cfgreg_do[21] = config_qspi;
+	assign cfgreg_do[20] = config_cont;
+	assign cfgreg_do[19:16] = config_dummy;
+	assign cfgreg_do[15:12] = 0;
+	assign cfgreg_do[11:8] = {flash_io3_oe, flash_io2_oe, flash_io1_oe, flash_io0_oe};
+	assign cfgreg_do[7:6] = 0;
+	assign cfgreg_do[5] = flash_csb;
+	assign cfgreg_do[4] = flash_clk;
+	assign cfgreg_do[3:0] = {flash_io3_di, flash_io2_di, flash_io1_di, flash_io0_di};
 
 	always @(posedge clk) begin
 		softreset <= !config_en || cfgreg_we;
@@ -111,24 +111,27 @@ module spimemio (
 			config_dummy <= 0;
 		end else begin
 			if (cfgreg_we[0]) begin
-				config_ddr <= cfgreg_di[6];
-				config_qspi <= cfgreg_di[5];
-				config_cont <= cfgreg_di[4];
-				config_dummy <= cfgreg_di[3:0];
+				config_csb <= cfgreg_di[5];
+				config_clk <= cfgreg_di[4];
+				config_do <= cfgreg_di[3:0];
 			end
 			if (cfgreg_we[1]) begin
-				config_csb <= cfgreg_di[13];
-				config_clk <= cfgreg_di[12];
-				config_do <= cfgreg_di[11:8];
+				config_oe <= cfgreg_di[11:8];
 			end
 			if (cfgreg_we[2]) begin
-				config_oe <= cfgreg_di[19:16];
+				config_ddr <= cfgreg_di[22];
+				config_qspi <= cfgreg_di[21];
+				config_cont <= cfgreg_di[20];
+				config_dummy <= cfgreg_di[19:16];
 			end
 			if (cfgreg_we[3]) begin
 				config_en <= cfgreg_di[31];
 			end
 		end
 	end
+
+	wire xfer_csb;
+	wire xfer_clk;
 
 	wire xfer_io0_oe;
 	wire xfer_io1_oe;
@@ -139,6 +142,9 @@ module spimemio (
 	wire xfer_io1_do;
 	wire xfer_io2_do;
 	wire xfer_io3_do;
+
+	assign flash_csb = config_en ? xfer_csb : config_csb;
+	assign flash_clk = config_en ? xfer_clk : config_clk;
 
 	assign flash_io0_oe = config_en ? xfer_io0_oe : config_oe[0];
 	assign flash_io1_oe = config_en ? xfer_io1_oe : config_oe[1];
@@ -164,16 +170,16 @@ module spimemio (
 		.dout_valid   (dout_valid  ),
 		.dout_data    (dout_data   ),
 		.dout_tag     (dout_tag    ),
-		.flash_csb    (flash_csb   ),
-		.flash_clk    (flash_clk   ),
-		.flash_io0_oe (xfer_io0_oe),
-		.flash_io1_oe (xfer_io1_oe),
-		.flash_io2_oe (xfer_io2_oe),
-		.flash_io3_oe (xfer_io3_oe),
-		.flash_io0_do (xfer_io0_do),
-		.flash_io1_do (xfer_io1_do),
-		.flash_io2_do (xfer_io2_do),
-		.flash_io3_do (xfer_io3_do),
+		.flash_csb    (xfer_csb    ),
+		.flash_clk    (xfer_clk    ),
+		.flash_io0_oe (xfer_io0_oe ),
+		.flash_io1_oe (xfer_io1_oe ),
+		.flash_io2_oe (xfer_io2_oe ),
+		.flash_io3_oe (xfer_io3_oe ),
+		.flash_io0_do (xfer_io0_do ),
+		.flash_io1_do (xfer_io1_do ),
+		.flash_io2_do (xfer_io2_do ),
+		.flash_io3_do (xfer_io3_do ),
 		.flash_io0_di (flash_io0_di),
 		.flash_io1_di (flash_io1_di),
 		.flash_io2_di (flash_io2_di),
