@@ -72,13 +72,13 @@ module picosoc (
 	assign iomem_addr = mem_addr;
 	assign iomem_wdata = mem_wdata;
 
-	wire spimemio_cfgreg_sel = (mem_addr == 32'h 0200_0000);
+	wire spimemio_cfgreg_sel = mem_valid && (mem_addr == 32'h 0200_0000);
 	wire [31:0] spimemio_cfgreg_do;
 
-	wire        simpleuart_reg_div_sel = (mem_addr == 32'h 0200_0004);
+	wire        simpleuart_reg_div_sel = mem_valid && (mem_addr == 32'h 0200_0004);
 	wire [31:0] simpleuart_reg_div_do;
 
-	wire        simpleuart_reg_dat_sel = (mem_addr == 32'h 0200_0008);
+	wire        simpleuart_reg_dat_sel = mem_valid && (mem_addr == 32'h 0200_0008);
 	wire [31:0] simpleuart_reg_dat_do;
 	wire        simpleuart_reg_dat_wait;
 

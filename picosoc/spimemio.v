@@ -108,7 +108,7 @@ module spimemio (
 			config_ddr <= 0;
 			config_qspi <= 0;
 			config_cont <= 0;
-			config_dummy <= 0;
+			config_dummy <= 8;
 		end else begin
 			if (cfgreg_we[0]) begin
 				config_csb <= cfgreg_di[5];

@@ -39,63 +39,52 @@ call main
 loop:
 j loop
 
-.global cmd_read_spi_flash_id_worker_begin
-.global cmd_read_spi_flash_id_worker_end
+.global flashio_worker_begin
+.global flashio_worker_end
 
-cmd_read_spi_flash_id_worker_begin:
+flashio_worker_begin:
+# a0 ... data pointer
+# a1 ... data length
 
 # address of SPI ctrl reg
-li t0, 0x02000000
+li   t0, 0x02000000
 
-# Manual Ctrl
-li t1, 0x00
-sb t1, 3(t0)
+# Set CS high, IO0 is output
+li   t1, 0x120
+sh   t1, 0(t0)
 
-# CS high, IO0 is output
-li t1, 0x120
-sh t1, 0(t0)
+# Enable Manual SPI Ctrl
+li   t1, 0x00
+sb   t1, 3(t0)
 
-# CS low
-sb zero, 0(t0)
-
-# Send 0x9F (EDEC-ID Read)
-li t2, 0x9F
-li t3, 8
-cmd_read_spi_flash_id_worker_L1:
+# SPI transfer
+flashio_worker_L1:
+beqz a1, flashio_worker_L3
+li   t5, 8
+lbu  t2, 0(a0)
+flashio_worker_L2:
 srli t4, t2, 7
-andi t4, t4, 0x01
 sb   t4, 0(t0)
 ori  t4, t4, 0x10
-slli t2, t2, 1
-addi t3, t3, -1
 sb   t4, 0(t0)
-bnez t3, cmd_read_spi_flash_id_worker_L1
-
-# Read 16 bytes and store in zero page
-li   t3, 0
-li   a2, 16
-cmd_read_spi_flash_id_worker_L2:
-li   a0, 8
-li   a1, 0
-cmd_read_spi_flash_id_worker_L3:
-sb   zero, 0(t0)
-li   t4, 0x10
-sb   t4, 0(t0)
-lb   t4, 0(t0)
+lbu  t4, 0(t0)
 andi t4, t4, 2
 srli t4, t4, 1
-slli a1, a1, 1
-or   a1, a1, t4
-addi a0, a0, -1
-bnez a0, cmd_read_spi_flash_id_worker_L3
-sb   a1, 0(t3)
-addi t3, t3, 1
-bne  t3, a2, cmd_read_spi_flash_id_worker_L2
+slli t2, t2, 1
+or   t2, t2, t4
+andi t2, t2, 0xff
+addi t5, t5, -1
+bnez t5, flashio_worker_L2
+sb   t2, 0(a0)
+addi a0, a0, 1
+addi a1, a1, -1
+j    flashio_worker_L1
+flashio_worker_L3:
 
-# back to MEMIO mode
-li t1, 0x80
-sb t1, 3(t0)
+# Back to MEMIO mode
+li   t1, 0x80
+sb   t1, 3(t0)
 
 ret
-cmd_read_spi_flash_id_worker_end:
+flashio_worker_end:
 
