@@ -45,6 +45,7 @@ j loop
 flashio_worker_begin:
 # a0 ... data pointer
 # a1 ... data length
+# a2 ... optional WREN cmd (0 = disable)
 
 # address of SPI ctrl reg
 li   t0, 0x02000000
@@ -54,8 +55,22 @@ li   t1, 0x120
 sh   t1, 0(t0)
 
 # Enable Manual SPI Ctrl
-li   t1, 0x00
-sb   t1, 3(t0)
+sb   zero, 3(t0)
+
+# Send optional WREN cmd
+beqz a2, flashio_worker_L1
+li   t5, 8
+andi t2, a2, 0xff
+flashio_worker_L4:
+srli t4, t2, 7
+sb   t4, 0(t0)
+ori  t4, t4, 0x10
+sb   t4, 0(t0)
+slli t2, t2, 1
+andi t2, t2, 0xff
+addi t5, t5, -1
+bnez t5, flashio_worker_L4
+sb   t1, 0(t0)
 
 # SPI transfer
 flashio_worker_L1:

@@ -42,6 +42,7 @@ module spiflash (
 	inout io3
 );
 	localparam verbose = 0;
+	localparam integer latency = 8;
 	
 	reg [7:0] buffer;
 	integer bitcount = 0;
@@ -148,7 +149,7 @@ module spiflash (
 				if (bytecount == 5) begin
 					xip_cmd = (buffer == 8'h a5) ? spi_cmd : 8'h 00;
 					mode = mode_qspi_wr;
-					dummycount = 1;
+					dummycount = latency;
 				end
 
 				if (bytecount >= 5) begin
@@ -173,7 +174,7 @@ module spiflash (
 				if (bytecount == 5) begin
 					xip_cmd = (buffer == 8'h a5) ? spi_cmd : 8'h 00;
 					mode = mode_qspi_ddr_wr;
-					dummycount = 1;
+					dummycount = latency;
 				end
 
 				if (bytecount >= 5) begin

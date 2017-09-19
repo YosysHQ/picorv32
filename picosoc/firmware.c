@@ -14,7 +14,7 @@ extern uint32_t sram;
 extern uint32_t flashio_worker_begin;
 extern uint32_t flashio_worker_end;
 
-void flashio(uint8_t *data, int len)
+void flashio(uint8_t *data, int len, uint8_t wrencmd)
 {
 	uint32_t func[&flashio_worker_end - &flashio_worker_begin];
 
@@ -24,7 +24,17 @@ void flashio(uint8_t *data, int len)
 	while (src_ptr != &flashio_worker_end)
 		*(dst_ptr++) = *(src_ptr++);
 
-	((void(*)(uint8_t*, int))func)(data, len);
+	((void(*)(uint8_t*, uint32_t, uint32_t))func)(data, len, wrencmd);
+}
+
+void set_quad_spi_flag()
+{
+	uint32_t addr = 0x800002;
+	uint8_t buffer_rd[6] = {0x65, addr >> 16, addr >> 8, addr, 0, 0};
+	flashio(buffer_rd, 6, 0);
+
+	uint8_t buffer_wr[5] = {0x71, addr >> 16, addr >> 8, addr, buffer_rd[5] | 2};
+	flashio(buffer_wr, 5, 0x06);
 }
 
 // --------------------------------------------------------
@@ -114,10 +124,10 @@ char getchar()
 
 // --------------------------------------------------------
 
-void cmd_read_spi_flash_id()
+void cmd_read_flash_id()
 {
 	uint8_t buffer[17] = { 0x9F, /* zeros */ };
-	flashio(buffer, 17);
+	flashio(buffer, 17, 0);
 
 	for (int i = 1; i <= 16; i++) {
 		putchar(' ');
@@ -128,10 +138,10 @@ void cmd_read_spi_flash_id()
 
 // --------------------------------------------------------
 
-uint8_t cmd_read_spi_flash_regs_print(uint32_t addr, const char *name)
+uint8_t cmd_read_flash_regs_print(uint32_t addr, const char *name)
 {
 	uint8_t buffer[6] = {0x65, addr >> 16, addr >> 8, addr, 0, 0};
-	flashio(buffer, 6);
+	flashio(buffer, 6, 0);
 
 	print("0x");
 	print_hex(addr, 6);
@@ -144,15 +154,15 @@ uint8_t cmd_read_spi_flash_regs_print(uint32_t addr, const char *name)
 	return buffer[5];
 }
 
-void cmd_read_spi_flash_regs()
+void cmd_read_flash_regs()
 {
 	print("\n");
-	uint8_t sr1v = cmd_read_spi_flash_regs_print(0x800000, "SR1V");
-	uint8_t sr2v = cmd_read_spi_flash_regs_print(0x800001, "SR2V");
-	uint8_t cr1v = cmd_read_spi_flash_regs_print(0x800002, "CR1V");
-	uint8_t cr2v = cmd_read_spi_flash_regs_print(0x800003, "CR2V");
-	uint8_t cr3v = cmd_read_spi_flash_regs_print(0x800004, "CR3V");
-	uint8_t vdlp = cmd_read_spi_flash_regs_print(0x800005, "VDLP");
+	uint8_t sr1v = cmd_read_flash_regs_print(0x800000, "SR1V");
+	uint8_t sr2v = cmd_read_flash_regs_print(0x800001, "SR2V");
+	uint8_t cr1v = cmd_read_flash_regs_print(0x800002, "CR1V");
+	uint8_t cr2v = cmd_read_flash_regs_print(0x800003, "CR2V");
+	uint8_t cr3v = cmd_read_flash_regs_print(0x800004, "CR3V");
+	uint8_t vdlp = cmd_read_flash_regs_print(0x800005, "VDLP");
 }
 
 // --------------------------------------------------------
@@ -212,6 +222,8 @@ void cmd_benchmark()
 void main()
 {
 	reg_uart_clkdiv = 104;
+	set_quad_spi_flag();
+
 	while (getchar_prompt("Press ENTER to continue..\n") != '\r') { /* wait */ }
 
 	print("\n");
@@ -227,15 +239,15 @@ void main()
 		print("\n");
 		print("SPI State:\n");
 
+		print("  LATENCY ");
+		print_dec((reg_spictrl >> 16) & 15);
+		print("\n");
+
 		print("  DDR ");
 		if ((reg_spictrl & (1 << 22)) != 0)
-			print("ON");
+			print("ON\n");
 		else
-			print("OFF");
-
-		print(" (latency=");
-		print_dec((reg_spictrl >> 16) & 15);
-		print(")\n");
+			print("OFF\n");
 
 		print("  QSPI ");
 		if ((reg_spictrl & (1 << 21)) != 0)
@@ -271,10 +283,10 @@ void main()
 			switch (cmd)
 			{
 			case '1':
-				cmd_read_spi_flash_id();
+				cmd_read_flash_id();
 				break;
 			case '2':
-				cmd_read_spi_flash_regs();
+				cmd_read_flash_regs();
 				break;
 			case '3':
 				reg_spictrl ^= 1 << 22;
