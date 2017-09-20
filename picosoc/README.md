@@ -55,7 +55,7 @@ GPIO pins mapped to the 32 bit word at address 0x03000000.
 |  30:23 | Reserved (read 0)                                         |
 |     22 | DDR Enable bit (reset=0)                                  |
 |     21 | QSPI Enable bit (reset=0)                                 |
-|     20 | Continous Read Enable bit (reset=0)                       |
+|     20 | XIP Enable bit (reset=0)                                  |
 |  19:16 | Number of QSPI dummy cycles (reset=0)                     |
 |  15:12 | Reserved (read 0)                                         |
 |   11:8 | IO Output enable bits in bit bang mode                    |
@@ -63,4 +63,14 @@ GPIO pins mapped to the 32 bit word at address 0x03000000.
 |      5 | Chip select (CS) line in bit bang mode                    |
 |      4 | Serial clock line in bit bang mode                        |
 |    3:0 | IO data bits in bit bang mode                             |
+
+The following settings for XIP/DDR/QSPI modes are valid:
+
+| XIP | DDR | QSPI | Read Command Byte     | Mode Byte |
+| :-: | :-: | :--: | :-------------------- | :-------: |
+|   0 |   0 |    0 | 03h Read              | N/A       |
+|   0 |   0 |    1 | EBh Quad I/O Read     | FFh       |
+|   1 |   0 |    1 | EBh Quad I/O Read     | A5h / FFh |
+|   0 |   1 |    1 | EDh DDR Quad I/O Read | FFh       |
+|   1 |   1 |    1 | EDh DDR Quad I/O Read | A5h / FFh |
 

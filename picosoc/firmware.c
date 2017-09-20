@@ -222,7 +222,9 @@ void cmd_benchmark()
 void main()
 {
 	reg_uart_clkdiv = 104;
+
 	set_quad_spi_flag();
+	// reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
 
 	while (getchar_prompt("Press ENTER to continue..\n") != '\r') { /* wait */ }
 
@@ -266,9 +268,11 @@ void main()
 		print("\n");
 		print("   [1] Read SPI Flash ID\n");
 		print("   [2] Read SPI Config Regs\n");
-		print("   [3] Enable/disable DDR\n");
-		print("   [4] Enable/disable QSPI\n");
-		print("   [5] Enable/disable XIP\n");
+		print("   [3] Switch to QSPI DDR XIP mode\n");
+		print("   [4] Switch to QSPI DDR mode\n");
+		print("   [5] Switch to QSPI XIP mode\n");
+		print("   [6] Switch to QSPI mode\n");
+		print("   [7] Switch to default mode\n");
 		print("   [0] Run simplistic benchmark\n");
 		print("\n");
 
@@ -289,13 +293,19 @@ void main()
 				cmd_read_flash_regs();
 				break;
 			case '3':
-				reg_spictrl ^= 1 << 22;
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
 				break;
 			case '4':
-				reg_spictrl ^= 1 << 21;
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
 				break;
 			case '5':
-				reg_spictrl ^= 1 << 20;
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
+				break;
+			case '6':
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
+				break;
+			case '7':
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
 				break;
 			case '0':
 				cmd_benchmark();

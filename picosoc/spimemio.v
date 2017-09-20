@@ -143,6 +143,18 @@ module spimemio (
 	wire xfer_io2_do;
 	wire xfer_io3_do;
 
+	reg xfer_io0_90;
+	reg xfer_io1_90;
+	reg xfer_io2_90;
+	reg xfer_io3_90;
+
+	always @(negedge clk) begin
+		xfer_io0_90 <= xfer_io0_do;
+		xfer_io1_90 <= xfer_io1_do;
+		xfer_io2_90 <= xfer_io2_do;
+		xfer_io3_90 <= xfer_io3_do;
+	end
+
 	assign flash_csb = config_en ? xfer_csb : config_csb;
 	assign flash_clk = config_en ? xfer_clk : config_clk;
 
@@ -151,10 +163,10 @@ module spimemio (
 	assign flash_io2_oe = config_en ? xfer_io2_oe : config_oe[2];
 	assign flash_io3_oe = config_en ? xfer_io3_oe : config_oe[3];
 
-	assign flash_io0_do = config_en ? xfer_io0_do : config_do[0];
-	assign flash_io1_do = config_en ? xfer_io1_do : config_do[1];
-	assign flash_io2_do = config_en ? xfer_io2_do : config_do[2];
-	assign flash_io3_do = config_en ? xfer_io3_do : config_do[3];
+	assign flash_io0_do = config_en ? (config_ddr ? xfer_io0_90 : xfer_io0_do) : config_do[0];
+	assign flash_io1_do = config_en ? (config_ddr ? xfer_io1_90 : xfer_io1_do) : config_do[1];
+	assign flash_io2_do = config_en ? (config_ddr ? xfer_io2_90 : xfer_io2_do) : config_do[2];
+	assign flash_io3_do = config_en ? (config_ddr ? xfer_io3_90 : xfer_io3_do) : config_do[3];
 
 	spimemio_xfer xfer (
 		.clk          (clk         ),

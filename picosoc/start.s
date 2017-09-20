@@ -1,8 +1,10 @@
 .section .text
 
 start:
+
+# zero-initialize register file
 addi x1, zero, 0
-addi x2, zero, 0
+# x2 (sp) is initialized by reset
 addi x3, zero, 0
 addi x4, zero, 0
 addi x5, zero, 0
@@ -33,9 +35,14 @@ addi x29, zero, 0
 addi x30, zero, 0
 addi x31, zero, 0
 
-li sp, 4*256
-call main
+# zero initialize scratchpad memory
+setmemloop:
+sw zero, 0(x1)
+addi x1, x1, 4
+blt x1, sp, setmemloop
 
+# call main
+call main
 loop:
 j loop
 

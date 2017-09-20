@@ -27,7 +27,10 @@ module testbench;
 		$dumpfile("testbench.vcd");
 		$dumpvars(0, testbench);
 
-		repeat (200000) @(posedge clk);
+		repeat (6) begin
+			repeat (50000) @(posedge clk);
+			$display("+50000 cycles");
+		end
 		$finish;
 	end
 
