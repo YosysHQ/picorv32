@@ -433,7 +433,7 @@ module spimemio_xfer (
 
 	assign din_ready = din_valid && resetn && next_fetch;
 
-	assign dout_valid = xfer_ddr_q ? fetch && !last_fetch : next_fetch && !fetch;
+	assign dout_valid = (xfer_ddr_q ? fetch && !last_fetch : next_fetch && !fetch) && resetn;
 	assign dout_data = ibuffer;
 	assign dout_tag = xfer_tag_q;
 
