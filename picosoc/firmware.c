@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 
 // a pointer to this is a null pointer, but the compiler does not
 // know that because "sram" is a linker symbol from sections.lds.
@@ -167,7 +168,7 @@ void cmd_read_flash_regs()
 
 // --------------------------------------------------------
 
-void cmd_benchmark()
+uint32_t cmd_benchmark(bool verbose)
 {
 	uint8_t data[256];
 	uint32_t *words = (void*)data;
@@ -204,16 +205,56 @@ void cmd_benchmark()
 	__asm__ volatile ("rdcycle %0" : "=r"(cycles_end));
 	__asm__ volatile ("rdinstret %0" : "=r"(instns_end));
 
-	print("Cycles: 0x");
-	print_hex(cycles_end - cycles_begin, 8);
+	if (verbose)
+	{
+		print("Cycles: 0x");
+		print_hex(cycles_end - cycles_begin, 8);
+		putchar('\n');
+
+		print("Instns: 0x");
+		print_hex(instns_end - instns_begin, 8);
+		putchar('\n');
+
+		print("Chksum: 0x");
+		print_hex(x32, 8);
+		putchar('\n');
+	}
+
+	return cycles_end - cycles_begin;
+}
+
+// --------------------------------------------------------
+
+void cmd_benchmark_all()
+{
+	print("default        ");
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
+	print(": ");
+	print_hex(cmd_benchmark(false), 8);
 	putchar('\n');
 
-	print("Instns: 0x");
-	print_hex(instns_end - instns_begin, 8);
+	print("qspi-8         ");
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
+	print(": ");
+	print_hex(cmd_benchmark(false), 8);
 	putchar('\n');
 
-	print("Chksum: 0x");
-	print_hex(x32, 8);
+	print("qspi-xip-8     ");
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
+	print(": ");
+	print_hex(cmd_benchmark(false), 8);
+	putchar('\n');
+
+	print("qspi-ddr-8     ");
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
+	print(": ");
+	print_hex(cmd_benchmark(false), 8);
+	putchar('\n');
+
+	print("qspi-ddr-xip-8 ");
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
+	print(": ");
+	print_hex(cmd_benchmark(false), 8);
 	putchar('\n');
 }
 
@@ -222,9 +263,7 @@ void cmd_benchmark()
 void main()
 {
 	reg_uart_clkdiv = 104;
-
 	set_quad_spi_flag();
-	// reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
 
 	while (getchar_prompt("Press ENTER to continue..\n") != '\r') { /* wait */ }
 
@@ -273,7 +312,8 @@ void main()
 		print("   [5] Switch to QSPI XIP mode\n");
 		print("   [6] Switch to QSPI mode\n");
 		print("   [7] Switch to default mode\n");
-		print("   [0] Run simplistic benchmark\n");
+		print("   [9] Run simplistic benchmark\n");
+		print("   [0] Benchmark all configs\n");
 		print("\n");
 
 		for (int rep = 10; rep > 0; rep--)
@@ -307,8 +347,11 @@ void main()
 			case '7':
 				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
 				break;
+			case '9':
+				cmd_benchmark(true);
+				break;
 			case '0':
-				cmd_benchmark();
+				cmd_benchmark_all();
 				break;
 			default:
 				continue;
