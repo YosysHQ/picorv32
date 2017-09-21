@@ -28,13 +28,22 @@ void flashio(uint8_t *data, int len, uint8_t wrencmd)
 	((void(*)(uint8_t*, uint32_t, uint32_t))func)(data, len, wrencmd);
 }
 
-void set_quad_spi_flag()
+void set_flash_qspi_flag()
 {
 	uint32_t addr = 0x800002;
 	uint8_t buffer_rd[6] = {0x65, addr >> 16, addr >> 8, addr, 0, 0};
 	flashio(buffer_rd, 6, 0);
 
 	uint8_t buffer_wr[5] = {0x71, addr >> 16, addr >> 8, addr, buffer_rd[5] | 2};
+	flashio(buffer_wr, 5, 0x06);
+}
+
+void set_flash_latency(uint8_t value)
+{
+	reg_spictrl = (reg_spictrl & ~0x007f0000) | ((value & 15) << 16);
+
+	uint32_t addr = 0x800004;
+	uint8_t buffer_wr[5] = {0x71, addr >> 16, addr >> 8, addr, 0x70 | value};
 	flashio(buffer_wr, 5, 0x06);
 }
 
@@ -141,6 +150,8 @@ void cmd_read_flash_id()
 
 uint8_t cmd_read_flash_regs_print(uint32_t addr, const char *name)
 {
+	set_flash_latency(8);
+
 	uint8_t buffer[6] = {0x65, addr >> 16, addr >> 8, addr, 0, 0};
 	flashio(buffer, 6, 0);
 
@@ -233,29 +244,89 @@ void cmd_benchmark_all()
 	print_hex(cmd_benchmark(false), 8);
 	putchar('\n');
 
-	print("qspi-8         ");
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
-	print(": ");
-	print_hex(cmd_benchmark(false), 8);
-	putchar('\n');
+	for (int i = 8; i > 0; i--)
+	{
+		print("dspi-");
+		print_dec(i);
+		print("         ");
 
-	print("qspi-xip-8     ");
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
-	print(": ");
-	print_hex(cmd_benchmark(false), 8);
-	putchar('\n');
+		set_flash_latency(i);
+		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
 
-	print("qspi-ddr-8     ");
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
-	print(": ");
-	print_hex(cmd_benchmark(false), 8);
-	putchar('\n');
+		print(": ");
+		print_hex(cmd_benchmark(false), 8);
+		putchar('\n');
+	}
 
-	print("qspi-ddr-xip-8 ");
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
-	print(": ");
-	print_hex(cmd_benchmark(false), 8);
-	putchar('\n');
+	for (int i = 8; i > 0; i--)
+	{
+		print("dspi-crm-");
+		print_dec(i);
+		print("     ");
+
+		set_flash_latency(i);
+		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00500000;
+
+		print(": ");
+		print_hex(cmd_benchmark(false), 8);
+		putchar('\n');
+	}
+
+	for (int i = 8; i > 0; i--)
+	{
+		print("qspi-");
+		print_dec(i);
+		print("         ");
+
+		set_flash_latency(i);
+		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
+
+		print(": ");
+		print_hex(cmd_benchmark(false), 8);
+		putchar('\n');
+	}
+
+	for (int i = 8; i > 0; i--)
+	{
+		print("qspi-crm-");
+		print_dec(i);
+		print("     ");
+
+		set_flash_latency(i);
+		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
+
+		print(": ");
+		print_hex(cmd_benchmark(false), 8);
+		putchar('\n');
+	}
+
+	for (int i = 8; i > 0; i--)
+	{
+		print("qspi-ddr-");
+		print_dec(i);
+		print("     ");
+
+		set_flash_latency(i);
+		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
+
+		print(": ");
+		print_hex(cmd_benchmark(false), 8);
+		putchar('\n');
+	}
+
+	for (int i = 8; i > 0; i--)
+	{
+		print("qspi-ddr-crm-");
+		print_dec(i);
+		print(" ");
+
+		set_flash_latency(i);
+		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
+
+		print(": ");
+		print_hex(cmd_benchmark(false), 8);
+		putchar('\n');
+	}
 }
 
 // --------------------------------------------------------
@@ -263,7 +334,7 @@ void cmd_benchmark_all()
 void main()
 {
 	reg_uart_clkdiv = 104;
-	set_quad_spi_flag();
+	set_flash_qspi_flag();
 
 	while (getchar_prompt("Press ENTER to continue..\n") != '\r') { /* wait */ }
 
@@ -296,7 +367,7 @@ void main()
 		else
 			print("OFF\n");
 
-		print("  XIP ");
+		print("  CRM ");
 		if ((reg_spictrl & (1 << 20)) != 0)
 			print("ON\n");
 		else
@@ -307,11 +378,11 @@ void main()
 		print("\n");
 		print("   [1] Read SPI Flash ID\n");
 		print("   [2] Read SPI Config Regs\n");
-		print("   [3] Switch to QSPI DDR XIP mode\n");
-		print("   [4] Switch to QSPI DDR mode\n");
-		print("   [5] Switch to QSPI XIP mode\n");
-		print("   [6] Switch to QSPI mode\n");
-		print("   [7] Switch to default mode\n");
+		print("   [3] Switch to default mode\n");
+		print("   [4] Switch to Dual I/O mode\n");
+		print("   [5] Switch to Quad I/O mode\n");
+		print("   [6] Switch to Quad DDR mode\n");
+		print("   [7] Toggle continuous read mode\n");
 		print("   [9] Run simplistic benchmark\n");
 		print("   [0] Benchmark all configs\n");
 		print("\n");
@@ -333,19 +404,19 @@ void main()
 				cmd_read_flash_regs();
 				break;
 			case '3':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
 				break;
 			case '4':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
 				break;
 			case '5':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
-				break;
-			case '6':
 				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
 				break;
+			case '6':
+				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
+				break;
 			case '7':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
+				reg_spictrl = reg_spictrl ^ 0x00100000;
 				break;
 			case '9':
 				cmd_benchmark(true);
