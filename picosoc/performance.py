@@ -64,10 +64,10 @@ for line in text.split("\n"):
         labels.append(line[0])
         values.append(int(line[2], 16))
 
-plt.figure(figsize=(10, 3))
+plt.figure(figsize=(10, 5))
 plt.title("Performance comparison for different PicoSoC SPI flash configurations")
 plt.plot(range(len(labels)), values[0] / np.array(values))
-plt.xticks(range(len(labels)), labels, rotation=90)
+plt.xticks(range(len(labels)), labels, rotation=80)
 
 for color, x1, x2 in [["black", 0, 0], ["red", 1, 8], ["green", 9, 16],
         ["red", 17, 24], ["green", 25, 32], ["red", 33, 40], ["green", 41, 48]]:
@@ -82,5 +82,6 @@ plt.xlim(-1, len(values))
 plt.ylim(0, 9)
 plt.grid()
 
+plt.gcf().subplots_adjust(bottom=0.3)
 plt.savefig("performance.png")
 # plt.show()
