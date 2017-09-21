@@ -1,5 +1,3 @@
-/testbench.vcd
-/testbench.vvp
 /spiflash_tb.vcd
 /spiflash_tb.vvp
 /firmware.elf
@@ -13,3 +11,4 @@
 /hx8kdemo_syn.v
 /hx8kdemo_syn_tb.vvp
 /hx8kdemo_tb.vvp
+/testbench.vcd

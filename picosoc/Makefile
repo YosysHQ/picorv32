@@ -1,26 +1,5 @@
 
-# ---- Generic Testbenches ----
-
-testbench: testbench.vvp firmware.hex
-	vvp -N $<
-
-testbench.vvp: spiflash.v spimemio.v simpleuart.v testbench.v picosoc.v ../picorv32.v
-	iverilog -s testbench -o $@ $^
-
-spiflash_tb: spiflash_tb.vvp firmware.hex
-	vvp -N $<
-
-spiflash_tb.vvp: spiflash.v spiflash_tb.v
-	iverilog -s testbench -o $@ $^
-
 # ---- iCE40 HX8K Breakout Board ----
-
-hx8kprog: hx8kdemo.bin firmware.bin
-	iceprog hx8kdemo.bin
-	iceprog -o 1M firmware.bin
-
-hx8kprog_fw: firmware.bin
-	iceprog -o 1M firmware.bin
 
 hx8ksim: hx8kdemo_tb.vvp firmware.hex
 	vvp -N $<
@@ -47,6 +26,13 @@ hx8kdemo.bin: hx8kdemo.asc
 	icetime -d hx8k -c 12 -mtr hx8kdemo.rpt hx8kdemo.asc
 	icepack hx8kdemo.asc hx8kdemo.bin
 
+hx8kprog: hx8kdemo.bin firmware.bin
+	iceprog hx8kdemo.bin
+	iceprog -o 1M firmware.bin
+
+hx8kprog_fw: firmware.bin
+	iceprog -o 1M firmware.bin
+
 # ---- Example Firmware ----
 
 firmware.elf: sections.lds start.s firmware.c
@@ -58,6 +44,14 @@ firmware.hex: firmware.elf
 firmware.bin: firmware.elf
 	riscv32-unknown-elf-objcopy -O binary firmware.elf /dev/stdout | tail -c +1048577 > firmware.bin
 
+# ---- Testbench for SPI Flash Model ----
+
+spiflash_tb: spiflash_tb.vvp firmware.hex
+	vvp -N $<
+
+spiflash_tb.vvp: spiflash.v spiflash_tb.v
+	iverilog -s testbench -o $@ $^
+
 # ---- Clean ----
 
 clean:
@@ -66,5 +60,5 @@ clean:
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 
-.PHONY: testbench spiflash_tb hx8kprog hx8kprog_fw hx8ksim hx8ksynsim clean
+.PHONY: spiflash_tb hx8kprog hx8kprog_fw hx8ksim hx8ksynsim clean
 
