@@ -26,7 +26,7 @@
 // updates output signals 1ns after the SPI clock edge.
 //
 // Supported commands:
-//    AB, B9, FF, 03, EB, ED
+//    AB, B9, FF, 03, BB, EB, ED
 //
 // Well written SPI flash data sheets:
 //    Cypress S25FL064L http://www.cypress.com/file/316661/download
@@ -60,10 +60,12 @@ module spiflash (
 	reg powered_up = 0;
 
 	localparam [3:0] mode_spi         = 1;
-	localparam [3:0] mode_qspi_rd     = 2;
-	localparam [3:0] mode_qspi_wr     = 3;
-	localparam [3:0] mode_qspi_ddr_rd = 4;
-	localparam [3:0] mode_qspi_ddr_wr = 5;
+	localparam [3:0] mode_dspi_rd     = 2;
+	localparam [3:0] mode_dspi_wr     = 3;
+	localparam [3:0] mode_qspi_rd     = 4;
+	localparam [3:0] mode_qspi_wr     = 5;
+	localparam [3:0] mode_qspi_ddr_rd = 6;
+	localparam [3:0] mode_qspi_ddr_wr = 7;
 
 	reg [3:0] mode = 0;
 	reg [3:0] next_mode = 0;
@@ -128,6 +130,31 @@ module spiflash (
 					spi_addr[7:0] = buffer;
 
 				if (bytecount >= 4) begin
+					buffer = memory[spi_addr];
+					spi_addr = spi_addr + 1;
+				end
+			end
+
+			if (powered_up && spi_cmd == 'h bb) begin
+				if (bytecount == 1)
+					mode = mode_dspi_rd;
+
+				if (bytecount == 2)
+					spi_addr[23:16] = buffer;
+
+				if (bytecount == 3)
+					spi_addr[15:8] = buffer;
+
+				if (bytecount == 4)
+					spi_addr[7:0] = buffer;
+
+				if (bytecount == 5) begin
+					xip_cmd = (buffer == 8'h a5) ? spi_cmd : 8'h 00;
+					mode = mode_dspi_wr;
+					dummycount = latency;
+				end
+
+				if (bytecount >= 5) begin
 					buffer = memory[spi_addr];
 					spi_addr = spi_addr + 1;
 				end
@@ -269,6 +296,20 @@ module spiflash (
 					io3_oe = 0;
 					io1_dout = buffer[7];
 				end
+				mode_dspi_rd: begin
+					io0_oe = 0;
+					io1_oe = 0;
+					io2_oe = 0;
+					io3_oe = 0;
+				end
+				mode_dspi_wr: begin
+					io0_oe = 1;
+					io1_oe = 1;
+					io2_oe = 0;
+					io3_oe = 0;
+					io0_dout = buffer[6];
+					io1_dout = buffer[7];
+				end
 				mode_qspi_rd: begin
 					io0_oe = 0;
 					io1_oe = 0;
@@ -326,6 +367,15 @@ module spiflash (
 				mode_spi: begin
 					buffer = {buffer, io0};
 					bitcount = bitcount + 1;
+					if (bitcount == 8) begin
+						bitcount = 0;
+						bytecount = bytecount + 1;
+						spi_action;
+					end
+				end
+				mode_dspi_rd, mode_dspi_wr: begin
+					buffer = {buffer, io1, io0};
+					bitcount = bitcount + 2;
 					if (bitcount == 8) begin
 						bitcount = 0;
 						bytecount = bytecount + 1;
