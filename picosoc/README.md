@@ -76,3 +76,14 @@ The following settings for CRM/DDR/QSPI modes are valid:
 |   0 |    1 |   1 | EDh DDR Quad I/O Read | FFh       |
 |   1 |    1 |   1 | EDh DDR Quad I/O Read | A5h       |
 
+The following plot visualizes the relative performance of the different configurations:
+
+![](performance.png)
+
+Consult the datasheet for your SPI flash to learn which configurations are supported
+by the chip and what the maximum clock frequencies are for each configuration.
+
+For Quad I/O mode the QUAD flag in CR1V must be set before enabling Quad I/O in the
+SPI master. Either set it by writing the corresponding bit in CR1NV once, or by writing
+it from your device firmware at every bootup. (See `set_flash_qspi_flag()` in
+`firmware.c` for an example for the latter.)
