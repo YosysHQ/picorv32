@@ -5,13 +5,20 @@ PicoSoC - A simple example SoC using PicoRV32
 ![](overview.svg)
 
 This is a simple PicoRV32 example design that can run code directly from an SPI
-flash chip. This example design uses the Lattice iCE40-HX8K Breakout Board.
+flash chip. It can be used as a turn-key solution for simple control tasks in
+ASIC and FPGA designs.
 
-The flash is mapped to the memory region starting at 0x01000000. The reset
-vector is set to 0x01100000, i.e. at the 1MB offset inside the flash memory.
+An example implementation targeting the Lattice iCE40-HX8K Breakout Board is
+included.
 
-A small scratchpad memory (default 256 words, i.e. 1 kB) is mapped to address
-0x00000000.
+The flash is mapped to the memory regions starting at 0x00000000 and
+0x01000000, with the SRAM overlayed for the mapping at 0x00000000. The SRAM
+is just a small scratchpad memory (default 256 words, i.e. 1 kB).
+
+The reset vector is set to 0x00100000, i.e. at 1MB into in the flash memory.
+
+See the included demo firmware and linker script for how to build a firmware
+image for this system.
 
 Run `make test` to run the test bench (and create `testbench.vcd`).
 
@@ -46,8 +53,11 @@ physical SRAM will read from the corresponding addresses in serial flash.
 Reading from the UART Send/Recv Data Register will return the last received
 byte, or -1 (all 32 bits set) when the receive buffer is empty.
 
-The example design (hx8kdemo.v) and generic test bench (testbench.v) have 32
-GPIO pins mapped to the 32 bit word at address 0x03000000.
+The UART Clock Divider Register must be set to the system clock freuqency
+divided by the baud rate.
+
+The example design (hx8kdemo.v) has the 8 LEDs on the iCE40-HX8K Breakout Board
+mapped to the low byte of the 32 bit word at address 0x03000000.
 
 ### SPI Flash Controller Config Register:
 
@@ -89,3 +99,9 @@ For Quad I/O mode the QUAD flag in CR1V must be set before enabling Quad I/O in 
 SPI master. Either set it by writing the corresponding bit in CR1NV once, or by writing
 it from your device firmware at every bootup. (See `set_flash_qspi_flag()` in
 `firmware.c` for an example for the latter.)
+
+Note that some changes to the Lattice iCE40-HX8K Breakout Board are required to support
+the faster configurations: (1) The flash chip must be replaced with one that supports the
+faster read commands and (2) the IO2 and IO3 pins on the flash chip must be connected to
+the FPGA IO pins T9 and T8 (near the center of J3).
+
