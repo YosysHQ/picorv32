@@ -2,6 +2,8 @@
 PicoSoC - A simple example SoC using PicoRV32
 =============================================
 
+![](overview.svg)
+
 This is a simple PicoRV32 example design that can run code directly from an SPI
 flash chip. This example design uses the Lattice iCE40-HX8K Breakout Board.
 
