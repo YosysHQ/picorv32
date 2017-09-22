@@ -303,8 +303,8 @@ module picorv32 #(
 		(* parallel_case *)
 		case (1'b1)
 			ENABLE_PCPI && pcpi_ready: begin
-				pcpi_int_wr = pcpi_wr;
-				pcpi_int_rd = pcpi_rd;
+				pcpi_int_wr = ENABLE_PCPI ? pcpi_wr : 0;
+				pcpi_int_rd = ENABLE_PCPI ? pcpi_rd : 0;
 			end
 			(ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready: begin
 				pcpi_int_wr = pcpi_mul_wr;
