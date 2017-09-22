@@ -28,6 +28,10 @@ module picosoc (
 	output [31:0] iomem_wdata,
 	input  [31:0] iomem_rdata,
 
+	input  irq_5,
+	input  irq_6,
+	input  irq_7,
+
 	output ser_tx,
 	input  ser_rx,
 
@@ -52,6 +56,19 @@ module picosoc (
 	parameter integer MEM_WORDS = 256;
 	parameter [31:0] STACKADDR = (4*MEM_WORDS);       // end of memory
 	parameter [31:0] PROGADDR_RESET = 32'h 0010_0000; // 1 MB into flash
+
+	reg [31:0] irq;
+	wire irq_stall = 0;
+	wire irq_uart = 0;
+
+	always @* begin
+		irq = 0;
+		irq[3] = irq_stall;
+		irq[4] = irq_uart;
+		irq[5] = irq_5;
+		irq[6] = irq_6;
+		irq[7] = irq_7;
+	end
 
 	wire mem_valid;
 	wire mem_instr;
@@ -91,7 +108,14 @@ module picosoc (
 
 	picorv32 #(
 		.STACKADDR(STACKADDR),
-		.PROGADDR_RESET(PROGADDR_RESET)
+		.PROGADDR_RESET(PROGADDR_RESET),
+		.PROGADDR_IRQ(32'h 0000_0000),
+		.BARREL_SHIFTER(1),
+		.COMPRESSED_ISA(1),
+		.ENABLE_MUL(1),
+		.ENABLE_DIV(1),
+		.ENABLE_IRQ(1),
+		.ENABLE_IRQ_QREGS(0)
 	) cpu (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
@@ -101,7 +125,8 @@ module picosoc (
 		.mem_addr    (mem_addr   ),
 		.mem_wdata   (mem_wdata  ),
 		.mem_wstrb   (mem_wstrb  ),
-		.mem_rdata   (mem_rdata  )
+		.mem_rdata   (mem_rdata  ),
+		.irq         (irq        )
 	);
 
 	spimemio spimemio (

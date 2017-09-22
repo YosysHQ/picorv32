@@ -179,7 +179,7 @@ void cmd_read_flash_regs()
 
 // --------------------------------------------------------
 
-uint32_t cmd_benchmark(bool verbose)
+uint32_t cmd_benchmark(bool verbose, uint32_t *instns_p)
 {
 	uint8_t data[256];
 	uint32_t *words = (void*)data;
@@ -231,6 +231,9 @@ uint32_t cmd_benchmark(bool verbose)
 		putchar('\n');
 	}
 
+	if (instns_p)
+		*instns_p = instns_end - instns_begin;
+
 	return cycles_end - cycles_begin;
 }
 
@@ -238,10 +241,12 @@ uint32_t cmd_benchmark(bool verbose)
 
 void cmd_benchmark_all()
 {
+	uint32_t instns = 0;
+
 	print("default        ");
 	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
 	print(": ");
-	print_hex(cmd_benchmark(false), 8);
+	print_hex(cmd_benchmark(false, &instns), 8);
 	putchar('\n');
 
 	for (int i = 8; i > 0; i--)
@@ -254,7 +259,7 @@ void cmd_benchmark_all()
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
 
 		print(": ");
-		print_hex(cmd_benchmark(false), 8);
+		print_hex(cmd_benchmark(false, &instns), 8);
 		putchar('\n');
 	}
 
@@ -268,7 +273,7 @@ void cmd_benchmark_all()
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00500000;
 
 		print(": ");
-		print_hex(cmd_benchmark(false), 8);
+		print_hex(cmd_benchmark(false, &instns), 8);
 		putchar('\n');
 	}
 
@@ -282,7 +287,7 @@ void cmd_benchmark_all()
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
 
 		print(": ");
-		print_hex(cmd_benchmark(false), 8);
+		print_hex(cmd_benchmark(false, &instns), 8);
 		putchar('\n');
 	}
 
@@ -296,7 +301,7 @@ void cmd_benchmark_all()
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
 
 		print(": ");
-		print_hex(cmd_benchmark(false), 8);
+		print_hex(cmd_benchmark(false, &instns), 8);
 		putchar('\n');
 	}
 
@@ -310,7 +315,7 @@ void cmd_benchmark_all()
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
 
 		print(": ");
-		print_hex(cmd_benchmark(false), 8);
+		print_hex(cmd_benchmark(false, &instns), 8);
 		putchar('\n');
 	}
 
@@ -324,9 +329,13 @@ void cmd_benchmark_all()
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
 
 		print(": ");
-		print_hex(cmd_benchmark(false), 8);
+		print_hex(cmd_benchmark(false, &instns), 8);
 		putchar('\n');
 	}
+
+	print("instns         : ");
+	print_hex(instns, 8);
+	putchar('\n');
 }
 
 // --------------------------------------------------------
@@ -419,7 +428,7 @@ void main()
 				reg_spictrl = reg_spictrl ^ 0x00100000;
 				break;
 			case '9':
-				cmd_benchmark(true);
+				cmd_benchmark(true, 0);
 				break;
 			case '0':
 				cmd_benchmark_all();

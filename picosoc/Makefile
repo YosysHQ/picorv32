@@ -36,7 +36,7 @@ hx8kprog_fw: firmware.bin
 # ---- Example Firmware ----
 
 firmware.elf: sections.lds start.s firmware.c
-	riscv32-unknown-elf-gcc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf start.s firmware.c
+	riscv32-unknown-elf-gcc -march=rv32imc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf start.s firmware.c
 
 firmware.hex: firmware.elf
 	riscv32-unknown-elf-objcopy -O verilog firmware.elf /dev/stdout | sed -e '1 s/@00000000/@00100000/; 2,65537 d;' > firmware.hex

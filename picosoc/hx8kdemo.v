@@ -115,6 +115,10 @@ module hx8kdemo (
 		.flash_io2_di (flash_io2_di),
 		.flash_io3_di (flash_io3_di),
 
+		.irq_5        (1'b0        ),
+		.irq_6        (1'b0        ),
+		.irq_7        (1'b0        ),
+
 		.iomem_valid  (iomem_valid ),
 		.iomem_ready  (iomem_ready ),
 		.iomem_wstrb  (iomem_wstrb ),
