@@ -17,6 +17,12 @@
  *
  */
 
+`ifdef PICORV32_V
+`error "picosoc.v must be read before picorv32.v!"
+`endif
+
+`define PICORV32_REGS picosoc_regs
+
 module picosoc (
 	input clk,
 	input resetn,
@@ -82,7 +88,7 @@ module picosoc (
 	wire [31:0] spimem_rdata;
 
 	reg ram_ready;
-	reg [31:0] ram_rdata;
+	wire [31:0] ram_rdata;
 
 	assign iomem_valid = mem_valid && (mem_addr[31:24] > 8'h 01);
 	assign iomem_wstrb = mem_wstrb;
@@ -178,17 +184,56 @@ module picosoc (
 		.reg_dat_wait(simpleuart_reg_dat_wait)
 	);
 
-	reg [31:0] memory [0:MEM_WORDS-1];
+	always @(posedge clk)
+		ram_ready <= mem_valid && !mem_ready && mem_addr < 4*MEM_WORDS;
+
+	picosoc_mem #(.WORDS(MEM_WORDS)) memory (
+		.clk(clk),
+		.wen((mem_valid && !mem_ready && mem_addr < 4*MEM_WORDS) ? mem_wstrb : 4'b0),
+		.addr(mem_addr[23:2]),
+		.wdata(mem_wdata),
+		.rdata(ram_rdata)
+	);
+endmodule
+
+// Implementation note:
+// Replace the following two modules with wrappers for your SRAM cells.
+
+module picosoc_regs (
+	input clk, wen,
+	input [5:0] waddr,
+	input [5:0] raddr1,
+	input [5:0] raddr2,
+	input [31:0] wdata,
+	output [31:0] rdata1,
+	output [31:0] rdata2
+);
+	reg [31:0] regs [0:31];
+
+	always @(posedge clk)
+		if (wen) regs[waddr[4:0]] <= wdata;
+
+	assign rdata1 = regs[raddr1[4:0]];
+	assign rdata2 = regs[raddr2[4:0]];
+endmodule
+
+module picosoc_mem #(
+	parameter integer WORDS = 256
+) (
+	input clk,
+	input [3:0] wen,
+	input [21:0] addr,
+	input [31:0] wdata,
+	output reg [31:0] rdata
+);
+	reg [31:0] mem [0:WORDS-1];
 
 	always @(posedge clk) begin
-		ram_ready <= 0;
-		if (mem_valid && !mem_ready && mem_addr < 4*MEM_WORDS) begin
-			ram_ready <= 1;
-			ram_rdata <= memory[mem_addr >> 2];
-			if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
-			if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
-			if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
-			if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
-		end
+		rdata <= mem[addr];
+		if (wen[0]) mem[addr][ 7: 0] <= wdata[ 7: 0];
+		if (wen[1]) mem[addr][15: 8] <= wdata[15: 8];
+		if (wen[2]) mem[addr][23:16] <= wdata[23:16];
+		if (wen[3]) mem[addr][31:24] <= wdata[31:24];
 	end
 endmodule
+

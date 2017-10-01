@@ -42,6 +42,14 @@
   `define assert(assert_expr) empty_statement
 `endif
 
+// uncomment this for register file in extra module
+// `define PICORV32_REGS picorv32_regs
+
+// this macro can be used to check if the verilog files in your
+// design are read in the correct order.
+`define PICORV32_V
+
+
 /***************************************************************
  * picorv32
  ***************************************************************/
@@ -149,7 +157,6 @@ module picorv32 #(
 
 	reg [63:0] count_cycle, count_instr;
 	reg [31:0] reg_pc, reg_next_pc, reg_op1, reg_op2, reg_out;
-	reg [31:0] cpuregs [0:regfile_size-1];
 	reg [4:0] reg_sh;
 
 	reg [31:0] next_insn_opcode;
@@ -175,6 +182,9 @@ module picorv32 #(
 	reg [31:0] irq_pending;
 	reg [31:0] timer;
 
+`ifndef PICORV32_REGS
+	reg [31:0] cpuregs [0:regfile_size-1];
+
 	integer i;
 	initial begin
 		if (REGS_INIT_ZERO) begin
@@ -182,6 +192,7 @@ module picorv32 #(
 				cpuregs[i] = 0;
 		end
 	end
+`endif
 
 	task empty_statement;
 		// This task is used by the `assert directive in non-formal mode to
@@ -1300,6 +1311,7 @@ module picorv32 #(
 		end
 	end
 
+`ifndef PICORV32_REGS
 	always @(posedge clk) begin
 		if (resetn && cpuregs_write && latched_rd)
 			cpuregs[latched_rd] <= cpuregs_wrdata;
@@ -1325,6 +1337,37 @@ module picorv32 #(
 			cpuregs_rs2 = cpuregs_rs1;
 		end
 	end
+`else
+	wire[31:0] cpuregs_rdata1;
+	wire[31:0] cpuregs_rdata2;
+
+	wire [5:0] cpuregs_waddr = latched_rd;
+	wire [5:0] cpuregs_raddr1 = ENABLE_REGS_DUALPORT ? decoded_rs1 : decoded_rs;
+	wire [5:0] cpuregs_raddr2 = ENABLE_REGS_DUALPORT ? decoded_rs2 : 0;
+
+	`PICORV32_REGS cpuregs (
+		.clk(clk),
+		.wen(resetn && cpuregs_write && latched_rd),
+		.waddr(cpuregs_waddr),
+		.raddr1(cpuregs_raddr1),
+		.raddr2(cpuregs_raddr2),
+		.wdata(cpuregs_wrdata),
+		.rdata1(cpuregs_rdata1),
+		.rdata2(cpuregs_rdata2)
+	);
+
+	always @* begin
+		decoded_rs = 'bx;
+		if (ENABLE_REGS_DUALPORT) begin
+			cpuregs_rs1 = decoded_rs1 ? cpuregs_rdata1 : 0;
+			cpuregs_rs2 = decoded_rs2 ? cpuregs_rdata2 : 0;
+		end else begin
+			decoded_rs = (cpu_state == cpu_state_ld_rs2) ? decoded_rs2 : decoded_rs1;
+			cpuregs_rs1 = decoded_rs ? cpuregs_rdata1 : 0;
+			cpuregs_rs2 = cpuregs_rs1;
+		end
+	end
+`endif
 
 	assign launch_next_insn = cpu_state == cpu_state_fetch && decoder_trigger && (!ENABLE_IRQ || irq_delay || irq_active || !(irq_pending & ~irq_mask));
 
@@ -2049,6 +2092,29 @@ module picorv32 #(
 		end
 	end
 `endif
+endmodule
+
+// This is a simple example implementation of PICORV32_REGS.
+// Use the PICORV32_REGS mechanism if you want to use custom
+// memory resources to implement the processor register file.
+// Note that your implementation must match the requirements of
+// the PicoRV32 configuration. (e.g. QREGS, etc)
+module picorv32_regs (
+	input clk, wen,
+	input [5:0] waddr,
+	input [5:0] raddr1,
+	input [5:0] raddr2,
+	input [31:0] wdata,
+	output [31:0] rdata1,
+	output [31:0] rdata2
+);
+	reg [31:0] regs [0:30];
+
+	always @(posedge clk)
+		if (wen) regs[~waddr[4:0]] <= wdata;
+
+	assign rdata1 = regs[~raddr1[4:0]];
+	assign rdata2 = regs[~raddr2[4:0]];
 endmodule
 
 

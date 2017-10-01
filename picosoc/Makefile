@@ -52,11 +52,16 @@ spiflash_tb: spiflash_tb.vvp firmware.hex
 spiflash_tb.vvp: spiflash.v spiflash_tb.v
 	iverilog -s testbench -o $@ $^
 
+# ---- ASIC Synthesis Tests ----
+
+cmos.log: spimemio.v simpleuart.v picosoc.v ../picorv32.v
+	yosys -l cmos.log -p 'synth -top picosoc; abc -g cmos2; opt -fast; stat' $^
+
 # ---- Clean ----
 
 clean:
 	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
-	rm -f firmware.elf firmware.hex firmware.bin
+	rm -f firmware.elf firmware.hex firmware.bin cmos.log
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 
