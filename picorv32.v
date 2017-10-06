@@ -2331,10 +2331,10 @@ module picorv32_pcpi_fast_mul #(
 	assign pcpi_ready = active[EXTRA_MUL_FFS ? 3 : 1];
 `ifdef RISCV_FORMAL_ALTOPS
 	assign pcpi_rd =
-			instr_mul    ? (pcpi_rs1 + pcpi_rs2) ^ 32'h4d554c01 :
-			instr_mulh   ? (pcpi_rs1 + pcpi_rs2) ^ 32'h4d554c02 :
-			instr_mulhsu ? (pcpi_rs1 - pcpi_rs2) ^ 32'h4d554c03 :
-			instr_mulhu  ? (pcpi_rs1 + pcpi_rs2) ^ 32'h4d554c04 : 1'bx;
+			instr_mul    ? (pcpi_rs1 + pcpi_rs2) ^ 32'h5876063e :
+			instr_mulh   ? (pcpi_rs1 + pcpi_rs2) ^ 32'hf6583fb7 :
+			instr_mulhsu ? (pcpi_rs1 - pcpi_rs2) ^ 32'hecfbe137 :
+			instr_mulhu  ? (pcpi_rs1 + pcpi_rs2) ^ 32'h949ce5e8 : 1'bx;
 `else
 	assign pcpi_rd = shift_out ? (EXTRA_MUL_FFS ? rd_q : rd) >> 32 : (EXTRA_MUL_FFS ? rd_q : rd);
 `endif
@@ -2411,10 +2411,10 @@ module picorv32_pcpi_div (
 			pcpi_wr <= 1;
 `ifdef RISCV_FORMAL_ALTOPS
 			case (1)
-				instr_div:  pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h44495601;
-				instr_divu: pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h44495602;
-				instr_rem:  pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h52454D01;
-				instr_remu: pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h52454D02;
+				instr_div:  pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h7f8529ec;
+				instr_divu: pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h10e8fd70;
+				instr_rem:  pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h8da68fa5;
+				instr_remu: pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h3138d0e1;
 			endcase
 `else
 			if (instr_div || instr_divu)
