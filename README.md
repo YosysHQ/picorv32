@@ -685,7 +685,7 @@ for an example of how to do that.
 Evaluation: Timing and Utilization on Xilinx 7-Series FPGAs
 -----------------------------------------------------------
 
-The following evaluations have been performed with Vivado 2017.2.
+The following evaluations have been performed with Vivado 2017.3.
 
 #### Timing on Xilinx 7-Series FPGAs
 
@@ -699,14 +699,14 @@ See `make table.txt` in [scripts/vivado/](scripts/vivado/).
 | Device                    | Device               | Speedgrade | Clock Period (Freq.) |
 |:------------------------- |:---------------------|:----------:| --------------------:|
 | Xilinx Kintex-7T          | xc7k70t-fbg676-2     | -2         |     2.4 ns (416 MHz) |
-| Xilinx Kintex-7T          | xc7k70t-fbg676-3     | -3         |     2.3 ns (434 MHz) |
+| Xilinx Kintex-7T          | xc7k70t-fbg676-3     | -3         |     2.2 ns (454 MHz) |
 | Xilinx Virtex-7T          | xc7v585t-ffg1761-2   | -2         |     2.3 ns (434 MHz) |
-| Xilinx Virtex-7T          | xc7v585t-ffg1761-3   | -3         |     2.3 ns (434 MHz) |
-| Xilinx Kintex UltraScale  | xcku035-fbva676-2-e  | -2         |     2.1 ns (476 MHz) |
+| Xilinx Virtex-7T          | xc7v585t-ffg1761-3   | -3         |     2.2 ns (454 MHz) |
+| Xilinx Kintex UltraScale  | xcku035-fbva676-2-e  | -2         |     2.0 ns (500 MHz) |
 | Xilinx Kintex UltraScale  | xcku035-fbva676-3-e  | -3         |     1.8 ns (555 MHz) |
-| Xilinx Virtex UltraScale  | xcvu065-ffvc1517-2-e | -2         |     1.9 ns (526 MHz) |
-| Xilinx Virtex UltraScale  | xcvu065-ffvc1517-3-e | -3         |     1.8 ns (555 MHz) |
-| Xilinx Kintex UltraScale+ | xcku3p-ffva676-2-e   | -2         |     1.5 ns (666 MHz) |
+| Xilinx Virtex UltraScale  | xcvu065-ffvc1517-2-e | -2         |     2.1 ns (476 MHz) |
+| Xilinx Virtex UltraScale  | xcvu065-ffvc1517-3-e | -3         |     2.0 ns (500 MHz) |
+| Xilinx Kintex UltraScale+ | xcku3p-ffva676-2-e   | -2         |     1.4 ns (714 MHz) |
 | Xilinx Kintex UltraScale+ | xcku3p-ffva676-3-e   | -3         |     1.3 ns (769 MHz) |
 | Xilinx Virtex UltraScale+ | xcvu3p-ffvc1517-2-e  | -2         |     1.5 ns (666 MHz) |
 | Xilinx Virtex UltraScale+ | xcvu3p-ffvc1517-3-e  | -3         |     1.4 ns (714 MHz) |
@@ -729,7 +729,7 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 
 | Core Variant       | Slice LUTs | LUTs as Memory | Slice Registers |
 |:------------------ | ----------:| --------------:| ---------------:|
-| PicoRV32 (small)   |        757 |             48 |             442 |
-| PicoRV32 (regular) |        910 |             48 |             583 |
-| PicoRV32 (large)   |       2090 |             88 |            1085 |
+| PicoRV32 (small)   |        761 |             48 |             442 |
+| PicoRV32 (regular) |        917 |             48 |             583 |
+| PicoRV32 (large)   |       2019 |             88 |            1085 |
 
