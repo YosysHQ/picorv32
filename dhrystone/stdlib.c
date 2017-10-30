@@ -26,7 +26,7 @@ int heap_memory_used = 0;
 long time()
 {
 	int cycles;
-	asm("rdcycle %0" : "=r"(cycles));
+	asm volatile ("rdcycle %0" : "=r"(cycles));
 	// printf("[time() -> %d]", cycles);
 	return cycles;
 }
@@ -34,7 +34,7 @@ long time()
 long insn()
 {
 	int insns;
-	asm("rdinstret %0" : "=r"(insns));
+	asm volatile ("rdinstret %0" : "=r"(insns));
 	// printf("[insn() -> %d]", insns);
 	return insns;
 }
@@ -46,7 +46,7 @@ char *malloc(int size)
 	// printf("[malloc(%d) -> %d (%d..%d)]", size, (int)p, heap_memory_used, heap_memory_used + size);
 	heap_memory_used += size;
 	if (heap_memory_used > 1024)
-		asm("ebreak");
+		asm volatile ("ebreak");
 	return p;
 }
 
