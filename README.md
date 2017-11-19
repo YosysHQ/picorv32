@@ -632,7 +632,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout e9f5458
+    git checkout bf5697a
     git submodule update --init --recursive
 
     mkdir build; cd build
@@ -661,7 +661,7 @@ By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.
 
-*Note: This instructions are for git rev e9f5458 (2017-10-14) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev bf5697a (2017-11-18) of riscv-gnu-toolchain.*
 
 
 Linking binaries with newlib for PicoRV32
