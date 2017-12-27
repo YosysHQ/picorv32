@@ -87,7 +87,6 @@ module picorv32_wrapper #(
 
 	wb_ram #(
 		.depth (16384 * 4),
-		.memfile ("firmware/firmware.hex"),
 		.VERBOSE (VERBOSE)
 	) ram ( // Wishbone interface
 		.wb_clk_i(wb_clk),
@@ -138,6 +137,13 @@ module picorv32_wrapper #(
 		.wbm_we_o(wb_m2s_we),
 		.wbm_sel_o(wb_m2s_sel)
 	);
+
+	reg [1023:0] firmware_file;
+	initial begin
+		if (!$value$plusargs("firmware=%s", firmware_file))
+			firmware_file = "firmware/firmware.hex";
+		$readmemh(firmware_file, ram.mem);
+	end
 
 	integer cycle_counter;
 	always @(posedge wb_clk) begin
