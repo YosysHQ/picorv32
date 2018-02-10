@@ -636,7 +636,7 @@ module picorv32 #(
 	wire instr_trap;
 
 	reg [regindex_bits-1:0] decoded_rd, decoded_rs1, decoded_rs2;
-	reg [31:0] decoded_imm, decoded_imm_uj;
+	reg signed [31:0] decoded_imm, decoded_imm_uj;
 	reg decoder_trigger;
 	reg decoder_trigger_q;
 	reg decoder_pseudo_trigger;
