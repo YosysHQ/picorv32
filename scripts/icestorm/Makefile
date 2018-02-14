@@ -35,7 +35,7 @@ example_sim_vcd: example_tb.vvp
 	vvp -N example_tb.vvp +vcd
 
 synth_tb.vvp: example_tb.v synth.blif
-	iverilog -o synth_tb.vvp -s testbench synth.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
+	iverilog -o synth_tb.vvp -s testbench synth.v example_tb.v `yosys-config --datdir/ice40/cells_sim.v`
 	chmod -x synth_tb.vvp
 
 synth_sim: synth_tb.vvp
@@ -48,7 +48,7 @@ route.v: example.asc
 	icebox_vlog -L -n top -sp example.pcf example.asc > route.v
 
 route_tb.vvp: example_tb.v route.v
-	iverilog -o route_tb.vvp -s testbench route.v example_tb.v /usr/local/share/yosys/ice40/cells_sim.v
+	iverilog -o route_tb.vvp -s testbench route.v example_tb.v `yosys-config --datdir/ice40/cells_sim.v`
 	chmod -x route_tb.vvp
 
 route_sim: route_tb.vvp
