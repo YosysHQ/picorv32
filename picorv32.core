@@ -1,0 +1,78 @@
+CAPI=2:
+name : ::picorv32:0-r1
+
+filesets:
+  rtl:
+    files: [picorv32.v]
+    file_type : verilogSource
+  tb:
+    files: [testbench.v]
+    file_type : verilogSource
+    depend:
+  tb_ez:
+    files: [testbench_ez.v]
+    file_type : verilogSource
+  tb_wb:
+    files: [testbench_wb.v]
+    file_type : verilogSource
+  tb_verilator:
+    files:
+      - testbench.cc : {file_type : cppSource}
+
+targets:
+  default:
+    filesets: [rtl]
+  lint:
+    filesets: [rtl]
+    default_tool : verilator
+    tools:
+      verilator:
+        mode : lint-only
+    toplevel : [picorv32_axi]
+  test:
+    default_tool: icarus
+    filesets: [rtl, tb, "tool_verilator? (tb_verilator)"]
+    parameters: [COMPRESSED_ISA, axi_test, firmware, noerror, trace, vcd, verbose]
+    toplevel:
+      - "tool_verilator?  (picorv32_wrapper)"
+      - "!tool_verilator? (testbench)"
+      
+    tools:
+      verilator :
+        cli_parser : fusesoc
+        mode : cc
+        verilator_options : [-Wno-fatal, --trace]
+  test_ez:
+    default_tool: icarus
+    filesets: [rtl, tb_ez]
+    parameters: [vcd]
+    toplevel: [testbench]
+  test_wb:
+    default_tool: icarus
+    filesets: [rtl, tb_wb]
+    parameters: [COMPRESSED_ISA, firmware, noerror, trace, vcd]
+    toplevel: [testbench]
+
+parameters:
+  COMPRESSED_ISA:
+    datatype  : str
+    default   : 1
+    paramtype : vlogdefine
+  axi_test:
+    datatype  :  bool
+    paramtype : plusarg
+  firmware:
+    datatype  :  file
+    paramtype : plusarg
+  noerror:
+    datatype  :  bool
+    paramtype : plusarg
+  trace:
+    datatype  : bool
+    paramtype : plusarg
+  vcd:
+    datatype  : bool
+    paramtype : plusarg
+  verbose:
+    datatype : bool
+    paramtype : plusarg
