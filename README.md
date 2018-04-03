@@ -359,9 +359,9 @@ any other ALU operation.
 The following dhrystone benchmark results are for a core with enabled
 `ENABLE_FAST_MUL`, `ENABLE_DIV`, and `BARREL_SHIFTER` options.
 
-Dhrystone benchmark results: 0.521 DMIPS/MHz (916 Dhrystones/Second/MHz)
+Dhrystone benchmark results: 0.516 DMIPS/MHz (908 Dhrystones/Second/MHz)
 
-For the Dhrystone benchmark the average CPI is 4.081.
+For the Dhrystone benchmark the average CPI is 4.100.
 
 Without using the look-ahead memory interface (usually required for max
 clock speed), this results drop to 0.305 DMIPS/MHz and 5.232 CPI.
@@ -632,7 +632,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
 
     git clone https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-rv32i
     cd riscv-gnu-toolchain-rv32i
-    git checkout bf5697a
+    git checkout 1b80cbe
     git submodule update --init --recursive
 
     mkdir build; cd build
@@ -661,7 +661,7 @@ By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.
 
-*Note: This instructions are for git rev bf5697a (2017-11-18) of riscv-gnu-toolchain.*
+*Note: This instructions are for git rev 1b80cbe (2010-04-01) of riscv-gnu-toolchain.*
 
 
 Linking binaries with newlib for PicoRV32

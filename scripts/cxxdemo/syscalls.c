@@ -1,5 +1,5 @@
 // An extremely minimalist syscalls.c for newlib
-// Based on riscv newlib libgloss/riscv/machine/syscall.h
+// Based on riscv newlib libgloss/riscv/sys_*.c
 // Written by Clifford Wolf.
 
 #include <sys/stat.h>
@@ -11,31 +11,31 @@
 asm (
 	".text\n"
 	".align 2\n"
-	UNIMPL_FUNC(open)
-	UNIMPL_FUNC(openat)
-	UNIMPL_FUNC(lseek)
-	UNIMPL_FUNC(stat)
-	UNIMPL_FUNC(lstat)
-	UNIMPL_FUNC(fstatat)
-	UNIMPL_FUNC(isatty)
-	UNIMPL_FUNC(access)
-	UNIMPL_FUNC(faccessat)
-	UNIMPL_FUNC(link)
-	UNIMPL_FUNC(unlink)
-	UNIMPL_FUNC(execve)
-	UNIMPL_FUNC(getpid)
-	UNIMPL_FUNC(fork)
-	UNIMPL_FUNC(kill)
-	UNIMPL_FUNC(wait)
-	UNIMPL_FUNC(times)
-	UNIMPL_FUNC(gettimeofday)
-	UNIMPL_FUNC(ftime)
-	UNIMPL_FUNC(utime)
-	UNIMPL_FUNC(chown)
-	UNIMPL_FUNC(chmod)
-	UNIMPL_FUNC(chdir)
-	UNIMPL_FUNC(getcwd)
-	UNIMPL_FUNC(sysconf)
+	UNIMPL_FUNC(_open)
+	UNIMPL_FUNC(_openat)
+	UNIMPL_FUNC(_lseek)
+	UNIMPL_FUNC(_stat)
+	UNIMPL_FUNC(_lstat)
+	UNIMPL_FUNC(_fstatat)
+	UNIMPL_FUNC(_isatty)
+	UNIMPL_FUNC(_access)
+	UNIMPL_FUNC(_faccessat)
+	UNIMPL_FUNC(_link)
+	UNIMPL_FUNC(_unlink)
+	UNIMPL_FUNC(_execve)
+	UNIMPL_FUNC(_getpid)
+	UNIMPL_FUNC(_fork)
+	UNIMPL_FUNC(_kill)
+	UNIMPL_FUNC(_wait)
+	UNIMPL_FUNC(_times)
+	UNIMPL_FUNC(_gettimeofday)
+	UNIMPL_FUNC(_ftime)
+	UNIMPL_FUNC(_utime)
+	UNIMPL_FUNC(_chown)
+	UNIMPL_FUNC(_chmod)
+	UNIMPL_FUNC(_chdir)
+	UNIMPL_FUNC(_getcwd)
+	UNIMPL_FUNC(_sysconf)
 	"j unimplemented_syscall\n"
 );
 
@@ -48,13 +48,13 @@ void unimplemented_syscall()
 	__builtin_unreachable();
 }
 
-ssize_t read(int file, void *ptr, size_t len)
+ssize_t _read(int file, void *ptr, size_t len)
 {
 	// always EOF
 	return 0;
 }
 
-ssize_t write(int file, const void *ptr, size_t len)
+ssize_t _write(int file, const void *ptr, size_t len)
 {
 	const void *eptr = ptr + len;
 	while (ptr != eptr)
@@ -62,20 +62,20 @@ ssize_t write(int file, const void *ptr, size_t len)
 	return len;
 }
 
-int close(int file)
+int _close(int file)
 {
 	// close is called before _exit()
 	return 0;
 }
 
-int fstat(int file, struct stat *st)
+int _fstat(int file, struct stat *st)
 {
 	// fstat is called during libc startup
 	errno = ENOENT;
 	return -1;
 }
 
-void *sbrk(ptrdiff_t incr)
+void *_sbrk(ptrdiff_t incr)
 {
 	extern unsigned char _end[];	// Defined by linker
 	static unsigned long heap_end;
