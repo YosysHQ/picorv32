@@ -661,7 +661,7 @@ By default calling any of those make targets will (re-)download the toolchain
 sources. Run `make download-tools` to download the sources to `/var/cache/distfiles/`
 once in advance.
 
-*Note: This instructions are for git rev 1b80cbe (2010-04-01) of riscv-gnu-toolchain.*
+*Note: These instructions are for git rev 1b80cbe (2018-01-31) of riscv-gnu-toolchain.*
 
 
 Linking binaries with newlib for PicoRV32

@@ -1,7 +1,7 @@
 
 Synthesis results for the PicoRV32 core (in its default configuration) with Yosys 0.5+383 (git sha1 8648089), Synplify Pro and Lattice LSE from iCEcube2.2014.08, and Xilinx Vivado 2015.3.
 
-No timing contraints where used for synthesis; only resource utilisation is compared.
+No timing constraints were used for synthesis; only resource utilisation is compared.
 
 Last updated: 2015-10-30
 

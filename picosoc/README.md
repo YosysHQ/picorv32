@@ -53,7 +53,7 @@ physical SRAM will read from the corresponding addresses in serial flash.
 Reading from the UART Send/Recv Data Register will return the last received
 byte, or -1 (all 32 bits set) when the receive buffer is empty.
 
-The UART Clock Divider Register must be set to the system clock freuqency
+The UART Clock Divider Register must be set to the system clock frequency
 divided by the baud rate.
 
 The example design (hx8kdemo.v) has the 8 LEDs on the iCE40-HX8K Breakout Board

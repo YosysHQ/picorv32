@@ -1,5 +1,5 @@
 // An extremely minimalist syscalls.c for newlib
-// Based on riscv newlib libgloss/riscv/machine/syscall.h
+// Based on riscv newlib libgloss/riscv/sys_*.c
 // Written by Clifford Wolf.
 
 #include <sys/stat.h>
