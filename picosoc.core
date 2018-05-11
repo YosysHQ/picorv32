@@ -1,0 +1,17 @@
+CAPI=2:
+
+name : ::picosoc:0
+
+filesets:
+  picosoc:
+    files:
+      - picosoc/simpleuart.v
+      - picosoc/spimemio.v
+      - picosoc/picosoc_regs.v
+      - picosoc/picosoc.v
+    file_type : verilogSource
+    depend : [picorv32]
+
+targets:
+  default:
+    filesets : [picosoc]
