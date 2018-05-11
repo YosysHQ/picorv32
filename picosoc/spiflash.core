@@ -1,0 +1,24 @@
+CAPI=2:
+
+name : ::spiflash:0
+
+filesets:
+  model:
+    files : [spiflash.v]
+    file_type : verilogSource
+  tb:
+    files : [spiflash_tb.v]
+    file_type : verilogSource
+
+targets:
+  default:
+    default_tool : icarus
+    filesets : [model, "is_toplevel? (tb)"]
+    parameters : [firmware]
+    toplevel : [testbench]
+
+parameters :
+  firmware:
+    datatype    : file
+    description : Initial SPI Flash contents (in verilog hex format)
+    paramtype   : plusarg
