@@ -25,16 +25,17 @@ Run `make test` to run the test bench (and create `testbench.vcd`).
 Run `make prog` to build the configuration bit-stream and firmware images
 and upload them to a connected iCE40-HX8K Breakout Board.
 
-| File                          | Description                                                     |
-| ----------------------------- | --------------------------------------------------------------- |
-| [picosoc.v](picosoc.v)        | Top-level PicoSoC Verilog module                                |
-| [spimemio.v](spimemio.v)      | Memory controller that interfaces to external SPI flash         |
-| [simpleuart.v](simpleuart.v)  | Simple UART core connected directly to SoC TX/RX lines          |
-| [start.s](start.s)            | Assembler source for firmware.hex/firmware.bin                  |
-| [firmware.c](firmware.c)      | C source for firmware.hex/firmware.bin                          |
-| [sections.lds](sections.lds)  | Linker script for firmware.hex/firmware.bin                     |
-| [hx8kdemo.v](hx8kdemo.v)      | FPGA-based example implementation on iCE40-HX8K Breakout Board  |
-| [hx8kdemo.pcf](hx8kdemo.pcf)  | Pin constraints for implementation on iCE40-HX8K Breakout Board |
+| File                             | Description                                                     |
+| -------------------------------- | --------------------------------------------------------------- |
+| [picosoc.v](picosoc.v)           | Top-level PicoSoC Verilog module                                |
+| [picosoc_regs.v](picosoc_regs.v) | Default register file implementation for picorv32               |
+| [spimemio.v](spimemio.v)         | Memory controller that interfaces to external SPI flash         |
+| [simpleuart.v](simpleuart.v)     | Simple UART core connected directly to SoC TX/RX lines          |
+| [start.s](start.s)               | Assembler source for firmware.hex/firmware.bin                  |
+| [firmware.c](firmware.c)         | C source for firmware.hex/firmware.bin                          |
+| [sections.lds](sections.lds)     | Linker script for firmware.hex/firmware.bin                     |
+| [hx8kdemo.v](hx8kdemo.v)         | FPGA-based example implementation on iCE40-HX8K Breakout Board  |
+| [hx8kdemo.pcf](hx8kdemo.pcf)     | Pin constraints for implementation on iCE40-HX8K Breakout Board |
 
 ### Memory map:
 

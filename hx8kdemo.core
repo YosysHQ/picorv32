@@ -1,0 +1,40 @@
+CAPI=2:
+
+name : ::hx8kdemo:0
+
+filesets:
+  hx8kdemo:
+    files: [picosoc/hx8kdemo.v]
+    file_type : verilogSource
+    depend : [picosoc]
+  hx8ksim:
+    files:
+      - picosoc/hx8kdemo_tb.v
+    file_type : verilogSource
+    depend : [spiflash]
+  modelsim_cells:
+    files: [picosoc/vlog_cells_sim.tcl : {file_type : tclSource}]
+
+  constraints:
+    files: [picosoc/hx8kdemo.pcf]
+    file_type : PCF
+
+targets:
+  synth:
+    default_tool : icestorm
+    filesets : [constraints, hx8kdemo]
+    tools:
+      icestorm:
+        arachne_pnr_options : [-d, 8k]
+    toplevel : [hx8kdemo]
+  sim:
+    default_tool : icarus
+    filesets : ["tool_modelsim? (modelsim_cells)", hx8kdemo, hx8ksim]
+    tools:
+      icarus:
+        iverilog_options:
+          ["`yosys-config --datdir/ice40/cells_sim.v`"]
+      xsim:
+        xelab_options:
+          [--relax, "--sourcelibfile `yosys-config --datdir/ice40/cells_sim.v`"]
+    toplevel : [testbench]
