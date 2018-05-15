@@ -98,8 +98,11 @@ module spiflash (
 	// 16 MB (128Mb) Flash
 	reg [7:0] memory [0:16*1024*1024-1];
 
+	reg [1023:0] firmware_file;
 	initial begin
-		$readmemh("firmware.hex", memory);
+		if (!$value$plusargs("firmware=%s", firmware_file))
+			firmware_file = "firmware.hex";
+		$readmemh(firmware_file, memory);
 	end
 
 	task spi_action;
