@@ -17,11 +17,12 @@
  *
  */
 
-`ifdef PICORV32_V
-`error "picosoc.v must be read before picorv32.v!"
+//Implementation note:
+//`define PICORV32_REGS to the name of the module implementing the register file,
+// e.g. your SRAM cell wrappers, or set to picorv32_regs to use the picorv32-internal implementation.
+`ifndef PICORV32_REGS
+`error "PICORV32_REGS must be defined to the module name of a valid implementation of the cpuregs module!"
 `endif
-
-`define PICORV32_REGS picosoc_regs
 
 module picosoc (
 	input clk,
@@ -197,25 +198,7 @@ module picosoc (
 endmodule
 
 // Implementation note:
-// Replace the following two modules with wrappers for your SRAM cells.
-
-module picosoc_regs (
-	input clk, wen,
-	input [5:0] waddr,
-	input [5:0] raddr1,
-	input [5:0] raddr2,
-	input [31:0] wdata,
-	output [31:0] rdata1,
-	output [31:0] rdata2
-);
-	reg [31:0] regs [0:31];
-
-	always @(posedge clk)
-		if (wen) regs[waddr[4:0]] <= wdata;
-
-	assign rdata1 = regs[raddr1[4:0]];
-	assign rdata2 = regs[raddr2[4:0]];
-endmodule
+// Replace the following module with wrappers for your SRAM cells.
 
 module picosoc_mem #(
 	parameter integer WORDS = 256
