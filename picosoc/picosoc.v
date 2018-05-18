@@ -17,11 +17,13 @@
  *
  */
 
+`ifndef PICORV32_REGS
 `ifdef PICORV32_V
 `error "picosoc.v must be read before picorv32.v!"
 `endif
 
 `define PICORV32_REGS picosoc_regs
+`endif
 
 module picosoc (
 	input clk,
