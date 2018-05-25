@@ -281,7 +281,7 @@ Support for the timer is always disabled when ENABLE_IRQ is set to 0.
 #### ENABLE_TRACE (default = 0)
 
 Produce an execution trace using the `trace_valid` and `trace_data` output ports.
-For a demontration of this feature run `make testbench.vcd` to create a trace file
+For a demontration of this feature run `make test_vcd` to create a trace file
 and then run `python3 showtrace.py testbench.trace firmware/firmware.elf` to decode
 it.
 

@@ -11,7 +11,7 @@ with subprocess.Popen(["riscv32-unknown-elf-objdump", "-d", elf_filename], stdou
     while True:
         line = proc.stdout.readline().decode("ascii")
         if line == '': break
-        match = re.match(r'^\s*([0-9a-f]+):\s+(\S+)\s*(.*)', line)
+        match = re.match(r'^\s*([0-9a-f]+):\s+([0-9a-f]+)\s*(.*)', line)
         if match: insns[int(match.group(1), 16)] = (int(match.group(2), 16), match.group(3).replace("\t", " "))
 
 with open(trace_filename, "r") as f:
