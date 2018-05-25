@@ -43,6 +43,9 @@ test_axi: testbench.vvp firmware/firmware.hex
 test_synth: testbench_synth.vvp firmware/firmware.hex
 	vvp -N $<
 
+test_verilator: testbench_verilator firmware/firmware.hex
+	./testbench_verilator
+
 testbench.vvp: testbench.v picorv32.v
 	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
@@ -66,6 +69,11 @@ testbench_sp.vvp: testbench.v picorv32.v
 testbench_synth.vvp: testbench.v synth.v
 	iverilog -o $@ -DSYNTH_TEST $^
 	chmod -x $@
+
+testbench_verilator: testbench.v picorv32.v
+	verilator -Wno-lint -Wno-MULTIDRIVEN -trace --top-module picorv32_wrapper --cc testbench.v picorv32.v --exe testbench.cc $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA))
+	$(MAKE) -C obj_dir -f Vpicorv32_wrapper.mk
+	cp obj_dir/Vpicorv32_wrapper testbench_verilator
 
 check: check-yices
 
