@@ -275,30 +275,32 @@ module axi4_memory #(
 	parameter AXI_TEST = 0,
 	parameter VERBOSE = 0
 ) (
+	/* verilator lint_off MULTIDRIVEN */
+
 	input             clk,
 	input             mem_axi_awvalid,
-	output reg        mem_axi_awready = 0,
-	input [31:0]      mem_axi_awaddr,
-	input [ 2:0]      mem_axi_awprot,
+	output reg        mem_axi_awready,
+	input      [31:0] mem_axi_awaddr,
+	input      [ 2:0] mem_axi_awprot,
 
-	input            mem_axi_wvalid,
-	output reg       mem_axi_wready = 0,
-	input [31:0]     mem_axi_wdata,
-	input [ 3:0]     mem_axi_wstrb,
+	input             mem_axi_wvalid,
+	output reg        mem_axi_wready,
+	input      [31:0] mem_axi_wdata,
+	input      [ 3:0] mem_axi_wstrb,
 
-	output reg       mem_axi_bvalid = 0,
-	input            mem_axi_bready,
+	output reg        mem_axi_bvalid,
+	input             mem_axi_bready,
 
-	input            mem_axi_arvalid,
-	output reg       mem_axi_arready = 0,
-	input [31:0]     mem_axi_araddr,
-	input [ 2:0]     mem_axi_arprot,
+	input             mem_axi_arvalid,
+	output reg        mem_axi_arready,
+	input      [31:0] mem_axi_araddr,
+	input      [ 2:0] mem_axi_arprot,
 
-	output reg        mem_axi_rvalid = 0,
+	output reg        mem_axi_rvalid,
 	input             mem_axi_rready,
 	output reg [31:0] mem_axi_rdata,
 
-	output reg tests_passed
+	output reg        tests_passed
 );
 	reg [31:0]   memory [0:64*1024/4-1] /* verilator public */;
 	reg verbose;
@@ -307,7 +309,14 @@ module axi4_memory #(
 	reg axi_test;
 	initial axi_test = $test$plusargs("axi_test") || AXI_TEST;
 
-	initial tests_passed = 0;
+	initial begin
+		mem_axi_awready = 0;
+		mem_axi_wready = 0;
+		mem_axi_bvalid = 0;
+		mem_axi_arready = 0;
+		mem_axi_rvalid = 0;
+		tests_passed = 0;
+	end
 
 	reg [63:0] xorshift64_state = 64'd88172645463325252;
 
