@@ -1,5 +1,5 @@
 
-RISCV_GNU_TOOLCHAIN_GIT_REVISION = 1b80cbe
+RISCV_GNU_TOOLCHAIN_GIT_REVISION = cb6b34b
 RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX = /opt/riscv32
 
 SHELL = bash
@@ -116,7 +116,7 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 
 download-tools:
 	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; $(GIT_ENV); \
-	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-dejagnu riscv-gcc riscv-glibc riscv-newlib, \
+	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-dejagnu riscv-gcc riscv-glibc riscv-newlib riscv-qemu, \
 		if ! test -d /var/cache/distfiles/$(REPO).git; then rm -rf /var/cache/distfiles/$(REPO).git.part; \
 			git clone --bare https://github.com/riscv/$(REPO) /var/cache/distfiles/$(REPO).git.part; \
 			mv /var/cache/distfiles/$(REPO).git.part /var/cache/distfiles/$(REPO).git; else \
@@ -136,13 +136,16 @@ build-$(1)-tools-bh:
 	if [ -d /var/cache/distfiles/riscv-gcc.git ]; then reference_riscv_gcc="--reference /var/cache/distfiles/riscv-gcc.git"; else reference_riscv_gcc=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-glibc.git ]; then reference_riscv_glibc="--reference /var/cache/distfiles/riscv-glibc.git"; else reference_riscv_glibc=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-newlib.git ]; then reference_riscv_newlib="--reference /var/cache/distfiles/riscv-newlib.git"; else reference_riscv_newlib=""; fi; \
+	if [ -d /var/cache/distfiles/riscv-qemu.git ]; then reference_riscv_qemu="--reference /var/cache/distfiles/riscv-qemu.git"; else reference_riscv_qemu=""; fi; \
 	rm -rf riscv-gnu-toolchain-$(1); git clone $$$$reference_riscv_gnu_toolchain https://github.com/riscv/riscv-gnu-toolchain riscv-gnu-toolchain-$(1); \
 	cd riscv-gnu-toolchain-$(1); git checkout $(RISCV_GNU_TOOLCHAIN_GIT_REVISION); \
-	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-binutils-gdb; \
+	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-binutils; \
+	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-gdb; \
 	git submodule update --init $$$$reference_riscv_dejagnu riscv-dejagnu; \
 	git submodule update --init $$$$reference_riscv_gcc riscv-gcc; \
 	git submodule update --init $$$$reference_riscv_glibc riscv-glibc; \
 	git submodule update --init $$$$reference_riscv_newlib riscv-newlib; \
+	git submodule update --init $$$$reference_riscv_qemu riscv-qemu; \
 	mkdir build; cd build; ../configure --with-arch=$(2) --prefix=$(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1)); make
 
 .PHONY: build-$(1)-tools
