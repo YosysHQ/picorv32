@@ -38,7 +38,7 @@ targets:
     toplevel:
       - "tool_verilator?  (picorv32_wrapper)"
       - "!tool_verilator? (testbench)"
-      
+
     tools:
       verilator :
         cli_parser : fusesoc
