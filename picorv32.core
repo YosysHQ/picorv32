@@ -13,7 +13,9 @@ filesets:
     files: [testbench_ez.v]
     file_type : verilogSource
   tb_wb:
-    files: [testbench_wb.v]
+    files:
+        - testbench_wb.v
+        - firmware/firmware.hex: {file_type: user, copyto: firmware/firmware.hex}
     file_type : verilogSource
   tb_verilator:
     files:
@@ -36,7 +38,7 @@ targets:
     toplevel:
       - "tool_verilator?  (picorv32_wrapper)"
       - "!tool_verilator? (testbench)"
-      
+
     tools:
       verilator :
         cli_parser : fusesoc
