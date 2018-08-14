@@ -23,6 +23,9 @@ module testbench;
 	reg clk;
 	always #5 clk = (clk === 1'b0);
 
+	localparam ser_half_period = 53;
+	event ser_sample;
+
 	initial begin
 		$dumpfile("testbench.vcd");
 		$dumpvars(0, testbench);
@@ -34,7 +37,16 @@ module testbench;
 		$finish;
 	end
 
+	integer cycle_cnt = 0;
+
+	always @(posedge clk) begin
+		cycle_cnt <= cycle_cnt + 1;
+	end
+
 	wire [7:0] leds;
+
+	wire ser_rx;
+	wire ser_tx;
 
 	wire flash_csb;
 	wire flash_clk;
@@ -50,6 +62,8 @@ module testbench;
 	hx8kdemo uut (
 		.clk      (clk      ),
 		.leds     (leds     ),
+		.ser_rx   (ser_rx   ),
+		.ser_tx   (ser_tx   ),
 		.flash_csb(flash_csb),
 		.flash_clk(flash_clk),
 		.flash_io0(flash_io0),
@@ -66,4 +80,29 @@ module testbench;
 		.io2(flash_io2),
 		.io3(flash_io3)
 	);
+
+	reg [7:0] buffer;
+
+	always begin
+		@(negedge ser_tx);
+
+		repeat (ser_half_period) @(posedge clk);
+		-> ser_sample; // start bit
+
+		repeat (8) begin
+			repeat (ser_half_period) @(posedge clk);
+			repeat (ser_half_period) @(posedge clk);
+			buffer = {ser_tx, buffer[7:1]};
+			-> ser_sample; // data bit
+		end
+
+		repeat (ser_half_period) @(posedge clk);
+		repeat (ser_half_period) @(posedge clk);
+		-> ser_sample; // stop bit
+
+		if (buffer < 32 || buffer >= 127)
+			$display("Serial data: %d", buffer);
+		else
+			$display("Serial data: '%c'", buffer);
+	end
 endmodule
