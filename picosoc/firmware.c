@@ -340,8 +340,19 @@ void cmd_benchmark_all()
 
 // --------------------------------------------------------
 
+extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss;
+
 void main()
-{
+{	
+	// copy data section
+	for (uint32_t *src = &_sidata, *dest = &_sdata; dest < &_edata;) {
+        *dest++ = *src++;
+	}
+    // zero out .bss section
+    for (uint32_t *dest = &_sbss; dest < &_ebss;) {
+        *dest++ = 0;
+    }
+
 	reg_uart_clkdiv = 104;
 	set_flash_qspi_flag();
 
