@@ -108,10 +108,11 @@ char getchar_prompt(char *prompt)
 	uint32_t cycles_begin, cycles_now, cycles;
 	__asm__ volatile ("rdcycle %0" : "=r"(cycles_begin));
 
+	reg_leds = ~0;
+
 	if (prompt)
 		print(prompt);
 
-	reg_leds = ~0;
 	while (c == -1) {
 		__asm__ volatile ("rdcycle %0" : "=r"(cycles_now));
 		cycles = cycles_now - cycles_begin;
@@ -123,6 +124,7 @@ char getchar_prompt(char *prompt)
 		}
 		c = reg_uart_data;
 	}
+
 	reg_leds = 0;
 	return c;
 }
@@ -340,22 +342,16 @@ void cmd_benchmark_all()
 
 // --------------------------------------------------------
 
-extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss;
-
 void main()
-{	
-	// copy data section
-	for (uint32_t *src = &_sidata, *dest = &_sdata; dest < &_edata;) {
-        *dest++ = *src++;
-	}
-    // zero out .bss section
-    for (uint32_t *dest = &_sbss; dest < &_ebss;) {
-        *dest++ = 0;
-    }
-
+{
+	reg_leds = 31;
 	reg_uart_clkdiv = 104;
+	print("Booting..\n");
+
+	reg_leds = 63;
 	set_flash_qspi_flag();
 
+	reg_leds = 127;
 	while (getchar_prompt("Press ENTER to continue..\n") != '\r') { /* wait */ }
 
 	print("\n");
