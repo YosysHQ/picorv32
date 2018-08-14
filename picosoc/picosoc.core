@@ -1,0 +1,23 @@
+CAPI=2:
+
+name : ::picosoc:0
+
+filesets:
+  picosoc:
+    files:
+      - simpleuart.v
+      - spimemio.v
+      - picosoc.v
+    file_type : verilogSource
+    depend : [picorv32]
+
+targets:
+  default:
+    filesets : [picosoc]
+    parameters : [PICORV32_REGS]
+
+parameters:
+  PICORV32_REGS:
+    datatype : str
+    default  : picosoc_regs
+    paramtype : vlogdefine
