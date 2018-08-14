@@ -93,6 +93,8 @@ j loop
 .global flashio_worker_begin
 .global flashio_worker_end
 
+.balign 4
+
 flashio_worker_begin:
 # a0 ... data pointer
 # a1 ... data length
@@ -152,5 +154,6 @@ li   t1, 0x80
 sb   t1, 3(t0)
 
 ret
-flashio_worker_end:
 
+.balign 4
+flashio_worker_end:
