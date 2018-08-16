@@ -30,12 +30,47 @@ void flashio(uint8_t *data, int len, uint8_t wrencmd)
 
 void set_flash_qspi_flag()
 {
-	uint32_t addr = 0x800002;
-	uint8_t buffer_rd[6] = {0x65, addr >> 16, addr >> 8, addr, 0, 0};
-	flashio(buffer_rd, 6, 0);
+	uint8_t buffer[8];
 
-	uint8_t buffer_wr[5] = {0x71, addr >> 16, addr >> 8, addr, buffer_rd[5] | 2};
-	flashio(buffer_wr, 5, 0x06);
+#if 0
+	uint32_t addr_cr1v = 0x800002;
+
+	// Read Any Register (RDAR 65h)
+	buffer[0] = 0x65;
+	buffer[1] = addr_cr1v >> 16;
+	buffer[2] = addr_cr1v >> 8;
+	buffer[3] = addr_cr1v;
+	buffer[4] = 0; // dummy
+	buffer[5] = 0; // rdata
+	flashio(buffer, 6, 0);
+	uint8_t cr1v = buffer[5];
+
+	// Write Enable (WREN 06h) + Write Any Register (WRAR 71h)
+	buffer[0] = 0x71;
+	buffer[1] = addr_cr1v >> 16;
+	buffer[2] = addr_cr1v >> 8;
+	buffer[3] = addr_cr1v;
+	buffer[4] = cr1v | 2; // Enable QSPI
+	flashio(buffer, 5, 0x06);
+#else
+	// Read Status Register 1 (RDSR1 05h)
+	buffer[0] = 0x05;
+	buffer[1] = 0x00; // rdata
+	flashio(buffer, 2, 0);
+	uint8_t sr1v = buffer[1];
+
+	// Read Configuration Registers (RDCR1 35h)
+	buffer[0] = 0x35;
+	buffer[1] = 0x00; // rdata
+	flashio(buffer, 2, 0);
+	uint8_t cr1v = buffer[1];
+
+	// Write Enable (WREN 06h) + Write Registers (WRR 01h)
+	buffer[0] = 0x01;
+	buffer[1] = sr1v;
+	buffer[2] = cr1v | 2; // Enable QSPI
+	flashio(buffer, 3, 0x06);
+#endif
 }
 
 void set_flash_latency(uint8_t value)
