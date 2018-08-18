@@ -32,7 +32,7 @@ void set_flash_qspi_flag()
 {
 	uint8_t buffer[8];
 
-#if 0
+#if 1
 	uint32_t addr_cr1v = 0x800002;
 
 	// Read Any Register (RDAR 65h)

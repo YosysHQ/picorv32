@@ -11,5 +11,13 @@
 /hx8kdemo_syn.v
 /hx8kdemo_syn_tb.vvp
 /hx8kdemo_tb.vvp
+/icebreaker.asc
+/icebreaker.bin
+/icebreaker.json
+/icebreaker.log
+/icebreaker.rpt
+/icebreaker_syn.v
+/icebreaker_syn_tb.vvp
+/icebreaker_tb.vvp
 /testbench.vcd
 /cmos.log

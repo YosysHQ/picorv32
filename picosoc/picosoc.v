@@ -61,7 +61,12 @@ module picosoc (
 	input  flash_io2_di,
 	input  flash_io3_di
 );
+	parameter [0:0] BARREL_SHIFTER = 1;
+	parameter [0:0] ENABLE_MULDIV = 1;
+	parameter [0:0] ENABLE_COMPRESSED = 1;
+	parameter [0:0] ENABLE_COUNTERS = 1;
 	parameter [0:0] ENABLE_IRQ_QREGS = 0;
+
 	parameter integer MEM_WORDS = 256;
 	parameter [31:0] STACKADDR = (4*MEM_WORDS);       // end of memory
 	parameter [31:0] PROGADDR_RESET = 32'h 0010_0000; // 1 MB into flash
@@ -120,10 +125,11 @@ module picosoc (
 		.STACKADDR(STACKADDR),
 		.PROGADDR_RESET(PROGADDR_RESET),
 		.PROGADDR_IRQ(PROGADDR_IRQ),
-		.BARREL_SHIFTER(1),
-		.COMPRESSED_ISA(1),
-		.ENABLE_MUL(1),
-		.ENABLE_DIV(1),
+		.BARREL_SHIFTER(BARREL_SHIFTER),
+		.COMPRESSED_ISA(ENABLE_COMPRESSED),
+		.ENABLE_COUNTERS(ENABLE_COUNTERS),
+		.ENABLE_MUL(ENABLE_MULDIV),
+		.ENABLE_DIV(ENABLE_MULDIV),
 		.ENABLE_IRQ(1),
 		.ENABLE_IRQ_QREGS(ENABLE_IRQ_QREGS)
 	) cpu (

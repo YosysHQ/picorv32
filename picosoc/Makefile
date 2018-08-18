@@ -33,10 +33,44 @@ hx8kprog: hx8kdemo.bin firmware.bin
 hx8kprog_fw: firmware.bin
 	iceprog -o 1M firmware.bin
 
+# ---- iCE40 IceBreaker Board ----
+
+icebsim: icebreaker_tb.vvp firmware.hex
+	vvp -N $<
+
+icebsynsim: icebreaker_syn_tb.vvp firmware.hex
+	vvp -N $<
+
+icebreaker.json: icebreaker.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
+	yosys -ql icebreaker.log -p 'synth_ice40 -top icebreaker -json icebreaker.json' $^
+
+icebreaker_tb.vvp: icebreaker_tb.v icebreaker.v spimemio.v simpleuart.v picosoc.v ../picorv32.v spiflash.v
+	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v`
+
+icebreaker_syn_tb.vvp: icebreaker_tb.v icebreaker_syn.v spiflash.v
+	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v`
+
+icebreaker_syn.v: icebreaker.json
+	yosys -p 'read_json icebreaker.json; write_verilog icebreaker_syn.v'
+
+icebreaker.asc: icebreaker.pcf icebreaker.json
+	nextpnr-ice40 --freq 13 --up5k --asc icebreaker.asc --pcf icebreaker.pcf --json icebreaker.json
+
+icebreaker.bin: icebreaker.asc
+	icetime -d up5k -c 12 -mtr icebreaker.rpt icebreaker.asc
+	icepack icebreaker.asc icebreaker.bin
+
+icebprog: icebreaker.bin firmware.bin
+	iceprog icebreaker.bin
+	iceprog -o 1M firmware.bin
+
+icebprog_fw: firmware.bin
+	iceprog -o 1M firmware.bin
+
 # ---- Example Firmware ----
 
 firmware.elf: sections.lds start.s firmware.c
-	riscv32-unknown-elf-gcc -march=rv32imc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf start.s firmware.c
+	riscv32-unknown-elf-gcc -march=rv32ic -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf start.s firmware.c
 
 firmware.hex: firmware.elf
 	riscv32-unknown-elf-objcopy -O verilog firmware.elf firmware.hex
@@ -64,6 +98,9 @@ clean:
 	rm -f firmware.elf firmware.hex firmware.bin cmos.log
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
+	rm -f icebreaker.json icebreaker.log icebreaker.asc icebreaker.rpt icebreaker.bin
+	rm -f icebreaker_syn.v icebreaker_syn_tb.vvp icebreaker_tb.vvp
 
-.PHONY: spiflash_tb hx8kprog hx8kprog_fw hx8ksim hx8ksynsim clean
-
+.PHONY: spiflash_tb clean
+.PHONY: hx8kprog hx8kprog_fw hx8ksim hx8ksynsim
+.PHONY: icebprog icebprog_fw icebsim icebsynsim
