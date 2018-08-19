@@ -33,6 +33,15 @@ hx8kprog: hx8kdemo.bin firmware.bin
 hx8kprog_fw: firmware.bin
 	iceprog -o 1M firmware.bin
 
+hx8kdemo_fw.elf: sections.lds start.s firmware.c
+	riscv32-unknown-elf-gcc -DHX8KDEMO -march=rv32imc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o hx8kdemo_fw.elf start.s firmware.c
+
+hx8kdemo_fw.hex: hx8kdemo_fw.elf
+	riscv32-unknown-elf-objcopy -O verilog hx8kdemo_fw.elf hx8kdemo_fw.hex
+
+hx8kdemo_fw.bin: hx8kdemo_fw.elf
+	riscv32-unknown-elf-objcopy -O binary hx8kdemo_fw.elf hx8kdemo_fw.bin
+
 # ---- iCE40 IceBreaker Board ----
 
 icebsim: icebreaker_tb.vvp firmware.hex
@@ -60,23 +69,21 @@ icebreaker.bin: icebreaker.asc
 	icetime -d up5k -c 12 -mtr icebreaker.rpt icebreaker.asc
 	icepack icebreaker.asc icebreaker.bin
 
-icebprog: icebreaker.bin firmware.bin
+icebprog: icebreaker.bin icebreaker_fw.bin
 	iceprog icebreaker.bin
-	iceprog -o 1M firmware.bin
+	iceprog -o 1M icebreaker_fw.bin
 
-icebprog_fw: firmware.bin
-	iceprog -o 1M firmware.bin
+icebprog_fw: icebreaker_fw.bin
+	iceprog -o 1M icebreaker_fw.bin
 
-# ---- Example Firmware ----
+icebreaker_fw.elf: sections.lds start.s firmware.c
+	riscv32-unknown-elf-gcc -DICEBREAKER -march=rv32ic -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o icebreaker_fw.elf start.s firmware.c
 
-firmware.elf: sections.lds start.s firmware.c
-	riscv32-unknown-elf-gcc -march=rv32ic -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o firmware.elf start.s firmware.c
+icebreaker_fw.hex: icebreaker_fw.elf
+	riscv32-unknown-elf-objcopy -O verilog icebreaker_fw.elf icebreaker_fw.hex
 
-firmware.hex: firmware.elf
-	riscv32-unknown-elf-objcopy -O verilog firmware.elf firmware.hex
-
-firmware.bin: firmware.elf
-	riscv32-unknown-elf-objcopy -O binary firmware.elf firmware.bin
+icebreaker_fw.bin: icebreaker_fw.elf
+	riscv32-unknown-elf-objcopy -O binary icebreaker_fw.elf icebreaker_fw.bin
 
 # ---- Testbench for SPI Flash Model ----
 
@@ -95,7 +102,8 @@ cmos.log: spimemio.v simpleuart.v picosoc.v ../picorv32.v
 
 clean:
 	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
-	rm -f firmware.elf firmware.hex firmware.bin cmos.log
+	rm -f hx8kdemo_fw.elf hx8kdemo_fw.hex hx8kdemo_fw.bin cmos.log
+	rm -f icebreaker_fw.elf icebreaker_fw.hex icebreaker_fw.bin
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 	rm -f icebreaker.json icebreaker.log icebreaker.asc icebreaker.rpt icebreaker.bin

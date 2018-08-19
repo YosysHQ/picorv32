@@ -32,6 +32,9 @@
 //    Cypress S25FL064L http://www.cypress.com/file/316661/download
 //    Cypress S25FL128L http://www.cypress.com/file/316171/download
 //
+// SPI flash used on iCEBreaker board:
+//    https://www.winbond.com/resource-files/w25q128jv%20dtr%20revb%2011042016.pdf
+//
 
 module spiflash (
 	input csb,

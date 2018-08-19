@@ -1,8 +1,5 @@
 /spiflash_tb.vcd
 /spiflash_tb.vvp
-/firmware.elf
-/firmware.hex
-/firmware.bin
 /hx8kdemo.asc
 /hx8kdemo.bin
 /hx8kdemo.blif
@@ -11,6 +8,9 @@
 /hx8kdemo_syn.v
 /hx8kdemo_syn_tb.vvp
 /hx8kdemo_tb.vvp
+/hx8kdemo_fw.elf
+/hx8kdemo_fw.hex
+/hx8kdemo_fw.bin
 /icebreaker.asc
 /icebreaker.bin
 /icebreaker.json
@@ -19,5 +19,8 @@
 /icebreaker_syn.v
 /icebreaker_syn_tb.vvp
 /icebreaker_tb.vvp
+/icebreaker_fw.elf
+/icebreaker_fw.hex
+/icebreaker_fw.bin
 /testbench.vcd
 /cmos.log
