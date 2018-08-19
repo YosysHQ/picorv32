@@ -75,6 +75,35 @@ void set_flash_qspi_flag()
 	buffer[4] = cr1v | 2; // Enable QSPI
 	flashio(buffer, 5, 0x06);
 }
+
+void set_flash_latency(uint8_t value)
+{
+	reg_spictrl = (reg_spictrl & ~0x007f0000) | ((value & 15) << 16);
+
+	uint32_t addr = 0x800004;
+	uint8_t buffer_wr[5] = {0x71, addr >> 16, addr >> 8, addr, 0x70 | value};
+	flashio(buffer_wr, 5, 0x06);
+}
+
+void set_flash_mode_spi()
+{
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
+}
+
+void set_flash_mode_dual()
+{
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
+}
+
+void set_flash_mode_quad()
+{
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
+}
+
+void set_flash_mode_qddr()
+{
+	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
+}
 #endif
 
 #ifdef ICEBREAKER
@@ -93,16 +122,32 @@ void set_flash_qspi_flag()
 	buffer[1] = sr2 | 2; // Enable QSPI
 	flashio(buffer, 2, 0x50);
 }
-#endif
 
-void set_flash_latency(uint8_t value)
+void set_flash_mode_spi()
 {
-	reg_spictrl = (reg_spictrl & ~0x007f0000) | ((value & 15) << 16);
-
-	uint32_t addr = 0x800004;
-	uint8_t buffer_wr[5] = {0x71, addr >> 16, addr >> 8, addr, 0x70 | value};
-	flashio(buffer_wr, 5, 0x06);
+	reg_spictrl = (reg_spictrl & ~0x007f0000) | 0x00000000;
 }
+
+void set_flash_mode_dual()
+{
+	reg_spictrl = (reg_spictrl & ~0x007f0000) | 0x00400000;
+}
+
+void set_flash_mode_quad()
+{
+	reg_spictrl = (reg_spictrl & ~0x007f0000) | 0x00240000;
+}
+
+void set_flash_mode_qddr()
+{
+	reg_spictrl = (reg_spictrl & ~0x007f0000) | 0x00670000;
+}
+
+void enable_flash_crm()
+{
+	reg_spictrl |= 0x00100000;
+}
+#endif
 
 // --------------------------------------------------------
 
@@ -241,8 +286,6 @@ void cmd_read_flash_regs()
 #ifdef ICEBREAKER
 uint8_t cmd_read_flash_reg(uint8_t cmd)
 {
-	set_flash_latency(8);
-
 	uint8_t buffer[2] = {cmd, 0};
 	flashio(buffer, 2, 0);
 	return buffer[1];
@@ -363,6 +406,7 @@ uint32_t cmd_benchmark(bool verbose, uint32_t *instns_p)
 
 // --------------------------------------------------------
 
+#ifdef HX8KDEMO
 void cmd_benchmark_all()
 {
 	uint32_t instns = 0;
@@ -461,6 +505,50 @@ void cmd_benchmark_all()
 	print_hex(instns, 8);
 	putchar('\n');
 }
+#endif
+
+#ifdef ICEBREAKER
+void cmd_benchmark_all()
+{
+	uint32_t instns = 0;
+
+	print("default   ");
+	set_flash_mode_spi();
+	print_hex(cmd_benchmark(false, &instns), 8);
+	putchar('\n');
+
+	print("dual      ");
+	set_flash_mode_dual();
+	print_hex(cmd_benchmark(false, &instns), 8);
+	putchar('\n');
+
+	// print("dual-crm  ");
+	// enable_flash_crm();
+	// print_hex(cmd_benchmark(false, &instns), 8);
+	// putchar('\n');
+
+	print("quad      ");
+	set_flash_mode_quad();
+	print_hex(cmd_benchmark(false, &instns), 8);
+	putchar('\n');
+
+	print("quad-crm  ");
+	enable_flash_crm();
+	print_hex(cmd_benchmark(false, &instns), 8);
+	putchar('\n');
+
+	print("qddr      ");
+	set_flash_mode_qddr();
+	print_hex(cmd_benchmark(false, &instns), 8);
+	putchar('\n');
+
+	print("qddr-crm  ");
+	enable_flash_crm();
+	print_hex(cmd_benchmark(false, &instns), 8);
+	putchar('\n');
+
+}
+#endif
 
 // --------------------------------------------------------
 
@@ -542,16 +630,16 @@ void main()
 				cmd_read_flash_regs();
 				break;
 			case '3':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
+				set_flash_mode_spi();
 				break;
 			case '4':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
+				set_flash_mode_dual();
 				break;
 			case '5':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
+				set_flash_mode_quad();
 				break;
 			case '6':
-				reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
+				set_flash_mode_qddr();
 				break;
 			case '7':
 				reg_spictrl = reg_spictrl ^ 0x00100000;
