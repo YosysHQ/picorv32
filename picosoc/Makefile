@@ -26,12 +26,12 @@ hx8kdemo.bin: hx8kdemo.asc
 	icetime -d hx8k -c 12 -mtr hx8kdemo.rpt hx8kdemo.asc
 	icepack hx8kdemo.asc hx8kdemo.bin
 
-hx8kprog: hx8kdemo.bin firmware.bin
+hx8kprog: hx8kdemo.bin hx8kdemo_fw.bin
 	iceprog hx8kdemo.bin
-	iceprog -o 1M firmware.bin
+	iceprog -o 1M hx8kdemo_fw.bin
 
-hx8kprog_fw: firmware.bin
-	iceprog -o 1M firmware.bin
+hx8kprog_fw: hx8kdemo_fw.bin
+	iceprog -o 1M hx8kdemo_fw.bin
 
 hx8kdemo_fw.elf: sections.lds start.s firmware.c
 	riscv32-unknown-elf-gcc -DHX8KDEMO -march=rv32imc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o hx8kdemo_fw.elf start.s firmware.c

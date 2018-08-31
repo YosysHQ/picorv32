@@ -51,7 +51,7 @@ void flashio(uint8_t *data, int len, uint8_t wrencmd)
 	((void(*)(uint8_t*, uint32_t, uint32_t))func)(data, len, wrencmd);
 }
 
-#ifdef HX8KBOARD
+#ifdef HX8KDEMO
 void set_flash_qspi_flag()
 {
 	uint8_t buffer[8];
