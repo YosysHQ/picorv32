@@ -1,0 +1,36 @@
+CAPI=2:
+
+name : ::icebreaker:0
+
+filesets:
+  top:
+    files: [icebreaker.v]
+    file_type : verilogSource
+    depend : [picosoc]
+  tb:
+    files:
+      - icebreaker_tb.v
+    file_type : verilogSource
+    depend : [spiflash, "yosys:techlibs:ice40"]
+
+  constraints:
+    files: [icebreaker.pcf]
+    file_type : PCF
+
+targets:
+  synth:
+    default_tool : icestorm
+    filesets : [constraints, top]
+    tools:
+      icestorm:
+        nextpnr_options : [--freq, 13, --up5k]
+        pnr : next
+    toplevel : [icebreaker]
+  sim:
+    default_tool : icarus
+    filesets : [top, tb]
+    tools:
+      xsim:
+        xelab_options : [--timescale, 1ns/1ps]
+
+    toplevel : [testbench]
