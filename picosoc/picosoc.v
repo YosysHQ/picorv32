@@ -218,13 +218,13 @@ module picosoc_regs (
 	output [31:0] rdata1,
 	output [31:0] rdata2
 );
-	reg [31:0] regs [0:31];
+	reg [31:0] regs [0:63];
 
 	always @(posedge clk)
-		if (wen) regs[waddr[4:0]] <= wdata;
+		if (wen) regs[waddr[5:0]] <= wdata;
 
-	assign rdata1 = regs[raddr1[4:0]];
-	assign rdata2 = regs[raddr2[4:0]];
+	assign rdata1 = regs[raddr1[5:0]];
+	assign rdata2 = regs[raddr2[5:0]];
 endmodule
 
 module picosoc_mem #(
