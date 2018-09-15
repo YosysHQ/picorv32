@@ -6,7 +6,7 @@ PicoRV32 is a CPU core that implements the [RISC-V RV32IMC Instruction Set](http
 It can be configured as RV32E, RV32I, RV32IC, RV32IM, or RV32IMC core, and optionally
 contains a built-in interrupt controller.
 
-Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](http://riscv.org/download.html#tab_tools).
+Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](https://riscv.org/software-status/).
 The examples bundled with PicoRV32 expect various RV32 toolchains to be installed in `/opt/riscv32i[m][c]`. See
 the [build instructions below](#building-a-pure-rv32i-toolchain) for details.
 
