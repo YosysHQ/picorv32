@@ -1,11 +1,11 @@
 
 # ---- iCE40 HX8K Breakout Board ----
 
-hx8ksim: hx8kdemo_tb.vvp firmware.hex
-	vvp -N $<
+hx8ksim: hx8kdemo_tb.vvp hx8kdemo_fw.hex
+	vvp -N $< +firmware=hx8kdemo_fw.hex
 
-hx8ksynsim: hx8kdemo_syn_tb.vvp firmware.hex
-	vvp -N $<
+hx8ksynsim: hx8kdemo_syn_tb.vvp hx8kdemo_fw.hex
+	vvp -N $< +firmware=hx8kdemo_fw.hex 
 
 hx8kdemo.blif: hx8kdemo.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
 	yosys -ql hx8kdemo.log -p 'synth_ice40 -top hx8kdemo -blif hx8kdemo.blif' $^
@@ -44,11 +44,11 @@ hx8kdemo_fw.bin: hx8kdemo_fw.elf
 
 # ---- iCE40 IceBreaker Board ----
 
-icebsim: icebreaker_tb.vvp firmware.hex
-	vvp -N $<
+icebsim: icebreaker_tb.vvp icebreaker_fw.hex
+	vvp -N $< +firmware=icebreaker_fw.hex
 
-icebsynsim: icebreaker_syn_tb.vvp firmware.hex
-	vvp -N $<
+icebsynsim: icebreaker_syn_tb.vvp icebreaker_fw.hex
+	vvp -N $< +firmware=icebreaker_fw.hex
 
 icebreaker.json: icebreaker.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
 	yosys -ql icebreaker.log -p 'synth_ice40 -top icebreaker -json icebreaker.json' $^
