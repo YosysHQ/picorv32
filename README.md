@@ -625,7 +625,7 @@ pure RV32I target, and install it in `/opt/riscv32i`:
     # Ubuntu packages needed:
     sudo apt-get install autoconf automake autotools-dev curl libmpc-dev \
             libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo \
-	    gperf libtool patchutils bc zlib1g-dev git
+	    gperf libtool patchutils bc zlib1g-dev git libexpt1-dev
 
     sudo mkdir /opt/riscv32i
     sudo chown $USER /opt/riscv32i
