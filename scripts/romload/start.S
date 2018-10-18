@@ -79,7 +79,6 @@ sw zero,12(sp)
 2:
 */
 
-
 /* jump to libc init */
 /*j _ftext
  */

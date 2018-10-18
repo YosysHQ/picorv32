@@ -33,7 +33,7 @@ SECTIONS {
           *(.sdata .sdata.*)
            . = ALIGN(4);
           _edata = .;
-        /* } >ram AT>rom */
+        } >ram AT>rom
         /* } >ram */
 
         .bss : {

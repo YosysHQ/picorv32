@@ -3,7 +3,7 @@
 //`undef WRITE_VCD
 `undef MEM8BIT
 
-`define ROM_SIZE 32'h0000_0000
+`define ROM_SIZE 32'h0001_00FF
 //`define ROM_SIZE 32'h0000_0000
 
 module testbench;
@@ -30,9 +30,7 @@ module testbench;
 
 	picorv32 #(
 		.COMPRESSED_ISA(1),
-		.PROGADDR_RESET(32'h100),
-		.ENABLE_MUL(1),
-		.ENABLE_DIV(1)
+		.PROGADDR_RESET(32'h100)
 	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
@@ -54,11 +52,19 @@ module testbench;
 	end
 `else
 	reg [31:0] memory [0:MEM_SIZE/4-1];
+`define data_lma   32'hc430
+`define data       32'h20000
+`define edata      32'h209b0
 	integer x;
 	initial
 	begin
+		// clear memory
 		for (x=0; x<MEM_SIZE/4; x=x+1) memory[x] = 0;
+		// load rom contents
 		$readmemh("firmware32.hex", memory);
+		// copy .data section
+		for (x=0; x<(`edata - `data); x=x+4)
+			memory[(`data+x)/4] = memory[(`data_lma+x)/4];
 	end
 `endif
 
