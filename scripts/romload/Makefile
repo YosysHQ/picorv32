@@ -29,7 +29,7 @@ start.o: start.S
 	$(CC) -c -nostdlib start.S $(LDLIBS)
 
 firmware.elf: firmware.o syscalls.o start.o
-	$(CC) $(LDFLAGS),-Map=firmware.map -o $@ $^ -T sections.lds $(LDLIBS)
+	$(CC) $(LDFLAGS),-Map=firmware.map -o $@ $^ -T sections.ld $(LDLIBS)
 	chmod -x firmware.elf
 
 clean:
