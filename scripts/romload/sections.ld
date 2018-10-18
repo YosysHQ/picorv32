@@ -7,12 +7,11 @@ binary, for any purpose, commercial or non-commercial, and by any
 means.
 */
 
+/* starting address needs to be > 0 due to known bug in RISCV/GNU linker */
 MEMORY {
 	rom(rwx) : ORIGIN = 0x00000100, LENGTH = 63k
         ram(rwx) : ORIGIN = 0x00020000, LENGTH = 16k
 }
-
-C_STACK_SIZE = 512;
 
 ENTRY(_pvstart);
 
@@ -34,7 +33,6 @@ SECTIONS {
            . = ALIGN(4);
           _edata = .;
         } >ram AT>rom
-        /* } >ram */
 
         .bss : {
           _bss_start = .;

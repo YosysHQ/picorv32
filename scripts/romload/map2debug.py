@@ -2,7 +2,7 @@
 
 import re
 
-symbol = re.compile("\s*0x([0-9a-f]+)\s+([\w_]+)\s*$")
+symbol = re.compile("\s*0x([0-9a-f]+)\s+([\w_]+)")
 symbol_map = {}
 with open("firmware.map", "r") as fh:
     for fd in fh:
@@ -12,6 +12,8 @@ with open("firmware.map", "r") as fh:
             symbol_map[addr] = sym.group(2)
 
 with open("firmware_dbg.v", "w") as fh:
+    for k, v in symbol_map.items():
+        fh.write("`define C_SYM_{1:s} 32'h{0:08x}\n".format(k, v.upper()))
     fh.write("  task firmware_dbg;\n")
     fh.write("  input [31:0] addr;\n");
     fh.write("  begin\n");

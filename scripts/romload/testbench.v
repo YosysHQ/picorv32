@@ -3,8 +3,9 @@
 //`undef WRITE_VCD
 `undef MEM8BIT
 
+// define the size of our ROM
+// simulates ROM by suppressing writes below this address
 `define ROM_SIZE 32'h0001_00FF
-//`define ROM_SIZE 32'h0000_0000
 
 module testbench;
 	reg clk = 1;
@@ -52,10 +53,10 @@ module testbench;
 	end
 `else
 	reg [31:0] memory [0:MEM_SIZE/4-1];
-`define data_lma   32'hc430
-`define data       32'h20000
-`define edata      32'h209b0
 	integer x;
+
+	// simulate hardware assist of clearing RAM and copying ROM data into
+	// memory
 	initial
 	begin
 		// clear memory
@@ -63,8 +64,8 @@ module testbench;
 		// load rom contents
 		$readmemh("firmware32.hex", memory);
 		// copy .data section
-		for (x=0; x<(`edata - `data); x=x+4)
-			memory[(`data+x)/4] = memory[(`data_lma+x)/4];
+		for (x=0; x<(`C_SYM__BSS_START - `C_SYM___GLOBAL_POINTER); x=x+4)
+			memory[(`C_SYM___GLOBAL_POINTER+x)/4] = memory[(`C_SYM__DATA_LMA+x)/4];
 	end
 `endif
 
@@ -101,7 +102,9 @@ module testbench;
 			endcase
 		end
 		if (mem_valid && mem_ready) begin
-	//		firmware_dbg(mem_addr);
+`ifdef FIRMWARE_DEBUG_ADDR
+			firmware_dbg(mem_addr);
+`endif
 			if ((mem_wstrb == 4'h0) && (mem_rdata === 32'bx)) $display("READ FROM UNITIALIZED ADDR=%x", mem_addr);
 `ifdef VERBOSE_MEM
 			if (|mem_wstrb)
