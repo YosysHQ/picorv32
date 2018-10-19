@@ -1,0 +1,11 @@
+firmware.d
+firmware.elf
+firmware.hex
+firmware32.hex
+firmware.o
+firmware_addr.txt
+firmware_dbg.v
+syscalls.o
+testbench.vvp
+testbench.vcd
+start.elf
