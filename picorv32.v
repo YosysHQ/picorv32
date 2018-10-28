@@ -2094,6 +2094,13 @@ module picorv32 #(
 		end
 	end
 `endif
+`ifdef COCOTB_SIM
+	initial begin
+  		$dumpfile ("waveform.vcd");
+		$dumpvars (0,picorv32);
+		#1;
+	end
+`endif
 endmodule
 
 // This is a simple example implementation of PICORV32_REGS.
