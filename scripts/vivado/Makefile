@@ -1,5 +1,5 @@
 
-VIVADO_BASE = /opt/Xilinx/Vivado/2017.3
+VIVADO_BASE = /opt/Xilinx/Vivado/2018.2
 VIVADO = $(VIVADO_BASE)/bin/vivado
 XVLOG = $(VIVADO_BASE)/bin/xvlog
 XELAB = $(VIVADO_BASE)/bin/xelab
