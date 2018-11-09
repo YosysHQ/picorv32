@@ -1,10 +1,10 @@
 
-VIVADO_BASE = /opt/Xilinx/Vivado/2017.3
+VIVADO_BASE = /opt/Xilinx/Vivado/2018.2
 VIVADO = $(VIVADO_BASE)/bin/vivado
 XVLOG = $(VIVADO_BASE)/bin/xvlog
 XELAB = $(VIVADO_BASE)/bin/xelab
 GLBL = $(VIVADO_BASE)/data/verilog/src/glbl.v
-TOOLCHAIN_PREFIX = riscv64-unknown-elf-
+TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 
 export VIVADO
 
