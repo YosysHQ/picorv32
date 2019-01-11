@@ -13,7 +13,7 @@ firmware.elf: firmware.S firmware.c firmware.lds
 		-DSHIFT_COUNTER_BITS=$(FIRMWARE_COUNTER_BITS) \
 		-march=rv32i -Os -ffreestanding -nostdlib \
 		-o $@ firmware.S firmware.c \
-		--std=gnu99 -Wl,-Bstatic,-T,firmware.lds,-Map,firmware.map,--strip-debug -lgcc
+		--std=gnu99 -Wl,-Bstatic,-T,firmware.lds,-Map,firmware.map,--strip-debug
 	chmod -x $@
 
 firmware.bin: firmware.elf
