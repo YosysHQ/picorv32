@@ -1,13 +1,19 @@
 TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 
+# set to 4 for simulation
+FIRMWARE_COUNTER_BITS=18
+
 all: example.bin
 
 ## -------------------
 ## firmware generation
 
 firmware.elf: firmware.S firmware.c firmware.lds
-	$(TOOLCHAIN_PREFIX)gcc -march=rv32i -Os -ffreestanding -nostdlib -o $@ firmware.S firmware.c \
-			--std=gnu99 -Wl,-Bstatic,-T,firmware.lds,-Map,firmware.map,--strip-debug -lgcc
+	$(TOOLCHAIN_PREFIX)gcc \
+		-DSHIFT_COUNTER_BITS=$(FIRMWARE_COUNTER_BITS) \
+		-march=rv32i -Os -ffreestanding -nostdlib \
+		-o $@ firmware.S firmware.c \
+		--std=gnu99 -Wl,-Bstatic,-T,firmware.lds,-Map,firmware.map,--strip-debug -lgcc
 	chmod -x $@
 
 firmware.bin: firmware.elf
