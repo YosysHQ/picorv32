@@ -15,11 +15,11 @@ firmware.bin: firmware.elf
 firmware.hex: firmware.bin
 	python3 ../../firmware/makehex.py $< 128 > $@
 
-synth.blif: example.v ../../picorv32.v firmware.hex
-	yosys -v3 -l synth.log -p 'synth_ice40 -top top -blif $@; write_verilog -attr2comment synth.v' $(filter %.v, $^)
+synth.json: example.v ../../picorv32.v firmware.hex
+	yosys -v3 -l synth.log -p 'synth_ice40 -top top -json $@; write_verilog -attr2comment synth.v' $(filter %.v, $^)
 
-example.asc: synth.blif example.pcf
-	arachne-pnr -d 8k -o $@ -p example.pcf $<
+example.asc: synth.json example.pcf
+	nextpnr-ice40 --hx8k --package ct256 --json $< --pcf example.pcf --asc $@
 
 example.bin: example.asc
 	icepack $< $@
@@ -34,7 +34,7 @@ example_sim: example_tb.vvp
 example_sim_vcd: example_tb.vvp
 	vvp -N $< +vcd
 
-synth_tb.vvp: example_tb.v synth.blif
+synth_tb.vvp: example_tb.v synth.json
 	iverilog -o $@ -s testbench synth.v example_tb.v `yosys-config --datdir/ice40/cells_sim.v`
 	chmod -x $@
 
@@ -65,7 +65,7 @@ view: example.vcd
 
 clean:
 	rm -f firmware.elf firmware.map firmware.bin firmware.hex
-	rm -f synth.log synth.v synth.blif route.v example.asc example.bin
+	rm -f synth.log synth.v synth.json route.v example.asc example.bin
 	rm -f example_tb.vvp synth_tb.vvp route_tb.vvp example.vcd
 
 .PHONY: all prog_sram view clean
