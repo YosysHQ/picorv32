@@ -86,7 +86,7 @@ prog_sram: example.bin
 	iceprog -S $<
 
 timing: example.asc example.pcf
-	icetime -c 12 -tmd hx8k -P ct256 -p example.pcf -t $<
+	icetime -c 62 -tmd hx8k -P ct256 -p example.pcf -t $<
 
 view: example.vcd
 	gtkwave $< example.gtkw
