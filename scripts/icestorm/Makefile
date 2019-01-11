@@ -1,5 +1,7 @@
 TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 
+ICE40_SIM_CELLS=$(shell yosys-config --datdir/ice40/cells_sim.v)
+
 # set to 4 for simulation
 FIRMWARE_COUNTER_BITS=18
 
@@ -52,7 +54,7 @@ example_sim_vcd: example_tb.vvp
 ## post-synth simulation
 
 synth_tb.vvp: example_tb.v synth.json
-	iverilog -o $@ -s testbench synth.v example_tb.v `yosys-config --datdir/ice40/cells_sim.v`
+	iverilog -o $@ -s testbench synth.v example_tb.v $(ICE40_SIM_CELLS)
 	chmod -x $@
 
 synth_sim: synth_tb.vvp
@@ -68,7 +70,7 @@ route.v: example.asc example.pcf
 	icebox_vlog -L -n top -sp example.pcf $< > $@
 
 route_tb.vvp: route.v example_tb.v
-	iverilog -o $@ -s testbench $^ `yosys-config --datdir/ice40/cells_sim.v`
+	iverilog -o $@ -s testbench $^ $(ICE40_SIM_CELLS)
 	chmod -x $@
 
 route_sim: route_tb.vvp
