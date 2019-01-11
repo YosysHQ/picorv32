@@ -4,64 +4,64 @@ TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 all: example.bin
 
 firmware.elf: firmware.S firmware.c firmware.lds
-	$(TOOLCHAIN_PREFIX)gcc -Os -ffreestanding -nostdlib -o firmware.elf firmware.S firmware.c \
+	$(TOOLCHAIN_PREFIX)gcc -Os -ffreestanding -nostdlib -o $@ firmware.S firmware.c \
 			--std=gnu99 -Wl,-Bstatic,-T,firmware.lds,-Map,firmware.map,--strip-debug -lgcc
-	chmod -x firmware.elf
+	chmod -x $@
 
 firmware.bin: firmware.elf
-	$(TOOLCHAIN_PREFIX)objcopy -O binary firmware.elf firmware.bin
-	chmod -x firmware.bin
+	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@
+	chmod -x $@
 
 firmware.hex: firmware.bin
-	python3 ../../firmware/makehex.py firmware.bin 128 > firmware.hex
+	python3 ../../firmware/makehex.py $< 128 > $@
 
 synth.blif: example.v ../../picorv32.v firmware.hex
 	yosys -v3 -l synth.log -p 'synth_ice40 -top top -blif $@; write_verilog -attr2comment synth.v' $(filter %.v, $^)
 
-example.asc: synth.blif
-	arachne-pnr -d 8k -o example.asc -p example.pcf synth.blif
+example.asc: synth.blif example.pcf
+	arachne-pnr -d 8k -o $@ -p example.pcf $<
 
 example.bin: example.asc
-	icepack example.asc example.bin
+	icepack $< $@
 
-example_tb.vvp: example_tb.v example.v firmware.hex
-	iverilog -o example_tb.vvp -s testbench example.v example_tb.v ../../picorv32.v
-	chmod -x example_tb.vvp
+example_tb.vvp: example.v example_tb.v ../../picorv32.v firmware.hex
+	iverilog -o $@ -s testbench $(filter %.v, $^)
+	chmod -x $@
 
 example_sim: example_tb.vvp
-	vvp -N example_tb.vvp
+	vvp -N $<
 
 example_sim_vcd: example_tb.vvp
-	vvp -N example_tb.vvp +vcd
+	vvp -N $< +vcd
 
 synth_tb.vvp: example_tb.v synth.blif
-	iverilog -o synth_tb.vvp -s testbench synth.v example_tb.v `yosys-config --datdir/ice40/cells_sim.v`
-	chmod -x synth_tb.vvp
+	iverilog -o $@ -s testbench synth.v example_tb.v `yosys-config --datdir/ice40/cells_sim.v`
+	chmod -x $@
 
 synth_sim: synth_tb.vvp
-	vvp -N synth_tb.vvp
+	vvp -N $<
 
 synth_sim_vcd: synth_tb.vvp
-	vvp -N synth_tb.vvp +vcd
+	vvp -N $< +vcd
 
-route.v: example.asc
-	icebox_vlog -L -n top -sp example.pcf example.asc > route.v
+route.v: example.asc example.pcf
+	icebox_vlog -L -n top -sp example.pcf $< > $@
 
-route_tb.vvp: example_tb.v route.v
-	iverilog -o route_tb.vvp -s testbench route.v example_tb.v `yosys-config --datdir/ice40/cells_sim.v`
-	chmod -x route_tb.vvp
+route_tb.vvp: route.v example_tb.v
+	iverilog -o $@ -s testbench $^ `yosys-config --datdir/ice40/cells_sim.v`
+	chmod -x $@
 
 route_sim: route_tb.vvp
-	vvp -N route_tb.vvp
+	vvp -N $<
 
 route_sim_vcd: route_tb.vvp
-	vvp -N route_tb.vvp +vcd
+	vvp -N $< +vcd
 
-prog_sram:
-	iceprog -S example.bin
+prog_sram: example.bin
+	iceprog -S $<
 
-view:
-	gtkwave example.vcd example.gtkw
+view: example.vcd
+	gtkwave $< example.gtkw
 
 clean:
 	rm -f firmware.elf firmware.map firmware.bin firmware.hex
@@ -71,4 +71,3 @@ clean:
 .PHONY: all prog_sram view clean
 .PHONY: example_sim synth_sim route_sim
 .PHONY: example_sim_vcd synth_sim_vcd route_sim_vcd
-
