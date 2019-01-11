@@ -1,4 +1,3 @@
-
 TOOLCHAIN_PREFIX = riscv32-unknown-elf-
 
 all: example.bin
@@ -60,6 +59,9 @@ route_sim_vcd: route_tb.vvp
 prog_sram: example.bin
 	iceprog -S $<
 
+timing: example.asc example.pcf
+	icetime -c 12 -tmd hx8k -P ct256 -p example.pcf -t $<
+
 view: example.vcd
 	gtkwave $< example.gtkw
 
@@ -69,5 +71,5 @@ clean:
 	rm -f example_tb.vvp synth_tb.vvp route_tb.vvp example.vcd
 
 .PHONY: all prog_sram view clean
-.PHONY: example_sim synth_sim route_sim
+.PHONY: example_sim synth_sim route_sim timing
 .PHONY: example_sim_vcd synth_sim_vcd route_sim_vcd
