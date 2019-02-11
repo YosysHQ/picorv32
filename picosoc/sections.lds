@@ -1,7 +1,15 @@
+#ifdef ICEBREAKER
+#  define MEM_TOTAL 0x20000 /* 128 KB */
+#elif HX8KDEMO
+#  define MEM_TOTAL 0x200 /* 2 KB */
+#else
+#  error "Set -DICEBREAKER or -DHX8KDEMO when compiling firmware.c"
+#endif
+
 MEMORY
 {
     FLASH (rx)      : ORIGIN = 0x00100000, LENGTH = 0x400000 /* entire flash, 4 MiB */
-    RAM (xrw)       : ORIGIN = 0x00000000, LENGTH = 0x000400 /* 1 KB */
+    RAM (xrw)       : ORIGIN = 0x00000000, LENGTH = MEM_TOTAL
 }
 
 SECTIONS {

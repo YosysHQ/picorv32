@@ -21,9 +21,9 @@
 #include <stdbool.h>
 
 #ifdef ICEBREAKER
-  #define MEM_TOTAL 0x20000
+#  define MEM_TOTAL 0x20000 /* 128 KB */
 #elif HX8KDEMO
-  #define MEM_TOTAL 0x200
+#  define MEM_TOTAL 0x200 /* 2 KB */
 #else
 #  error "Set -DICEBREAKER or -DHX8KDEMO when compiling firmware.c"
 #endif
