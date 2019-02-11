@@ -45,6 +45,8 @@ module icebreaker (
 	inout  flash_io2,
 	inout  flash_io3
 );
+	parameter integer MEM_WORDS = 32768;
+
 	reg [5:0] reset_cnt = 0;
 	wire resetn = &reset_cnt;
 
@@ -107,7 +109,7 @@ module icebreaker (
 	picosoc #(
 		.BARREL_SHIFTER(0),
 		.ENABLE_MULDIV(0),
-		.MEM_WORDS(32768)
+		.MEM_WORDS(MEM_WORDS)
 	) soc (
 		.clk          (clk         ),
 		.resetn       (resetn      ),
