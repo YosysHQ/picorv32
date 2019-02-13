@@ -550,6 +550,14 @@ void cmd_benchmark_all()
 }
 #endif
 
+void cmd_echo()
+{
+	print("Return to menu by sending '!'\n\n");
+	char c;
+	while ((c = getchar()) != '!')
+		putchar(c);
+}
+
 // --------------------------------------------------------
 
 void main()
@@ -611,6 +619,7 @@ void main()
 		print("   [7] Toggle continuous read mode\n");
 		print("   [9] Run simplistic benchmark\n");
 		print("   [0] Benchmark all configs\n");
+		print("   [e] Echo UART\n");
 		print("\n");
 
 		for (int rep = 10; rep > 0; rep--)
@@ -649,6 +658,9 @@ void main()
 				break;
 			case '0':
 				cmd_benchmark_all();
+				break;
+			case 'e':
+				cmd_echo();
 				break;
 			default:
 				continue;
