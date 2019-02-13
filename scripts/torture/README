@@ -1,0 +1,6 @@
+Use UCB-BAR's RISC-V Torture Test Generator to test PicoRV32.
+
+You might need to install the following addition dependecies:
+
+sudo apt-get install python3-pip
+pip3 install numpy
