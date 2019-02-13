@@ -1,7 +1,8 @@
 #include <stdint.h>
 
-// use SHIFT_COUNTER_BITS=4 for simulation
-#define SHIFT_COUNTER_BITS 18
+#ifndef SHIFT_COUNTER_BITS
+#error SHIFT_COUNTER_BITS must be defined as 4 (for simulation) or 18 (for hardware bitstreams)!
+#endif
 
 void output(uint8_t c)
 {
