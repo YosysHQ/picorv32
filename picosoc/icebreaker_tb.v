@@ -62,7 +62,12 @@ module testbench;
 		#1 $display("%b", leds);
 	end
 
-	icebreaker uut (
+	icebreaker #(
+		// We limit the amount of memory in simulation
+		// in order to avoid reduce simulation time
+		// required for intialization of RAM
+		.MEM_WORDS(256)
+	) uut (
 		.clk      (clk      ),
 		.led1     (led1     ),
 		.led2     (led2     ),

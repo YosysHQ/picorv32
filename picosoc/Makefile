@@ -5,7 +5,7 @@ hx8ksim: hx8kdemo_tb.vvp hx8kdemo_fw.hex
 	vvp -N $< +firmware=hx8kdemo_fw.hex
 
 hx8ksynsim: hx8kdemo_syn_tb.vvp hx8kdemo_fw.hex
-	vvp -N $< +firmware=hx8kdemo_fw.hex 
+	vvp -N $< +firmware=hx8kdemo_fw.hex
 
 hx8kdemo.blif: hx8kdemo.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
 	yosys -ql hx8kdemo.log -p 'synth_ice40 -top hx8kdemo -blif hx8kdemo.blif' $^
@@ -33,8 +33,11 @@ hx8kprog: hx8kdemo.bin hx8kdemo_fw.bin
 hx8kprog_fw: hx8kdemo_fw.bin
 	iceprog -o 1M hx8kdemo_fw.bin
 
-hx8kdemo_fw.elf: sections.lds start.s firmware.c
-	riscv32-unknown-elf-gcc -DHX8KDEMO -march=rv32imc -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o hx8kdemo_fw.elf start.s firmware.c
+hx8kprog_sections.lds: sections.lds
+	riscv32-unknown-elf-cpp -P -DHX8KDEMO -o $@ $^
+
+hx8kdemo_fw.elf: hx8kdemo_sections.lds start.s firmware.c
+	riscv32-unknown-elf-gcc -DHX8KDEMO -march=rv32imc -Wl,-Bstatic,-T,hx8kdemo_sections.lds,--strip-debug -ffreestanding -nostdlib -o hx8kdemo_fw.elf start.s firmware.c
 
 hx8kdemo_fw.hex: hx8kdemo_fw.elf
 	riscv32-unknown-elf-objcopy -O verilog hx8kdemo_fw.elf hx8kdemo_fw.hex
@@ -50,10 +53,10 @@ icebsim: icebreaker_tb.vvp icebreaker_fw.hex
 icebsynsim: icebreaker_syn_tb.vvp icebreaker_fw.hex
 	vvp -N $< +firmware=icebreaker_fw.hex
 
-icebreaker.json: icebreaker.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
+icebreaker.json: icebreaker.v ice40up5k_spram.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
 	yosys -ql icebreaker.log -p 'synth_ice40 -top icebreaker -json icebreaker.json' $^
 
-icebreaker_tb.vvp: icebreaker_tb.v icebreaker.v spimemio.v simpleuart.v picosoc.v ../picorv32.v spiflash.v
+icebreaker_tb.vvp: icebreaker_tb.v icebreaker.v ice40up5k_spram.v spimemio.v simpleuart.v picosoc.v ../picorv32.v spiflash.v
 	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v`
 
 icebreaker_syn_tb.vvp: icebreaker_tb.v icebreaker_syn.v spiflash.v
@@ -76,8 +79,11 @@ icebprog: icebreaker.bin icebreaker_fw.bin
 icebprog_fw: icebreaker_fw.bin
 	iceprog -o 1M icebreaker_fw.bin
 
-icebreaker_fw.elf: sections.lds start.s firmware.c
-	riscv32-unknown-elf-gcc -DICEBREAKER -march=rv32ic -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o icebreaker_fw.elf start.s firmware.c
+icebreaker_sections.lds: sections.lds
+	riscv32-unknown-elf-cpp -P -DICEBREAKER -o $@ $^
+
+icebreaker_fw.elf: icebreaker_sections.lds start.s firmware.c
+	riscv32-unknown-elf-gcc -DICEBREAKER -march=rv32ic -Wl,-Bstatic,-T,icebreaker_sections.lds,--strip-debug -ffreestanding -nostdlib -o icebreaker_fw.elf start.s firmware.c
 
 icebreaker_fw.hex: icebreaker_fw.elf
 	riscv32-unknown-elf-objcopy -O verilog icebreaker_fw.elf icebreaker_fw.hex

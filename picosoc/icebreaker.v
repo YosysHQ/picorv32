@@ -17,6 +17,12 @@
  *
  */
 
+`ifdef PICOSOC_V
+`error "icebreaker.v must be read before icebreaker.v!"
+`endif
+
+`define PICOSOC_MEM ice40up5k_spram
+
 module icebreaker (
 	input clk,
 
@@ -39,6 +45,8 @@ module icebreaker (
 	inout  flash_io2,
 	inout  flash_io3
 );
+	parameter integer MEM_WORDS = 32768;
+
 	reg [5:0] reset_cnt = 0;
 	wire resetn = &reset_cnt;
 
@@ -100,7 +108,8 @@ module icebreaker (
 
 	picosoc #(
 		.BARREL_SHIFTER(0),
-		.ENABLE_MULDIV(0)
+		.ENABLE_MULDIV(0),
+		.MEM_WORDS(MEM_WORDS)
 	) soc (
 		.clk          (clk         ),
 		.resetn       (resetn      ),

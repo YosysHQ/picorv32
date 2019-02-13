@@ -11,6 +11,7 @@
 /hx8kdemo_fw.elf
 /hx8kdemo_fw.hex
 /hx8kdemo_fw.bin
+/hx8kdemo_sections.lds
 /icebreaker.asc
 /icebreaker.bin
 /icebreaker.json
@@ -22,5 +23,7 @@
 /icebreaker_fw.elf
 /icebreaker_fw.hex
 /icebreaker_fw.bin
+/icebreaker_sections.lds
 /testbench.vcd
 /cmos.log
+

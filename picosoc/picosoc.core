@@ -14,10 +14,14 @@ filesets:
 targets:
   default:
     filesets : [picosoc]
-    parameters : [PICORV32_REGS]
+    parameters : [PICORV32_REGS, PICOSOC_MEM]
 
 parameters:
   PICORV32_REGS:
     datatype : str
     default  : picosoc_regs
+    paramtype : vlogdefine
+  PICOSOC_MEM:
+    datatype : str
+    default : picosoc_mem
     paramtype : vlogdefine
