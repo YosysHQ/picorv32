@@ -637,7 +637,7 @@ module picorv32 #(
 	wire instr_trap;
 
 	reg [regindex_bits-1:0] decoded_rd, decoded_rs1, decoded_rs2;
-	reg [31:0] decoded_imm, decoded_imm_uj;
+	reg [31:0] decoded_imm, decoded_imm_j;
 	reg decoder_trigger;
 	reg decoder_trigger_q;
 	reg decoder_pseudo_trigger;
@@ -859,7 +859,7 @@ module picorv32 #(
 			is_alu_reg_imm               <= mem_rdata_latched[6:0] == 7'b0010011;
 			is_alu_reg_reg               <= mem_rdata_latched[6:0] == 7'b0110011;
 
-			{ decoded_imm_uj[31:20], decoded_imm_uj[10:1], decoded_imm_uj[11], decoded_imm_uj[19:12], decoded_imm_uj[0] } <= $signed({mem_rdata_latched[31:12], 1'b0});
+			{ decoded_imm_j[31:20], decoded_imm_j[10:1], decoded_imm_j[11], decoded_imm_j[19:12], decoded_imm_j[0] } <= $signed({mem_rdata_latched[31:12], 1'b0});
 
 			decoded_rd <= mem_rdata_latched[11:7];
 			decoded_rs1 <= mem_rdata_latched[19:15];
@@ -878,8 +878,8 @@ module picorv32 #(
 				decoded_rs1 <= 0;
 				decoded_rs2 <= 0;
 
-				{ decoded_imm_uj[31:11], decoded_imm_uj[4], decoded_imm_uj[9:8], decoded_imm_uj[10], decoded_imm_uj[6],
-				  decoded_imm_uj[7], decoded_imm_uj[3:1], decoded_imm_uj[5], decoded_imm_uj[0] } <= $signed({mem_rdata_latched[12:2], 1'b0});
+				{ decoded_imm_j[31:11], decoded_imm_j[4], decoded_imm_j[9:8], decoded_imm_j[10], decoded_imm_j[6],
+				  decoded_imm_j[7], decoded_imm_j[3:1], decoded_imm_j[5], decoded_imm_j[0] } <= $signed({mem_rdata_latched[12:2], 1'b0});
 
 				case (mem_rdata_latched[1:0])
 					2'b00: begin // Quadrant 0
@@ -1100,7 +1100,7 @@ module picorv32 #(
 			(* parallel_case *)
 			case (1'b1)
 				instr_jal:
-					decoded_imm <= decoded_imm_uj;
+					decoded_imm <= decoded_imm_j;
 				|{instr_lui, instr_auipc}:
 					decoded_imm <= mem_rdata_q[31:12] << 12;
 				|{instr_jalr, is_lb_lh_lw_lbu_lhu, is_alu_reg_imm}:
@@ -1545,7 +1545,7 @@ module picorv32 #(
 					end
 					if (instr_jal) begin
 						mem_do_rinst <= 1;
-						reg_next_pc <= current_pc + decoded_imm_uj;
+						reg_next_pc <= current_pc + decoded_imm_j;
 						latched_branch <= 1;
 					end else begin
 						mem_do_rinst <= 0;
