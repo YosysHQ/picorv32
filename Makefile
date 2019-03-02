@@ -116,7 +116,7 @@ tests/%.o: tests/%.S tests/riscv_test.h tests/test_macros.h
 
 download-tools:
 	sudo bash -c 'set -ex; mkdir -p /var/cache/distfiles; $(GIT_ENV); \
-	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-dejagnu riscv-gcc riscv-glibc riscv-newlib, \
+	$(foreach REPO,riscv-gnu-toolchain riscv-binutils-gdb riscv-gcc riscv-glibc riscv-newlib, \
 		if ! test -d /var/cache/distfiles/$(REPO).git; then rm -rf /var/cache/distfiles/$(REPO).git.part; \
 			git clone --bare https://github.com/riscv/$(REPO) /var/cache/distfiles/$(REPO).git.part; \
 			mv /var/cache/distfiles/$(REPO).git.part /var/cache/distfiles/$(REPO).git; else \
@@ -132,7 +132,6 @@ build-$(1)-tools-bh:
 	+set -ex; $(GIT_ENV); \
 	if [ -d /var/cache/distfiles/riscv-gnu-toolchain.git ]; then reference_riscv_gnu_toolchain="--reference /var/cache/distfiles/riscv-gnu-toolchain.git"; else reference_riscv_gnu_toolchain=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-binutils-gdb.git ]; then reference_riscv_binutils_gdb="--reference /var/cache/distfiles/riscv-binutils-gdb.git"; else reference_riscv_binutils_gdb=""; fi; \
-	if [ -d /var/cache/distfiles/riscv-dejagnu.git ]; then reference_riscv_dejagnu="--reference /var/cache/distfiles/riscv-dejagnu.git"; else reference_riscv_dejagnu=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-gcc.git ]; then reference_riscv_gcc="--reference /var/cache/distfiles/riscv-gcc.git"; else reference_riscv_gcc=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-glibc.git ]; then reference_riscv_glibc="--reference /var/cache/distfiles/riscv-glibc.git"; else reference_riscv_glibc=""; fi; \
 	if [ -d /var/cache/distfiles/riscv-newlib.git ]; then reference_riscv_newlib="--reference /var/cache/distfiles/riscv-newlib.git"; else reference_riscv_newlib=""; fi; \
@@ -140,7 +139,6 @@ build-$(1)-tools-bh:
 	cd riscv-gnu-toolchain-$(1); git checkout $(RISCV_GNU_TOOLCHAIN_GIT_REVISION); \
 	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-binutils; \
 	git submodule update --init $$$$reference_riscv_binutils_gdb riscv-gdb; \
-	git submodule update --init $$$$reference_riscv_dejagnu riscv-dejagnu; \
 	git submodule update --init $$$$reference_riscv_gcc riscv-gcc; \
 	git submodule update --init $$$$reference_riscv_glibc riscv-glibc; \
 	git submodule update --init $$$$reference_riscv_newlib riscv-newlib; \
