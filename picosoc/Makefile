@@ -33,7 +33,7 @@ hx8kprog: hx8kdemo.bin hx8kdemo_fw.bin
 hx8kprog_fw: hx8kdemo_fw.bin
 	iceprog -o 1M hx8kdemo_fw.bin
 
-hx8kprog_sections.lds: sections.lds
+hx8kdemo_sections.lds: sections.lds
 	riscv32-unknown-elf-cpp -P -DHX8KDEMO -o $@ $^
 
 hx8kdemo_fw.elf: hx8kdemo_sections.lds start.s firmware.c
