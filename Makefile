@@ -1,6 +1,6 @@
 
 RISCV_GNU_TOOLCHAIN_GIT_REVISION = 411d134
-RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX = /opt/riscv32
+RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX = /opt/riscv32hacked_
 
 SHELL = bash
 TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
@@ -142,6 +142,7 @@ build-$(1)-tools-bh:
 	git submodule update --init $$$$reference_riscv_gcc riscv-gcc; \
 	git submodule update --init $$$$reference_riscv_glibc riscv-glibc; \
 	git submodule update --init $$$$reference_riscv_newlib riscv-newlib; \
+	cd riscv-gcc; patch -p1 < ../../riscv-gcc-hack.patch; cd ..; \
 	mkdir build; cd build; ../configure --with-arch=$(2) --prefix=$(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)$(subst riscv32,,$(1)); make
 
 .PHONY: build-$(1)-tools

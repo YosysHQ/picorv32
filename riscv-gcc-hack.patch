@@ -1,0 +1,275 @@
+diff --git a/gcc/config/riscv/riscv.c b/gcc/config/riscv/riscv.c
+index 76bb74fb2d4..6b8eea0235a 100644
+--- a/gcc/config/riscv/riscv.c
++++ b/gcc/config/riscv/riscv.c
+@@ -1358,6 +1358,9 @@ riscv_legitimize_const_move (machine_mode mode, rtx dest, rtx src)
+ /* If (set DEST SRC) is not a valid move instruction, emit an equivalent
+    sequence that is valid.  */
+ 
++bool riscv_legitimize_qimove (rtx dest, rtx src);
++bool riscv_legitimize_himove (rtx dest, rtx src);
++
+ bool
+ riscv_legitimize_move (machine_mode mode, rtx dest, rtx src)
+ {
+@@ -1367,6 +1370,12 @@ riscv_legitimize_move (machine_mode mode, rtx dest, rtx src)
+       return true;
+     }
+ 
++  if ((mode == QImode) && (MEM_P(dest)) )
++    return riscv_legitimize_qimove(dest, src);
++  if ((mode == HImode) && (MEM_P(dest)) )
++    return riscv_legitimize_himove(dest, src);
++
++
+   /* We need to deal with constants that would be legitimate
+      immediate_operands but aren't legitimate move_operands.  */
+   if (CONSTANT_P (src) && !move_operand (src, mode))
+@@ -1395,6 +1404,197 @@ riscv_legitimize_move (machine_mode mode, rtx dest, rtx src)
+   return false;
+ }
+ 
++bool
++riscv_legitimize_qimove (rtx dest, rtx src)
++{
++	/*
++	{
++		t = *(p&~3)
++		nv  = v   << ((p&3)<<3)
++		msk = 255 << ((p&3)<<3)
++		t &= ~msk
++		t |= nv
++		*(p^~3) = t
++
++		////////////
++		// After some simplifications becomes
++		////////////
++
++		// R0 = p
++		// R1 = v
++		na = *(p&~3)		Ra = na
++		sft = (p&3)<<3;		Rb = sft, then t
++		msk = 255		Rm = msk
++		nv &= v & msk		Rd = nv
++		nv<<= sft
++		msk<<= sft
++		msk = ~msk
++		t   = *na
++		t  &= msk
++		t  |= nv
++
++		////////////
++		// After some simplifications becomes
++		////////////
++	}
++	*/
++
++	// ANDI  Ra,R0,~3	// Calculate the new address
++	// ANDI  Rb,R0,3
++	// SLLI  Rb,Rb,3
++	// LUI   Rm,255
++	// AND   Rd,R1,Rm
++	// SLL   Rd,Rd,Rb
++	// SLL   Rm,Rm,Rb
++	// XORI  Rm,Rm,-1	// Negate the mask
++	// LW    Rb,Ra
++	// AND   Rb,Rb,Rm
++	// OR    Rb,Rb,Rd
++	// SW    Ra,Rb
++	// 
++	//
++  rtx	Ra = gen_reg_rtx(Pmode),	// Address
++	Rb = gen_reg_rtx(SImode),
++	Rm = gen_reg_rtx(SImode),	// Mask
++	Rd = gen_reg_rtx(SImode),	// Data
++	Rq = gen_reg_rtx(QImode),	// Shift amount
++	addr,
++	mem; // = XEXP(src,0);
++
++  if (MEM_P (dest) && !REG_P(XEXP(dest,0))) {
++    addr = gen_reg_rtx(Pmode);
++    emit_insn(gen_rtx_SET(addr, XEXP(dest, 0)));
++  } else
++    addr = XEXP(dest, 0);
++
++  mem = gen_rtx_MEM(SImode, Ra);
++
++  if (Pmode == DImode) {
++    emit_insn(gen_rtx_SET(Rb,   gen_rtx_SUBREG(SImode, addr, 0)));
++    emit_insn(gen_andsi3(Rm, Rb, gen_int_mode(~3, Pmode)));
++    emit_insn(gen_rtx_SET(gen_rtx_SUBREG(SImode, Ra, 0), Rm));
++    emit_insn(gen_rtx_SET(gen_rtx_SUBREG(SImode, Ra, 1),
++	 gen_rtx_SUBREG(SImode, addr, 1)));
++
++    emit_insn(gen_andsi3(Rb,  Rb,   gen_int_mode( 3, SImode)));
++  } else {
++    emit_insn(gen_andsi3(Ra,  addr, gen_int_mode(~3, SImode)));
++    emit_insn(gen_andsi3(Rb,  addr, gen_int_mode( 3, SImode)));
++  }
++  emit_insn(gen_ashlsi3(Rb, Rb,   gen_int_mode( 3, SImode)));
++  emit_insn(gen_movsi(Rm,   gen_int_mode(255, SImode)));
++  if (QImode == GET_MODE(src))
++    emit_insn(gen_rtx_SET(Rd, gen_rtx_ZERO_EXTEND(SImode, src)));
++  else
++    emit_insn(gen_rtx_SET(Rd, src));
++  // emit_insn(gen_andsi3(Rd,  Rd,  Rm));
++  emit_insn(gen_rtx_SET(Rq, gen_rtx_SUBREG(QImode, Rb, 0)));
++  emit_insn(gen_ashlsi3(Rd, Rd, Rq));
++  emit_insn(gen_ashlsi3(Rm, Rm, Rq));
++  emit_insn(gen_xorsi3(Rm,  Rm, gen_int_mode(-1, SImode)));
++  emit_insn(gen_movsi(Rb,   mem));
++  emit_insn(gen_andsi3(Rb,  Rb, Rm));
++  emit_insn(gen_iorsi3(Rb, Rb, Rd));
++  emit_insn(gen_movsi(mem,  Rb));
++
++  return true;
++}
++
++bool
++riscv_legitimize_himove (rtx dest, rtx src)
++{
++	/*
++	{
++		t = *(p&~3)
++		nv  =   v   << ((p&3)<<3)
++		msk = 65535 << ((p&3)<<3)
++		t &= ~msk
++		t |= nv
++		*(p^~3) = t
++
++		////////////
++		// After some simplifications becomes
++		////////////
++
++		// R0 = p
++		// R1 = v
++		na = *(p&~3)		Ra = na
++		sft = (p&2)<<3;		Rb = sft, then t
++		msk = 65535		Rm = msk
++		nv &= v & msk		Rd = nv
++		nv<<= sft
++		msk<<= sft
++		msk = ~msk
++		t   = *na
++		t  &= msk
++		t  |= nv
++
++		////////////
++		// After some simplifications becomes
++		////////////
++	}
++	*/
++
++	// ANDI  Ra,R0,~3	// Calculate the new address
++	// ANDI  Rb,R0,3
++	// SLLI  Rb,Rb,3
++	// LUI   Rm,255
++	// AND   Rd,R1,Rm
++	// SLL   Rd,Rd,Rb
++	// SLL   Rm,Rm,Rb
++	// XORI  Rm,Rm,-1	// Negate the mask
++	// LW    Rb,Ra
++	// AND   Rb,Rb,Rm
++	// OR    Rb,Rb,Rd
++	// SW    Ra,Rb
++	// 
++	//
++  rtx	Ra = gen_reg_rtx(Pmode),	// Address
++	Rb = gen_reg_rtx(SImode),
++	Rm = gen_reg_rtx(SImode),	// Mask
++	Rd = gen_reg_rtx(SImode),	// Data
++	Rq = gen_reg_rtx(QImode),	// Shift amount
++	addr,
++	mem; // = XEXP(src,0);
++
++  if (MEM_P (dest) && !REG_P(XEXP(dest,0))) {
++    addr = gen_reg_rtx(Pmode);
++    emit_insn(gen_rtx_SET(addr, XEXP(dest, 0)));
++  } else
++    addr = XEXP(dest, 0);
++
++  mem = gen_rtx_MEM(SImode, Ra);
++
++  if (DImode == Pmode) {
++    emit_insn(gen_rtx_SET(Rb, gen_rtx_SUBREG(SImode, addr, 0)));
++    emit_insn(gen_andsi3(Rm,  Rb, gen_int_mode(~3, SImode)));
++    emit_insn(gen_movsi(gen_rtx_SUBREG(SImode, Ra, 0), Rm));
++    emit_insn(gen_movsi(gen_rtx_SUBREG(SImode, Ra, 1),
++	gen_rtx_SUBREG(SImode, addr, 1)));
++
++    emit_insn(gen_andsi3(Rb,  Rb, gen_int_mode( 2, SImode)));
++  } else {
++    emit_insn(gen_andsi3(Ra,  addr, gen_int_mode(~3, Pmode)));
++    emit_insn(gen_andsi3(Rb,  addr, gen_int_mode( 2, SImode)));
++  }
++  emit_insn(gen_ashlsi3(Rb, Rb,   gen_int_mode( 3, SImode)));
++  emit_insn(gen_movsi(Rm,   gen_int_mode(65535, SImode)));
++  if (HImode == GET_MODE(src))
++    emit_insn(gen_rtx_SET(Rd, gen_rtx_ZERO_EXTEND(SImode, src)));
++  else
++    emit_insn(gen_rtx_SET(Rd, src));
++  emit_insn(gen_rtx_SET(Rq,  gen_rtx_SUBREG(QImode, Rb, 0)));
++  emit_insn(gen_ashlsi3(Rd, Rd, Rq));
++  emit_insn(gen_ashlsi3(Rm, Rm, Rq));
++  emit_insn(gen_xorsi3(Rm,  Rm, gen_int_mode(-1, SImode)));
++  emit_insn(gen_movsi(Rb,   mem));
++  emit_insn(gen_andsi3(Rb,  Rb, Rm));
++  emit_insn(gen_iorsi3(Rb, Rb, Rd));
++  emit_insn(gen_movsi(mem,  Rb));
++
++  return true;
++}
++
+ /* Return true if there is an instruction that implements CODE and accepts
+    X as an immediate operand. */
+ 
+diff --git a/gcc/config/riscv/riscv.md b/gcc/config/riscv/riscv.md
+index 668668fc2ab..ef88eaedc4a 100644
+--- a/gcc/config/riscv/riscv.md
++++ b/gcc/config/riscv/riscv.md
+@@ -1343,15 +1343,17 @@
+ {
+   if (riscv_legitimize_move (HImode, operands[0], operands[1]))
+     DONE;
++  if (MEM_P(operands[0]))
++    FAIL;
+ })
+ 
+ (define_insn "*movhi_internal"
+-  [(set (match_operand:HI 0 "nonimmediate_operand" "=r,r,r, m,  *f,*r")
+-	(match_operand:HI 1 "move_operand"	   " r,T,m,rJ,*r*J,*f"))]
+-  "(register_operand (operands[0], HImode)
+-    || reg_or_0_operand (operands[1], HImode))"
++  [(set (match_operand:HI 0 "nonimmediate_operand" "=r,r,r,  *f,*r")
++	(match_operand:HI 1 "move_operand"	   " r,T,m,*r*J,*f"))]
++  "((!MEM_P(operands[0]))&&(register_operand (operands[0], HImode)
++    || reg_or_0_operand (operands[1], HImode)))"
+   { return riscv_output_move (operands[0], operands[1]); }
+-  [(set_attr "move_type" "move,const,load,store,mtc,mfc")
++  [(set_attr "move_type" "move,const,load,mtc,mfc")
+    (set_attr "mode" "HI")])
+ 
+ ;; HImode constant generation; see riscv_move_integer for details.
+@@ -1385,15 +1387,17 @@
+ {
+   if (riscv_legitimize_move (QImode, operands[0], operands[1]))
+     DONE;
++  if (MEM_P(operands[0]))
++    FAIL;
+ })
+ 
+ (define_insn "*movqi_internal"
+-  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,r,r, m,  *f,*r")
+-	(match_operand:QI 1 "move_operand"         " r,I,m,rJ,*r*J,*f"))]
+-  "(register_operand (operands[0], QImode)
+-    || reg_or_0_operand (operands[1], QImode))"
++  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,r,r,  *f,*r")
++	(match_operand:QI 1 "move_operand"         " r,I,m,*r*J,*f"))]
++  "(!MEM_P(operands[0])&&(register_operand (operands[0], QImode)
++    || reg_or_0_operand (operands[1], QImode)))"
+   { return riscv_output_move (operands[0], operands[1]); }
+-  [(set_attr "move_type" "move,const,load,store,mtc,mfc")
++  [(set_attr "move_type" "move,const,load,mtc,mfc")
+    (set_attr "mode" "QI")])
+ 
+ ;; 32-bit floating point moves
