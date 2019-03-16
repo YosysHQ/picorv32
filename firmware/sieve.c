@@ -11,6 +11,9 @@
 
 #define BITMAP_SIZE 64
 
+extern volatile uint32_t scratchpad[];
+volatile uint32_t scratchpad[2];
+
 static uint32_t bitmap[BITMAP_SIZE/32];
 static uint32_t hash;
 
@@ -71,6 +74,12 @@ void sieve(void)
 		}
 	}
 
+	print_str("Scratchpad write..\n");
+	*(volatile uint8_t*)(scratchpad+0) = 12;
+	*(volatile uint8_t*)(scratchpad+2) = 34;
+	*(volatile uint16_t*)(scratchpad+6) = 567;
+	*(volatile uint16_t*)(scratchpad+8) = 890;
+
 	print_str("checksum: ");
 	print_hex(hash, 8);
 
@@ -80,5 +89,11 @@ void sieve(void)
 		print_str(" ERROR\n");
 		__asm__ volatile ("ebreak");
 	}
+
+	print_str("Scratchpad read..\n");
+	print_str(*(volatile uint8_t*)(scratchpad+0) == 12 ? "okay (byte = 12)\n" : "ERROR\n");
+	print_str(*(volatile uint8_t*)(scratchpad+2) == 34 ? "okay (byte = 34)\n" : "ERROR\n");
+	print_str(*(volatile uint16_t*)(scratchpad+6) == 567 ? "okay (hword = 567)\n" : "ERROR\n");
+	print_str(*(volatile uint16_t*)(scratchpad+8) == 890 ? "okay (hword = 890)\n" : "ERROR\n");
 }
 

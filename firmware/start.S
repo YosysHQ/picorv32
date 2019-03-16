@@ -6,10 +6,10 @@
 // means.
 
 #define ENABLE_QREGS
-#define ENABLE_RVTST
+#undef ENABLE_RVTST
 #define ENABLE_SIEVE
-#define ENABLE_MULTST
-#define ENABLE_STATS
+#undef ENABLE_MULTST
+#undef ENABLE_STATS
 
 #ifndef ENABLE_QREGS
 #  undef ENABLE_RVTST

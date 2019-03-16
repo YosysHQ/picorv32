@@ -105,6 +105,11 @@ module picorv32_wrapper #(
 	wire        mem_axi_rready;
 	wire [31:0] mem_axi_rdata;
 
+	always @(posedge clk) begin
+		if (mem_axi_wvalid && mem_axi_wready && (mem_axi_wstrb != 4'b1111))
+			$display("** detected byte/hword write [mem_axi_wstrb=%b] **", mem_axi_wstrb);
+	end
+
 	axi4_memory #(
 		.AXI_TEST (AXI_TEST),
 		.VERBOSE  (VERBOSE)
