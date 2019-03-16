@@ -1,3 +1,10 @@
+!!!!! toolchain-hack-nosbh branch !!!!!
+=======================================
+
+This branch contains a toolchain hack (riscv-gcc-hack.patch) that prevents gcc
+from emitting `sb` and/or `sh` instructions. Let the existence of this branch be
+a reminder to always double-check your memory interface before tapeout. `(-_Q)`
+
 
 PicoRV32 - A Size-Optimized RISC-V CPU
 ======================================
