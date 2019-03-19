@@ -3,6 +3,9 @@
 
 int main(int argc, char **argv, char **env)
 {
+	printf("Built with %s %s.\n", Verilated::productName(), Verilated::productVersion());
+	printf("Recommended: Verilator 4.0 or later.\n");
+
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
 	Vpicorv32_wrapper* top = new Vpicorv32_wrapper;
