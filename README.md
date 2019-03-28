@@ -53,11 +53,11 @@ the latter results in a smaller core.
 resources, such as many FPGAs, disabling the 16 upper registers and/or
 disabling the dual-port register file may not further reduce the core size.*
 
-The core exists in two variations: `picorv32` and `picorv32_axi`. The former
-provides a simple native memory interface, that is easy to use in simple
-environments, and the latter provides an AXI-4 Lite Master interface that can
+The core exists in three variations: `picorv32`, `picorv32_axi` and `picorv32_wb`.
+The first provides a simple native memory interface, that is easy to use in simple
+environments. `picorv32_axi` provides an AXI-4 Lite Master interface that can
 easily be integrated with existing systems that are already using the AXI
-standard.
+standard. `picorv32_wb` provides a Wishbone master interface.
 
 A separate core `picorv32_axi_adapter` is provided to bridge between the native
 memory interface and AXI4. This core can be used to create custom cores that
@@ -181,7 +181,7 @@ transaction. In the default configuration the PicoRV32 core only expects the
 latches the value internally.
 
 This parameter is only available for the `picorv32` core. In the
-`picorv32_axi` core this is implicitly set to 0.
+`picorv32_axi` and `picorv32_wb` core this is implicitly set to 0.
 
 #### TWO_STAGE_SHIFT (default = 1)
 
