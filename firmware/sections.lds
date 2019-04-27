@@ -20,5 +20,6 @@ SECTIONS {
 		*(.text);
 		*(*);
 		end = .;
+		. = ALIGN(4);
 	} > mem
 }
