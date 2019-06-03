@@ -70,10 +70,13 @@ module picorv32_wrapper #(
 	reg [31:0] irq;
 	wire mem_instr;
 
+	reg [15:0] count_cycle = 0;
+	always @(posedge wb_clk) count_cycle <= !wb_rst ? count_cycle + 1 : 0;
+
 	always @* begin
 		irq = 0;
-		irq[4] = &uut.picorv32_core.count_cycle[12:0];
-		irq[5] = &uut.picorv32_core.count_cycle[15:0];
+		irq[4] = &count_cycle[12:0];
+		irq[5] = &count_cycle[15:0];
 	end
 
 	wire [31:0] wb_m2s_adr;
