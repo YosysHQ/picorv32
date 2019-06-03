@@ -77,10 +77,13 @@ module picorv32_wrapper #(
 	wire tests_passed;
 	reg [31:0] irq;
 
+	reg [15:0] count_cycle = 0;
+	always @(posedge clk) count_cycle <= resetn ? count_cycle + 1 : 0;
+
 	always @* begin
 		irq = 0;
-		irq[4] = &uut.picorv32_core.count_cycle[12:0];
-		irq[5] = &uut.picorv32_core.count_cycle[15:0];
+		irq[4] = &count_cycle[12:0];
+		irq[5] = &count_cycle[15:0];
 	end
 
 	wire        mem_axi_awvalid;
