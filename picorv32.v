@@ -136,6 +136,16 @@ module picorv32 #(
 	output reg [ 3:0] rvfi_mem_wmask,
 	output reg [31:0] rvfi_mem_rdata,
 	output reg [31:0] rvfi_mem_wdata,
+
+	output reg [63:0] rvfi_csr_mcycle_rmask,
+	output reg [63:0] rvfi_csr_mcycle_wmask,
+	output reg [63:0] rvfi_csr_mcycle_rdata,
+	output reg [63:0] rvfi_csr_mcycle_wdata,
+
+	output reg [63:0] rvfi_csr_minstret_rmask,
+	output reg [63:0] rvfi_csr_minstret_wmask,
+	output reg [63:0] rvfi_csr_minstret_rdata,
+	output reg [63:0] rvfi_csr_minstret_wdata,
 `endif
 
 	// Trace Interface
@@ -2026,6 +2036,35 @@ module picorv32 #(
 
 	always @* begin
 		rvfi_pc_wdata = dbg_irq_call ? dbg_irq_ret : dbg_insn_addr;
+
+		rvfi_csr_mcycle_rmask = 0;
+		rvfi_csr_mcycle_wmask = 0;
+		rvfi_csr_mcycle_rdata = 0;
+		rvfi_csr_mcycle_wdata = 0;
+
+		rvfi_csr_minstret_rmask = 0;
+		rvfi_csr_minstret_wmask = 0;
+		rvfi_csr_minstret_rdata = 0;
+		rvfi_csr_minstret_wdata = 0;
+
+		if (rvfi_valid && rvfi_insn[6:0] == 7'b 1110011 && rvfi_insn[13:12] == 3'b010) begin
+			if (rvfi_insn[31:20] == 12'h C00) begin
+				rvfi_csr_mcycle_rmask = 64'h 0000_0000_FFFF_FFFF;
+				rvfi_csr_mcycle_rdata = {32'h 0000_0000, rvfi_rd_wdata};
+			end
+			if (rvfi_insn[31:20] == 12'h C80) begin
+				rvfi_csr_mcycle_rmask = 64'h FFFF_FFFF_0000_0000;
+				rvfi_csr_mcycle_rdata = {rvfi_rd_wdata, 32'h 0000_0000};
+			end
+			if (rvfi_insn[31:20] == 12'h C02) begin
+				rvfi_csr_minstret_rmask = 64'h 0000_0000_FFFF_FFFF;
+				rvfi_csr_minstret_rdata = {32'h 0000_0000, rvfi_rd_wdata};
+			end
+			if (rvfi_insn[31:20] == 12'h C82) begin
+				rvfi_csr_minstret_rmask = 64'h FFFF_FFFF_0000_0000;
+				rvfi_csr_minstret_rdata = {rvfi_rd_wdata, 32'h 0000_0000};
+			end
+		end
 	end
 `endif
 
