@@ -123,6 +123,7 @@ module picorv32 #(
 	output reg        rvfi_halt,
 	output reg        rvfi_intr,
 	output reg [ 1:0] rvfi_mode,
+	output reg [ 1:0] rvfi_ixl,
 	output reg [ 4:0] rvfi_rs1_addr,
 	output reg [ 4:0] rvfi_rs2_addr,
 	output reg [31:0] rvfi_rs1_rdata,
@@ -1974,6 +1975,7 @@ module picorv32 #(
 		rvfi_halt <= trap;
 		rvfi_intr <= dbg_irq_enter;
 		rvfi_mode <= 3;
+		rvfi_ixl <= 1;
 
 		if (!resetn) begin
 			dbg_irq_call <= 0;
