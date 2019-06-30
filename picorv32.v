@@ -1326,7 +1326,13 @@ module picorv32 #(
 `ifndef PICORV32_REGS
 	always @(posedge clk) begin
 		if (resetn && cpuregs_write && latched_rd)
+`ifdef PICORV32_TESTBUG_001
+			cpuregs[latched_rd ^ 1] <= cpuregs_wrdata;
+`elsif PICORV32_TESTBUG_002
+			cpuregs[latched_rd] <= cpuregs_wrdata ^ 1;
+`else
 			cpuregs[latched_rd] <= cpuregs_wrdata;
+`endif
 	end
 
 	always @* begin
@@ -1995,8 +2001,16 @@ module picorv32 #(
 			rvfi_rd_wdata <= 0;
 		end else
 		if (cpuregs_write && !irq_state) begin
+`ifdef PICORV32_TESTBUG_003
+			rvfi_rd_addr <= latched_rd ^ 1;
+`else
 			rvfi_rd_addr <= latched_rd;
+`endif
+`ifdef PICORV32_TESTBUG_004
+			rvfi_rd_wdata <= latched_rd ? cpuregs_wrdata ^ 1 : 0;
+`else
 			rvfi_rd_wdata <= latched_rd ? cpuregs_wrdata : 0;
+`endif
 		end else
 		if (rvfi_valid) begin
 			rvfi_rd_addr <= 0;
@@ -2037,7 +2051,11 @@ module picorv32 #(
 	end
 
 	always @* begin
+`ifdef PICORV32_TESTBUG_005
+		rvfi_pc_wdata = (dbg_irq_call ? dbg_irq_ret : dbg_insn_addr) ^ 4;
+`else
 		rvfi_pc_wdata = dbg_irq_call ? dbg_irq_ret : dbg_insn_addr;
+`endif
 
 		rvfi_csr_mcycle_rmask = 0;
 		rvfi_csr_mcycle_wmask = 0;
