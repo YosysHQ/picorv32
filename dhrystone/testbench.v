@@ -26,12 +26,16 @@ module testbench;
 	wire [31:0] mem_la_wdata;
 	wire [3:0] mem_la_wstrb;
 
+	wire trace_valid;
+	wire [35:0] trace_data;
+
 	picorv32 #(
 		.BARREL_SHIFTER(1),
 		.ENABLE_FAST_MUL(1),
 		.ENABLE_DIV(1),
 		.PROGADDR_RESET('h10000),
-		.STACKADDR('h10000)
+		.STACKADDR('h10000),
+		.ENABLE_TRACE(1)
 	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
@@ -47,7 +51,9 @@ module testbench;
 		.mem_la_write(mem_la_write),
 		.mem_la_addr (mem_la_addr ),
 		.mem_la_wdata(mem_la_wdata),
-		.mem_la_wstrb(mem_la_wstrb)
+		.mem_la_wstrb(mem_la_wstrb),
+		.trace_valid (trace_valid),
+		.trace_data  (trace_data )
 	);
 
 	reg [7:0] memory [0:256*1024-1];
@@ -81,6 +87,22 @@ module testbench;
 	initial begin
 		$dumpfile("testbench.vcd");
 		$dumpvars(0, testbench);
+	end
+
+	integer trace_file;
+
+	initial begin
+		if ($test$plusargs("trace")) begin
+			trace_file = $fopen("testbench.trace", "w");
+			repeat (10) @(posedge clk);
+			while (!trap) begin
+				@(posedge clk);
+				if (trace_valid)
+					$fwrite(trace_file, "%x\n", trace_data);
+			end
+			$fclose(trace_file);
+			$display("Finished writing testbench.trace.");
+		end
 	end
 
 	always @(posedge clk) begin

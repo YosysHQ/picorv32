@@ -13,6 +13,10 @@ endif
 test: testbench.vvp dhry.hex
 	vvp -N testbench.vvp
 
+test_trace: testbench.vvp dhry.hex
+	vvp -N $< +trace
+	python3 ../showtrace.py testbench.trace dhry.elf > testbench.ins
+
 test_nola: testbench_nola.vvp dhry.hex
 	vvp -N testbench_nola.vvp
 
