@@ -56,8 +56,6 @@ endmodule
 `endif
 
 module picorv32_wrapper #(
-	parameter BOOTROM_MEMFILE = "",
-	parameter BOOTROM_MEMDEPTH = 16384 * 4,
 	parameter VERBOSE = 0
 ) (
 	input wb_clk,
@@ -89,7 +87,7 @@ module picorv32_wrapper #(
 	wire wb_s2m_ack;
 
 	wb_ram #(
-		.depth (16384 * 4),
+		.depth (128*1024),
 		.VERBOSE (VERBOSE)
 	) ram ( // Wishbone interface
 		.wb_clk_i(wb_clk),
@@ -266,7 +264,7 @@ module wb_ram #(
 	end
 
 	always @(posedge wb_clk_i) begin
-		if (waddr2 < 64 * 1024 / 4) begin
+		if (waddr2 < 128 * 1024 / 4) begin
 			if (we[0])
 				mem[waddr2][7:0] <= wb_dat_i[7:0];
 

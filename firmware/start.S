@@ -6,6 +6,7 @@
 // means.
 
 #define ENABLE_QREGS
+#define ENABLE_HELLO
 #define ENABLE_RVTST
 #define ENABLE_SIEVE
 #define ENABLE_MULTST
@@ -24,12 +25,17 @@
 
 	.section .text
 	.global irq
+	.global hello
 	.global sieve
 	.global multest
 	.global hard_mul
 	.global hard_mulh
 	.global hard_mulhsu
 	.global hard_mulhu
+	.global hard_div
+	.global hard_divu
+	.global hard_rem
+	.global hard_remu
 	.global stats
 
 reset_vec:
@@ -372,6 +378,14 @@ start:
 	addi x30, zero, 0
 	addi x31, zero, 0
 
+#ifdef ENABLE_HELLO
+	/* set stack pointer */
+	lui sp,(128*1024)>>12
+
+	/* call hello C code */
+	jal ra,hello
+#endif
+
 	/* running tests from riscv-tests */
 
 #ifdef ENABLE_RVTST
@@ -443,7 +457,7 @@ start:
 	TEST(simple)
 
 	/* set stack pointer */
-	lui sp,(64*1024)>>12
+	lui sp,(128*1024)>>12
 
 	/* set gp and tp */
 	lui gp, %hi(0xdeadbeef)
@@ -503,5 +517,21 @@ hard_mulhsu:
 
 hard_mulhu:
 	mulhu a0, a0, a1
+	ret
+
+hard_div:
+	div a0, a0, a1
+	ret
+
+hard_divu:
+	divu a0, a0, a1
+	ret
+
+hard_rem:
+	rem a0, a0, a1
+	ret
+
+hard_remu:
+	remu a0, a0, a1
 	ret
 
