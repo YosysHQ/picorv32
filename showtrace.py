@@ -23,7 +23,8 @@ with open(trace_filename, "r") as f:
         irq_active = (raw_data & 0x800000000) != 0
         is_addr = (raw_data & 0x200000000) != 0
         is_branch = (raw_data & 0x100000000) != 0
-        info = "%s %s%08x" % ("IRQ" if irq_active else "   ", ">" if is_branch else "@" if is_addr else "=", payload)
+        info = "%s %s%08x" % ("IRQ" if irq_active or last_irq else "   ",
+                ">" if is_branch else "@" if is_addr else "=", payload)
 
         if irq_active and not last_irq:
             pc = 0x10
@@ -33,7 +34,8 @@ with open(trace_filename, "r") as f:
                 insn_opcode, insn_desc = insns[pc]
                 opname = insn_desc.split()[0]
 
-                if insn_desc.startswith("custom0 0,0,0,2"):
+                if insn_opcode == 0x0400000b:
+                    insn_desc = "retirq"
                     opname = "retirq"
 
                 if is_branch and opname not in ["j", "jal", "jr", "jalr", "ret", "retirq",
