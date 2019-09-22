@@ -75,7 +75,7 @@ module picorv32_wrapper #(
 	output [35:0] trace_data
 );
 	wire tests_passed;
-	reg [31:0] irq;
+	reg [31:0] irq = 0;
 
 	reg [15:0] count_cycle = 0;
 	always @(posedge clk) count_cycle <= resetn ? count_cycle + 1 : 0;

@@ -65,7 +65,7 @@ module picorv32_wrapper #(
 	output [35:0] trace_data
 );
 	wire tests_passed;
-	reg [31:0] irq;
+	reg [31:0] irq = 0;
 	wire mem_instr;
 
 	reg [15:0] count_cycle = 0;
