@@ -754,7 +754,7 @@ void main()
 			case 'M':
 				cmd_memtest();
 				break;
-			case 'P':
+			case 'S':
 				cmd_print_spi_state();
 				break;
 			case 'e':
