@@ -18,7 +18,7 @@
  */
 
 `ifdef PICOSOC_V
-`error "icebreaker.v must be read before icebreaker.v!"
+`error "icebreaker.v must be read before picosoc.v!"
 `endif
 
 `define PICOSOC_MEM ice40up5k_spram
