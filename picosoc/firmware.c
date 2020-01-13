@@ -2,6 +2,7 @@
  *  PicoSoC - A simple example SoC using PicoRV32
  *
  *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
+ *  Copyright (C) 2020  René Rebe <rene@exactcode.de>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
  *  purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +20,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #ifdef ICEBREAKER
 #  define MEM_TOTAL 0x20000 /* 128 KB */
@@ -157,8 +159,9 @@ void enable_flash_crm()
 
 void putchar(char c)
 {
-	if (c == '\n')
-		putchar('\r');
+	if (c == '\n') {
+		reg_uart_data = '\r';
+	}
 	reg_uart_data = c;
 }
 
@@ -168,53 +171,132 @@ void print(const char *p)
 		putchar(*(p++));
 }
 
-void print_hex(uint32_t v, int digits)
-{
-	for (int i = 7; i >= 0; i--) {
-		char c = "0123456789abcdef"[(v >> (4*i)) & 15];
-		if (c == '0' && i >= digits) continue;
-		putchar(c);
-		digits = i;
-	}
+// 1st and early for debug prints, ...
+int printf(const char* format, ...)
+__attribute__ ((format (printf, 1, 2)));
+
+int isdigit(int c) {
+	if (c >= '0' && c <= '9')
+		return c;
+	return 0;
 }
 
-void print_dec(uint32_t v)
+int sprintf(char* out, const char* format, ...)
+  __attribute__ ((format (printf, 2, 3)));
+int vsprintf(char* out, const char* format, va_list argp)
 {
-	if (v >= 1000) {
-		print(">=1000");
-		return;
+	const char* _out = out;
+	char temp[23]; // temp. formating buffer
+	uint8_t tempi = sizeof(temp);
+	for (; *format; ++format) {
+		// TODO: >9 (single digit) format and precision!
+		// TODO: and support for more formats, ...
+		uint8_t precision = 0, width = 0, zeros = 0;
+		if (*format == '%') {
+			++format;
+			if (*format == '0') {
+				zeros = *format++;
+			}
+			if (isdigit(*format)) {
+				width = *format++ - '0';
+			}
+			if (format[0] == '.' && isdigit(format[1])) {
+				precision = format[1] - '0';
+				format += 2;
+			}
+			const char fmt = *format;
+			if (fmt == '%') {
+				*out++ = '%';
+			} else if (fmt == 'c') {
+				char char_to_print = va_arg(argp, int);
+				*out++ = char_to_print;
+			} else if (fmt == 's') {
+				char* str_to_print = va_arg(argp, char*);
+				while (*str_to_print) {
+					*out++ = *str_to_print++;
+					if (precision && --precision == 0) break;
+				}
+			} else if (fmt == 'd' || fmt == 'i')  {
+				int int_to_print = va_arg(argp, int);
+				if (int_to_print < 0) {
+					*out++ = '-';
+					int_to_print = -int_to_print;
+				}
+				// format int
+				do {
+					int _ = int_to_print % 10;
+					temp[--tempi] = '0' + _;
+					int_to_print /= 10;
+				} while (int_to_print);
+				goto output;
+			} else if (fmt == 'u')  {
+				unsigned int_to_print = va_arg(argp, unsigned);
+				// format unsigned
+				do {
+					int _ = int_to_print % 10;
+					temp[--tempi] = '0' + _;
+					int_to_print /= 10;
+				} while (int_to_print);
+				goto output;
+			} else if (fmt == 'x' || fmt == 'p' || fmt == 'X') {
+				unsigned hex_to_print = va_arg(argp, int);
+				// hex format int
+				do {
+					int _ = hex_to_print & 0xf;
+					if (_ > 9) _ += (fmt == 'X' ? 'A' : 'a') - '9' - 1;
+					temp[--tempi] = '0' + _;
+					hex_to_print >>= 4;
+				} while (hex_to_print);
+				goto output;
+			} else {
+				out += sprintf(out, "NIY: %%%c", fmt);
+			}
+		} else {
+			*out++ = *format;
+		}
+
+		continue;
+
+	output:
+		// copy to output buffer and implicitly reset tempi
+		if (width) {
+			const int w = sizeof(temp) - tempi;
+			for (int i = 0; i < width - w; ++i)
+				*out++ = zeros ? '0' : ' ';
+		}
+		for (; tempi < sizeof(temp); ++tempi)
+			*out++ = temp[tempi];
 	}
 
-	if      (v >= 900) { putchar('9'); v -= 900; }
-	else if (v >= 800) { putchar('8'); v -= 800; }
-	else if (v >= 700) { putchar('7'); v -= 700; }
-	else if (v >= 600) { putchar('6'); v -= 600; }
-	else if (v >= 500) { putchar('5'); v -= 500; }
-	else if (v >= 400) { putchar('4'); v -= 400; }
-	else if (v >= 300) { putchar('3'); v -= 300; }
-	else if (v >= 200) { putchar('2'); v -= 200; }
-	else if (v >= 100) { putchar('1'); v -= 100; }
+	*out = 0;
+	return out - _out;
+}
 
-	if      (v >= 90) { putchar('9'); v -= 90; }
-	else if (v >= 80) { putchar('8'); v -= 80; }
-	else if (v >= 70) { putchar('7'); v -= 70; }
-	else if (v >= 60) { putchar('6'); v -= 60; }
-	else if (v >= 50) { putchar('5'); v -= 50; }
-	else if (v >= 40) { putchar('4'); v -= 40; }
-	else if (v >= 30) { putchar('3'); v -= 30; }
-	else if (v >= 20) { putchar('2'); v -= 20; }
-	else if (v >= 10) { putchar('1'); v -= 10; }
+int sprintf(char* text, const char* format, ...)
+  __attribute__ ((format (printf, 2, 3)));
+int sprintf(char* text, const char* format, ...)
+{
+	va_list argp, argp2;
+	va_start(argp, format);
+	va_copy(argp2, argp);
+	int ret = vsprintf(text, format, argp2);
+	va_end(argp2);
 
-	if      (v >= 9) { putchar('9'); v -= 9; }
-	else if (v >= 8) { putchar('8'); v -= 8; }
-	else if (v >= 7) { putchar('7'); v -= 7; }
-	else if (v >= 6) { putchar('6'); v -= 6; }
-	else if (v >= 5) { putchar('5'); v -= 5; }
-	else if (v >= 4) { putchar('4'); v -= 4; }
-	else if (v >= 3) { putchar('3'); v -= 3; }
-	else if (v >= 2) { putchar('2'); v -= 2; }
-	else if (v >= 1) { putchar('1'); v -= 1; }
-	else putchar('0');
+	return ret;
+}
+
+int printf(const char* format, ...)
+{
+	char text[120]; // TODO: dynamic!
+
+	va_list argp, argp2;
+	va_start(argp, format);
+	va_copy(argp2, argp);
+	int ret = vsprintf(text, format, argp2);
+	va_end(argp2);
+
+	print(text);
+	return ret;
 }
 
 char getchar_prompt(char *prompt)
@@ -253,28 +335,10 @@ char getchar()
 void cmd_print_spi_state()
 {
 	print("SPI State:\n");
-
-	print("  LATENCY ");
-	print_dec((reg_spictrl >> 16) & 15);
-	print("\n");
-
-	print("  DDR ");
-	if ((reg_spictrl & (1 << 22)) != 0)
-		print("ON\n");
-	else
-		print("OFF\n");
-
-	print("  QSPI ");
-	if ((reg_spictrl & (1 << 21)) != 0)
-		print("ON\n");
-	else
-		print("OFF\n");
-
-	print("  CRM ");
-	if ((reg_spictrl & (1 << 20)) != 0)
-		print("ON\n");
-	else
-		print("OFF\n");
+	printf("  LATENCY %d\n", (reg_spictrl >> 16) & 15);
+	printf("  DDR %s\n", (reg_spictrl & (1 << 22)) != 0 ? "ON" : "OFF");
+	printf("  QSPI %s\n", (reg_spictrl & (1 << 21)) != 0 ? "ON" : "OFF");
+	printf("  CRM %s\n",  (reg_spictrl & (1 << 20)) != 0 ? "ON" : "OFF");
 }
 
 uint32_t xorshift32(uint32_t *state)
@@ -312,9 +376,7 @@ void cmd_memtest()
 
 		for (int word = 0; word < MEM_TOTAL / sizeof(int); word += stride) {
 			if (*(base_word + word) != xorshift32(&state)) {
-				print(" ***FAILED WORD*** at ");
-				print_hex(4*word, 4);
-				print("\n");
+			        printf(" ***FAILED WORD*** at %x\n", 4*word);
 				return;
 			}
 		}
@@ -329,9 +391,7 @@ void cmd_memtest()
 
 	for (int byte = 0; byte < 128; byte++) {
 		if (*(base_byte + byte) != (uint8_t) byte) {
-			print(" ***FAILED BYTE*** at ");
-			print_hex(byte, 4);
-			print("\n");
+		        printf(" ***FAILED BYTE*** at %x\n", byte);
 			return;
 		}
 	}
@@ -347,8 +407,7 @@ void cmd_read_flash_id()
 	flashio(buffer, 17, 0);
 
 	for (int i = 1; i <= 16; i++) {
-		putchar(' ');
-		print_hex(buffer[i], 2);
+		printf(" %x", buffer[i]);
 	}
 	putchar('\n');
 }
@@ -363,13 +422,7 @@ uint8_t cmd_read_flash_regs_print(uint32_t addr, const char *name)
 	uint8_t buffer[6] = {0x65, addr >> 16, addr >> 8, addr, 0, 0};
 	flashio(buffer, 6, 0);
 
-	print("0x");
-	print_hex(addr, 6);
-	print(" ");
-	print(name);
-	print(" 0x");
-	print_hex(buffer[5], 2);
-	print("\n");
+	printf("0x%x &s 0x%x\n", addr, name, buffer[5]);
 
 	return buffer[5];
 }
@@ -488,17 +541,9 @@ uint32_t cmd_benchmark(bool verbose, uint32_t *instns_p)
 
 	if (verbose)
 	{
-		print("Cycles: 0x");
-		print_hex(cycles_end - cycles_begin, 8);
-		putchar('\n');
-
-		print("Instns: 0x");
-		print_hex(instns_end - instns_begin, 8);
-		putchar('\n');
-
-		print("Chksum: 0x");
-		print_hex(x32, 8);
-		putchar('\n');
+	        printf("Cycles: 0x%x\n", cycles_end - cycles_begin);
+		printf("Instns: 0x%x\n", instns_end - instns_begin);
+		printf("Chksum: 0x%x\n", x32);
 	}
 
 	if (instns_p)
@@ -516,97 +561,69 @@ void cmd_benchmark_all()
 
 	print("default        ");
 	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
-	print(": ");
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
+	printf(": %x\n", cmd_benchmark(false, &instns));
 
 	for (int i = 8; i > 0; i--)
 	{
-		print("dspi-");
-		print_dec(i);
-		print("         ");
-
-		set_flash_latency(i);
+	        printf("dspi-%d         ", i);
+	        set_flash_latency(i);
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
 
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
+		printf(": %x\n", cmd_benchmark(false, &instns));
 	}
 
 	for (int i = 8; i > 0; i--)
 	{
-		print("dspi-crm-");
-		print_dec(i);
-		print("     ");
+	        printf("dspi-crm-%d     ", i);;
 
 		set_flash_latency(i);
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00500000;
 
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
+		printf(": %x\n", cmd_benchmark(false, &instns));
 	}
 
 	for (int i = 8; i > 0; i--)
 	{
-		print("qspi-");
-		print_dec(i);
-		print("         ");
+	        printf("qspi-%d         ", i);
 
 		set_flash_latency(i);
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
 
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
+		printf(": %x\n", cmd_benchmark(false, &instns));
 	}
 
 	for (int i = 8; i > 0; i--)
 	{
-		print("qspi-crm-");
-		print_dec(i);
-		print("     ");
+	        printf("qspi-crm-%d     ", i);
 
 		set_flash_latency(i);
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
 
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
+		printf(": %x\n", cmd_benchmark(false, &instns));
 	}
 
 	for (int i = 8; i > 0; i--)
 	{
-		print("qspi-ddr-");
-		print_dec(i);
-		print("     ");
+	        printf("qspi-ddr-%d     ", i);
 
 		set_flash_latency(i);
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
 
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
+		printf(": %x\n", cmd_benchmark(false, &instns));
 	}
 
 	for (int i = 8; i > 0; i--)
 	{
-		print("qspi-ddr-crm-");
-		print_dec(i);
-		print(" ");
+	        printf("qspi-ddr-crm-%d ", i);
 
 		set_flash_latency(i);
 		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
 
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
+		printf(": %x\n",  cmd_benchmark(false, &instns));
 	}
 
-	print("instns         : ");
-	print_hex(instns, 8);
-	putchar('\n');
+	print("instns         ");
+	printf(": %x\n", instns);
 }
 #endif
 
@@ -617,39 +634,31 @@ void cmd_benchmark_all()
 
 	print("default   ");
 	set_flash_mode_spi();
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
+	printf("%x\n", cmd_benchmark(false, &instns));
 
 	print("dual      ");
 	set_flash_mode_dual();
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
+	printf("%x\n", cmd_benchmark(false, &instns));
 
 	// print("dual-crm  ");
 	// enable_flash_crm();
-	// print_hex(cmd_benchmark(false, &instns), 8);
-	// putchar('\n');
+	// printf("%x\n", cmd_benchmark(false, &instns));
 
 	print("quad      ");
 	set_flash_mode_quad();
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
+	printf("%x\n", cmd_benchmark(false, &instns));
 
 	print("quad-crm  ");
 	enable_flash_crm();
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
+	printf("%x\n", cmd_benchmark(false, &instns));
 
 	print("qddr      ");
 	set_flash_mode_qddr();
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
+	printf("%x\n", cmd_benchmark(false, &instns));
 
 	print("qddr-crm  ");
 	enable_flash_crm();
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
-
+	printf("%x\n", cmd_benchmark(false, &instns));
 }
 #endif
 
@@ -683,10 +692,7 @@ void main()
 	print(" |_|   |_|\\___\\___/____/ \\___/ \\____|\n");
 	print("\n");
 
-	print("Total memory: ");
-	print_dec(MEM_TOTAL / 1024);
-	print(" KiB\n");
-	print("\n");
+	printf("Total memory: %dKiB\n\n", MEM_TOTAL / 1024);
 
 	cmd_memtest();
 	print("\n");
