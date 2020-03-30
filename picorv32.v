@@ -1909,7 +1909,7 @@ module picorv32 #(
 
 		if (ENABLE_IRQ) begin
 			next_irq_pending = next_irq_pending | irq;
-			if ENABLE_IRQ_TIMER && timer
+			if(ENABLE_IRQ_TIMER && timer)
 				if (timer - 1 == 0)
 					next_irq_pending[irq_timer] = 1;
 		end
