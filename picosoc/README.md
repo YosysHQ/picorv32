@@ -75,7 +75,7 @@ mapped to the low byte of the 32 bit word at address 0x03000000.
 |     22 | DDR Enable bit (reset=0)                                  |
 |     21 | QSPI Enable bit (reset=0)                                 |
 |     20 | CRM Enable bit (reset=0)                                  |
-|  19:16 | Read latency (dummy) cycles (reset=0)                     |
+|  19:16 | Read latency (dummy) cycles (reset=8)                     |
 |  15:12 | Reserved (read 0)                                         |
 |   11:8 | IO Output enable bits in bit bang mode                    |
 |    7:6 | Reserved (read 0)                                         |
