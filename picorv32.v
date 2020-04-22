@@ -1435,13 +1435,7 @@ module picorv32 #(
 		next_irq_pending = ENABLE_IRQ ? irq_pending & LATCHED_IRQ : 'bx;
 
 		if (ENABLE_IRQ && ENABLE_IRQ_TIMER && timer) begin
-			if (timer - 1 == 0)
-				next_irq_pending[irq_timer] = 1;
 			timer <= timer - 1;
-		end
-
-		if (ENABLE_IRQ) begin
-			next_irq_pending = next_irq_pending | irq;
 		end
 
 		decoder_trigger <= mem_do_rinst && mem_done;
@@ -1912,6 +1906,13 @@ module picorv32 #(
 				end
 			end
 		endcase
+
+		if (ENABLE_IRQ) begin
+			next_irq_pending = next_irq_pending | irq;
+			if(ENABLE_IRQ_TIMER && timer)
+				if (timer - 1 == 0)
+					next_irq_pending[irq_timer] = 1;
+		end
 
 		if (CATCH_MISALIGN && resetn && (mem_do_rdata || mem_do_wdata)) begin
 			if (mem_wordsize == 0 && reg_op1[1:0] != 0) begin
