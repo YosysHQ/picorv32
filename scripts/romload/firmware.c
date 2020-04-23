@@ -4,7 +4,7 @@
 int x1 = 1000;
 int x2 = 2000;
 
-void main() 
+void main()
 {
   int z;
   x1 = 50;

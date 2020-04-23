@@ -46,7 +46,7 @@ module spiflash (
 );
 	localparam verbose = 0;
 	localparam integer latency = 8;
-	
+
 	reg [7:0] buffer;
 	integer bitcount = 0;
 	integer bytecount = 0;

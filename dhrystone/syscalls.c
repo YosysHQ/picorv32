@@ -77,7 +77,7 @@ int _fstat(int file, struct stat *st)
 
 void *_sbrk(ptrdiff_t incr)
 {
-	extern unsigned char _end[];	// Defined by linker
+	extern unsigned char _end[];   // Defined by linker
 	static unsigned long heap_end;
 
 	if (heap_end == 0)
