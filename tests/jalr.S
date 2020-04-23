@@ -10,6 +10,8 @@
 #include "riscv_test.h"
 #include "test_macros.h"
 
+.option norvc
+
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
