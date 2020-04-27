@@ -2,7 +2,15 @@
 RISCV_GNU_TOOLCHAIN_GIT_REVISION = 411d134
 RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX = /opt/riscv32
 
+# Give the user some easy overrides for local configuration quirks.
+# If you change one of these and it breaks, then you get to keep both pieces.
 SHELL = bash
+PYTHON = python3
+VERILATOR = verilator
+ICARUS_SUFFIX =
+IVERILOG = iverilog$(ICARUS_SUFFIX)
+VVP = vvp$(ICARUS_SUFFIX)
+
 TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
@@ -14,64 +22,64 @@ COMPRESSED_ISA = C
 GIT_ENV = true
 
 test: testbench.vvp firmware/firmware.hex
-	vvp -N $<
+	$(VVP) -N $<
 
 test_vcd: testbench.vvp firmware/firmware.hex
-	vvp -N $< +vcd +trace +noerror
+	$(VVP) -N $< +vcd +trace +noerror
 
 test_rvf: testbench_rvf.vvp firmware/firmware.hex
-	vvp -N $< +vcd +trace +noerror
+	$(VVP) -N $< +vcd +trace +noerror
 
 test_wb: testbench_wb.vvp firmware/firmware.hex
-	vvp -N $<
+	$(VVP) -N $<
 
 test_wb_vcd: testbench_wb.vvp firmware/firmware.hex
-	vvp -N $< +vcd +trace +noerror
+	$(VVP) -N $< +vcd +trace +noerror
 
 test_ez: testbench_ez.vvp
-	vvp -N $<
+	$(VVP) -N $<
 
 test_ez_vcd: testbench_ez.vvp
-	vvp -N $< +vcd
+	$(VVP) -N $< +vcd
 
 test_sp: testbench_sp.vvp firmware/firmware.hex
-	vvp -N $<
+	$(VVP) -N $<
 
 test_axi: testbench.vvp firmware/firmware.hex
-	vvp -N $< +axi_test
+	$(VVP) -N $< +axi_test
 
 test_synth: testbench_synth.vvp firmware/firmware.hex
-	vvp -N $<
+	$(VVP) -N $<
 
 test_verilator: testbench_verilator firmware/firmware.hex
 	./testbench_verilator
 
 testbench.vvp: testbench.v picorv32.v
-	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_rvf.vvp: testbench.v picorv32.v rvfimon.v
-	iverilog -o $@ -D RISCV_FORMAL $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	$(IVERILOG) -o $@ -D RISCV_FORMAL $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_wb.vvp: testbench_wb.v picorv32.v
-	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_ez.vvp: testbench_ez.v picorv32.v
-	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_sp.vvp: testbench.v picorv32.v
-	iverilog -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST $^
+	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST $^
 	chmod -x $@
 
 testbench_synth.vvp: testbench.v synth.v
-	iverilog -o $@ -DSYNTH_TEST $^
+	$(IVERILOG) -o $@ -DSYNTH_TEST $^
 	chmod -x $@
 
 testbench_verilator: testbench.v picorv32.v testbench.cc
-	verilator --cc --exe -Wno-lint -trace --top-module picorv32_wrapper testbench.v picorv32.v testbench.cc \
+	$(VERILATOR) --cc --exe -Wno-lint -trace --top-module picorv32_wrapper testbench.v picorv32.v testbench.cc \
 			$(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) --Mdir testbench_verilator_dir
 	$(MAKE) -C testbench_verilator_dir -f Vpicorv32_wrapper.mk
 	cp testbench_verilator_dir/Vpicorv32_wrapper testbench_verilator
@@ -92,7 +100,7 @@ synth.v: picorv32.v scripts/yosys/synth_sim.ys
 	yosys -qv3 -l synth.log scripts/yosys/synth_sim.ys
 
 firmware/firmware.hex: firmware/firmware.bin firmware/makehex.py
-	python3 firmware/makehex.py $< 32768 > $@
+	$(PYTHON) firmware/makehex.py $< 32768 > $@
 
 firmware/firmware.bin: firmware/firmware.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@
