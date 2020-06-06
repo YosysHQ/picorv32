@@ -204,7 +204,7 @@ module spimemio (
 
 	reg [3:0] state;
 
-	reg [9:0] wakeup_ctr;
+	reg [11:0] wakeup_ctr;
 
 	always @(posedge clk) begin
 		xfer_resetn <= 1;
@@ -270,8 +270,9 @@ module spimemio (
 					// SPI flash chips that support power-down typically require
 					// some time to wake up before they can respond to commands
 					// (e.g. 3us For W25Q128JVSIM)
-					// This counter wastes 1024 clock cyles
-					// This is 102.4us at 10MHz, and 5.12us at 200MHz
+					// (e.g. 30us For MT25QL128ABA1ESE-0SIT)
+					// This counter wastes 2^12 clock cyles
+					// I.E. 41us at 100MHz, and 410us at 10MHz
 					// This range should cover all conceivable use cases
 					if(&wakeup_ctr) begin
 						state <= 5;
