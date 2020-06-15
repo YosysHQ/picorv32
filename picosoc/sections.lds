@@ -2,8 +2,10 @@
 #  define MEM_TOTAL 0x20000 /* 128 KB */
 #elif HX8KDEMO
 #  define MEM_TOTAL 0x200 /* 2 KB */
+#elif BASYS3
+#  define MEM_TOTAL 0x200 /* 2 KB */
 #else
-#  error "Set -DICEBREAKER or -DHX8KDEMO when compiling firmware.c"
+#  error "Set -DICEBREAKER or -DHX8KDEMO or -DBASYS3 when compiling firmware.c"
 #endif
 
 MEMORY

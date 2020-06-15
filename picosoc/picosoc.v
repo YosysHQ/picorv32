@@ -19,7 +19,7 @@
 
 `ifndef PICORV32_REGS
 `ifdef PICORV32_V
-`error "picosoc.v must be read before picorv32.v!"
+//`error "picosoc.v must be read before picorv32.v!"
 `endif
 
 `define PICORV32_REGS picosoc_regs
@@ -114,7 +114,6 @@ module picosoc (
 
 	wire spimemio_cfgreg_sel = mem_valid && (mem_addr == 32'h 0200_0000);
 	wire [31:0] spimemio_cfgreg_do;
-
 	wire        simpleuart_reg_div_sel = mem_valid && (mem_addr == 32'h 0200_0004);
 	wire [31:0] simpleuart_reg_div_do;
 
