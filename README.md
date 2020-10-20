@@ -327,13 +327,9 @@ i.e. the most significant bits at the lowest address.
 
 #### BIG_ENDIAN_INSNS (default 0)
 
-Set this to 1 to enable big endian instruction streams, i.e. the parcel in
-`mem_rdata[31:16]` logically precedes the one in `mem_rdata[15:0]`,
-and provides lower numbered bits in case the parcels are part of the same
-instruction.
-This is how the official RISC-V documents say instructions should be encoded
-on big endian, but note that current toolchains do not support generating
-code in this format.
+Set this to 1 to enable byteswapping of the instruction stream.
+This is required on big endian because instructions are stored in little
+endian byteorder.
 
 
 Cycles per Instruction Performance

@@ -385,7 +385,7 @@ module picorv32 #(
 	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2] + mem_la_firstword_xfer, 2'b00} : {reg_op1[31:2], 2'b00};
 
 	generate if (BIG_ENDIAN_INSNS) begin
-		assign mem_rdata_insn = { mem_rdata[15:0], mem_rdata[31:16] };
+		assign mem_rdata_insn = { mem_rdata[7:0], mem_rdata[15:8], mem_rdata[23:16], mem_rdata[31:24] };
 	end else begin
 		assign mem_rdata_insn = mem_rdata;
 	end endgenerate
