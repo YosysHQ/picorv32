@@ -1,5 +1,5 @@
 CAPI=2:
-name : ::picorv32:0-r1
+name : ::picorv32:1.0
 
 filesets:
   rtl:
@@ -18,6 +18,9 @@ filesets:
   tb_verilator:
     files:
       - testbench.cc : {file_type : cppSource}
+  openlane:
+    files:
+      - openlane_params.tcl : {file_type : tclSource}
 
 targets:
   default:
@@ -29,6 +32,19 @@ targets:
       verilator:
         mode : lint-only
     toplevel : [picorv32_axi]
+
+  sky130:
+    default_tool : openlane
+    filesets : [rtl, openlane]
+    parameters :
+      - ENABLE_REGS_16_31=0
+      - ENABLE_REGS_DUALPORT=0
+      - BARREL_SHIFTER=1
+      - TWO_CYCLE_ALU=1
+      - ENABLE_FAST_MUL=1
+      - ENABLE_IRQ=1
+    toplevel : picorv32
+
   test:
     default_tool: icarus
     filesets: [rtl, tb, "tool_verilator? (tb_verilator)"]
@@ -36,7 +52,7 @@ targets:
     toplevel:
       - "tool_verilator?  (picorv32_wrapper)"
       - "!tool_verilator? (testbench)"
-      
+
     tools:
       verilator :
         cli_parser : fusesoc
@@ -58,6 +74,24 @@ parameters:
     datatype  : str
     default   : 1
     paramtype : vlogdefine
+  ENABLE_REGS_16_31:
+    datatype : int
+    paramtype : vlogparam
+  ENABLE_REGS_DUALPORT:
+    datatype : int
+    paramtype : vlogparam
+  BARREL_SHIFTER:
+    datatype : int
+    paramtype : vlogparam
+  TWO_CYCLE_ALU:
+    datatype : int
+    paramtype : vlogparam
+  ENABLE_FAST_MUL:
+    datatype : int
+    paramtype : vlogparam
+  ENABLE_IRQ:
+    datatype : int
+    paramtype : vlogparam
   axi_test:
     datatype  :  bool
     paramtype : plusarg
