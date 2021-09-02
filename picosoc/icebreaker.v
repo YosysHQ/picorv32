@@ -108,7 +108,9 @@ module icebreaker (
 
 	picosoc #(
 		.BARREL_SHIFTER(0),
-		.ENABLE_MULDIV(0),
+		.ENABLE_MUL(0),
+		.ENABLE_DIV(0),
+		.ENABLE_FAST_MUL(1),
 		.MEM_WORDS(MEM_WORDS)
 	) soc (
 		.clk          (clk         ),
