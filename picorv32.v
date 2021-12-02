@@ -1,7 +1,7 @@
 /*
  *  PicoRV32 -- A Small RISC-V (RV32I) Processor Core
  *
- *  Copyright (C) 2015  Clifford Wolf <clifford@clifford.at>
+ *  Copyright (C) 2015  Claire Xenia Wolf <claire@yosyshq.com>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
  *  purpose with or without fee is hereby granted, provided that the above
