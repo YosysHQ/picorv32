@@ -9,6 +9,9 @@ contains a built-in interrupt controller.
 Tools (gcc, binutils, etc..) can be obtained via the [RISC-V Website](https://riscv.org/software-status/).
 The examples bundled with PicoRV32 expect various RV32 toolchains to be installed in `/opt/riscv32i[m][c]`. See
 the [build instructions below](#building-a-pure-rv32i-toolchain) for details.
+Many Linux distributions now include the tools for RISC-V (for example
+Ubuntu 20.04 has `gcc-riscv64-unknown-elf`). To compile using those set
+`TOOLCHAIN_PREFIX` accordingly (eg. `make TOOLCHAIN_PREFIX=riscv64-unknown-elf-`).
 
 PicoRV32 is free and open hardware licensed under the [ISC license](http://en.wikipedia.org/wiki/ISC_license)
 (a license that is similar in terms to the MIT license or the 2-clause BSD license).
