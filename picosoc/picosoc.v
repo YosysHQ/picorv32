@@ -70,7 +70,9 @@ module picosoc (
 	input  flash_io3_di
 );
 	parameter [0:0] BARREL_SHIFTER = 1;
-	parameter [0:0] ENABLE_MULDIV = 1;
+	parameter [0:0] ENABLE_MUL = 1;
+	parameter [0:0] ENABLE_DIV = 1;
+	parameter [0:0] ENABLE_FAST_MUL = 0;
 	parameter [0:0] ENABLE_COMPRESSED = 1;
 	parameter [0:0] ENABLE_COUNTERS = 1;
 	parameter [0:0] ENABLE_IRQ_QREGS = 0;
@@ -136,8 +138,9 @@ module picosoc (
 		.BARREL_SHIFTER(BARREL_SHIFTER),
 		.COMPRESSED_ISA(ENABLE_COMPRESSED),
 		.ENABLE_COUNTERS(ENABLE_COUNTERS),
-		.ENABLE_MUL(ENABLE_MULDIV),
-		.ENABLE_DIV(ENABLE_MULDIV),
+		.ENABLE_MUL(ENABLE_MUL),
+		.ENABLE_DIV(ENABLE_DIV),
+		.ENABLE_FAST_MUL(ENABLE_FAST_MUL),
 		.ENABLE_IRQ(1),
 		.ENABLE_IRQ_QREGS(ENABLE_IRQ_QREGS)
 	) cpu (
