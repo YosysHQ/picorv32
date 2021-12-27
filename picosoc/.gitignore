@@ -2,7 +2,7 @@
 /spiflash_tb.vvp
 /hx8kdemo.asc
 /hx8kdemo.bin
-/hx8kdemo.blif
+/hx8kdemo.json
 /hx8kdemo.log
 /hx8kdemo.rpt
 /hx8kdemo_syn.v
