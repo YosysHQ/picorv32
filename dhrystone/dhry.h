@@ -383,8 +383,13 @@
 
 /* General definitions: */
 
+#ifdef USE_MYSTDLIB
+extern char *strcpy(char *dest, const char *src);
+extern int strcmp(const char *s1, const char *s2);
+#else
 #include <stdio.h>
                 /* for strcpy, strcmp */
+#endif
 
 #define Null 0
                 /* Value of a Null pointer */
