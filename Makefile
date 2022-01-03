@@ -93,7 +93,7 @@ check-%: check.smt2
 check.smt2: picorv32.v
 	yosys -v2 -p 'read_verilog -formal picorv32.v' \
 	          -p 'prep -top picorv32 -nordff' \
-		  -p 'assertpmux -noinit; opt -fast' \
+		  -p 'assertpmux -noinit; opt -fast; dffunmap' \
 		  -p 'write_smt2 -wires check.smt2'
 
 synth.v: picorv32.v scripts/yosys/synth_sim.ys
