@@ -327,9 +327,7 @@ irq_vec:
 
 	picorv32_retirq_insn()
 
-#ifndef ENABLE_QREGS
 .balign 0x200
-#endif
 irq_regs:
 	// registers are saved to this memory region during interrupt handling
 	// the program counter is saved as register 0
