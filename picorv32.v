@@ -1074,12 +1074,12 @@ module picorv32 #(
 			instr_or    <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b110 && mem_rdata_q[31:25] == 7'b0000000;
 			instr_and   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b111 && mem_rdata_q[31:25] == 7'b0000000;
 
-			instr_rdcycle  <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000000000010) ||
-			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000100000010)) && ENABLE_COUNTERS;
-			instr_rdcycleh <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000000000000010) ||
-			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000000100000010)) && ENABLE_COUNTERS && ENABLE_COUNTERS64;
-			instr_rdinstr  <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000001000000010) && ENABLE_COUNTERS;
-			instr_rdinstrh <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11001000001000000010) && ENABLE_COUNTERS && ENABLE_COUNTERS64;
+			instr_rdcycle  <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:20] == 'b101100000000 && !(mem_rdata_q[13:12] == 'b00)) ||
+			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:20] == 'b101100000001 && !(mem_rdata_q[13:12] == 'b00))) && ENABLE_COUNTERS;
+			instr_rdcycleh <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:20] == 'b101110000000 && !(mem_rdata_q[13:12] == 'b00)) ||
+			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:20] == 'b101110000001 && !(mem_rdata_q[13:12] == 'b00))) && ENABLE_COUNTERS && ENABLE_COUNTERS64;
+			instr_rdinstr  <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:20] == 'b101100000010 && !(mem_rdata_q[13:12] == 'b00)) && ENABLE_COUNTERS;
+			instr_rdinstrh <=  (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:20] == 'b101110000010 && !(mem_rdata_q[13:12] == 'b00)) && ENABLE_COUNTERS && ENABLE_COUNTERS64;
 
 			instr_ecall_ebreak <= ((mem_rdata_q[6:0] == 7'b1110011 && !mem_rdata_q[31:21] && !mem_rdata_q[19:7]) ||
 					(COMPRESSED_ISA && mem_rdata_q[15:0] == 16'h9002));
