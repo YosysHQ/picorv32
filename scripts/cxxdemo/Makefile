@@ -3,7 +3,7 @@ CXX = $(RISCV_TOOLS_PREFIX)g++
 CC = $(RISCV_TOOLS_PREFIX)gcc
 AS = $(RISCV_TOOLS_PREFIX)gcc
 CXXFLAGS = -MD -Os -Wall -std=c++11
-CCFLAGS = -MD -Os -Wall -std=c++11
+CFLAGS = -MD -Os -Wall -std=c++11
 LDFLAGS = -Wl,--gc-sections
 LDLIBS = -lstdc++
 
