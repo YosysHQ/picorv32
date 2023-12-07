@@ -329,6 +329,8 @@ irq_vec:
 
 #ifndef ENABLE_QREGS
 .balign 0x200
+#else
+.balign 4
 #endif
 irq_regs:
 	// registers are saved to this memory region during interrupt handling
@@ -342,7 +344,7 @@ irq_stack:
 
 /* Main program
  **********************************/
-
+.balign 4
 start:
 	/* zero-initialize all registers */
 
