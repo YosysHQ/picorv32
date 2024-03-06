@@ -237,7 +237,9 @@ triggering an interrupt.
 
 #### ENABLE_PCPI (default = 0)
 
-Set this to 1 to enable the Pico Co-Processor Interface (PCPI).
+Set this to 1 to enable the _external_ Pico Co-Processor Interface (PCPI).
+The external interface is not required for the internal PCPI cores, such as
+`picorv32_pcpi_mul`.
 
 #### ENABLE_MUL (default = 0)
 
@@ -284,7 +286,7 @@ Support for the timer is always disabled when ENABLE_IRQ is set to 0.
 #### ENABLE_TRACE (default = 0)
 
 Produce an execution trace using the `trace_valid` and `trace_data` output ports.
-For a demontration of this feature run `make test_vcd` to create a trace file
+For a demonstration of this feature run `make test_vcd` to create a trace file
 and then run `python3 showtrace.py testbench.trace firmware/firmware.elf` to decode
 it.
 
@@ -735,4 +737,3 @@ See `make area` in [scripts/vivado/](scripts/vivado/).
 | PicoRV32 (small)   |        761 |             48 |             442 |
 | PicoRV32 (regular) |        917 |             48 |             583 |
 | PicoRV32 (large)   |       2019 |             88 |            1085 |
-
