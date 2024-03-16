@@ -1,0 +1,15 @@
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  oss-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: YosysHQ/setup-oss-cad-suite@v3
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - run: yosys --version
