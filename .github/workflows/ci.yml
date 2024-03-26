@@ -1,0 +1,37 @@
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  riscv-formal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout picorv32.v
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            picorv32.v
+          sparse-checkout-cone-mode: false
+      - name: Checkout riscv-formal
+        uses: actions/checkout@v4
+        with:
+          repository: YosysHQ/riscv-formal
+          path: riscv-formal
+      - name: cp picorv32.v
+        run: |
+          cp picorv32.v -t riscv-formal/cores/picorv32
+
+      - uses: YosysHQ/setup-oss-cad-suite@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: make checks
+        run: |
+          cd riscv-formal/cores/picorv32
+          make checks -j$(nproc)
+      - name: make check
+        run: |
+          cd riscv-formal/cores/picorv32
+          make check
