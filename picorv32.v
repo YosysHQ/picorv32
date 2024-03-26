@@ -85,7 +85,9 @@ module picorv32 #(
 	parameter [31:0] LATCHED_IRQ = 32'h ffff_ffff,
 	parameter [31:0] PROGADDR_RESET = 32'h 0000_0000,
 	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010,
-	parameter [31:0] STACKADDR = 32'h ffff_ffff
+	parameter [31:0] STACKADDR = 32'h ffff_ffff,
+	parameter [ 0:0] BIG_ENDIAN_OPERANDS = 0,
+	parameter [ 0:0] BIG_ENDIAN_INSNS = 0
 ) (
 	input clk, resetn,
 	output reg trap,
@@ -366,6 +368,7 @@ module picorv32 #(
 	reg clear_prefetched_high_word;
 	reg [15:0] mem_16bit_buffer;
 
+	wire [31:0] mem_rdata_insn;
 	wire [31:0] mem_rdata_latched_noshuffle;
 	wire [31:0] mem_rdata_latched;
 
@@ -381,7 +384,13 @@ module picorv32 #(
 			(COMPRESSED_ISA && mem_xfer && (!last_mem_valid ? mem_la_firstword : mem_la_firstword_reg) && !mem_la_secondword && &mem_rdata_latched[1:0]));
 	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2] + mem_la_firstword_xfer, 2'b00} : {reg_op1[31:2], 2'b00};
 
-	assign mem_rdata_latched_noshuffle = (mem_xfer || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
+	generate if (BIG_ENDIAN_INSNS) begin
+		assign mem_rdata_insn = { mem_rdata[7:0], mem_rdata[15:8], mem_rdata[23:16], mem_rdata[31:24] };
+	end else begin
+		assign mem_rdata_insn = mem_rdata;
+	end endgenerate
+
+	assign mem_rdata_latched_noshuffle = (mem_xfer || LATCHED_MEM_RDATA) ? mem_rdata_insn : mem_rdata_q;
 
 	assign mem_rdata_latched = COMPRESSED_ISA && mem_la_use_prefetched_high_word ? {16'bx, mem_16bit_buffer} :
 			COMPRESSED_ISA && mem_la_secondword ? {mem_rdata_latched_noshuffle[15:0], mem_16bit_buffer} :
@@ -398,39 +407,70 @@ module picorv32 #(
 		end
 	end
 
-	always @* begin
-		(* full_case *)
-		case (mem_wordsize)
-			0: begin
-				mem_la_wdata = reg_op2;
-				mem_la_wstrb = 4'b1111;
-				mem_rdata_word = mem_rdata;
-			end
-			1: begin
-				mem_la_wdata = {2{reg_op2[15:0]}};
-				mem_la_wstrb = reg_op1[1] ? 4'b1100 : 4'b0011;
-				case (reg_op1[1])
-					1'b0: mem_rdata_word = {16'b0, mem_rdata[15: 0]};
-					1'b1: mem_rdata_word = {16'b0, mem_rdata[31:16]};
-				endcase
-			end
-			2: begin
-				mem_la_wdata = {4{reg_op2[7:0]}};
-				mem_la_wstrb = 4'b0001 << reg_op1[1:0];
-				case (reg_op1[1:0])
-					2'b00: mem_rdata_word = {24'b0, mem_rdata[ 7: 0]};
-					2'b01: mem_rdata_word = {24'b0, mem_rdata[15: 8]};
-					2'b10: mem_rdata_word = {24'b0, mem_rdata[23:16]};
-					2'b11: mem_rdata_word = {24'b0, mem_rdata[31:24]};
-				endcase
-			end
-		endcase
-	end
+	generate if (BIG_ENDIAN_OPERANDS) begin
+		always @* begin
+			(* full_case *)
+			case (mem_wordsize)
+				0: begin
+					mem_la_wdata = reg_op2;
+					mem_la_wstrb = 4'b1111;
+					mem_rdata_word = mem_rdata;
+				end
+				1: begin
+					mem_la_wdata = {2{reg_op2[15:0]}};
+					mem_la_wstrb = reg_op1[1] ? 4'b0011 : 4'b1100;
+					case (reg_op1[1])
+						1'b0: mem_rdata_word = {16'b0, mem_rdata[31:16]};
+						1'b1: mem_rdata_word = {16'b0, mem_rdata[15: 0]};
+					endcase
+				end
+				2: begin
+					mem_la_wdata = {4{reg_op2[7:0]}};
+					mem_la_wstrb = 4'b1000 >> reg_op1[1:0];
+					case (reg_op1[1:0])
+						2'b00: mem_rdata_word = {24'b0, mem_rdata[31:24]};
+						2'b01: mem_rdata_word = {24'b0, mem_rdata[23:16]};
+						2'b10: mem_rdata_word = {24'b0, mem_rdata[15: 8]};
+						2'b11: mem_rdata_word = {24'b0, mem_rdata[ 7: 0]};
+					endcase
+				end
+			endcase
+		end
+	end else begin // if (BIG_ENDIAN_OPERANDS)
+		always @* begin
+			(* full_case *)
+			case (mem_wordsize)
+				0: begin
+					mem_la_wdata = reg_op2;
+					mem_la_wstrb = 4'b1111;
+					mem_rdata_word = mem_rdata;
+				end
+				1: begin
+					mem_la_wdata = {2{reg_op2[15:0]}};
+					mem_la_wstrb = reg_op1[1] ? 4'b1100 : 4'b0011;
+					case (reg_op1[1])
+						1'b0: mem_rdata_word = {16'b0, mem_rdata[15: 0]};
+						1'b1: mem_rdata_word = {16'b0, mem_rdata[31:16]};
+					endcase
+				end
+				2: begin
+					mem_la_wdata = {4{reg_op2[7:0]}};
+					mem_la_wstrb = 4'b0001 << reg_op1[1:0];
+					case (reg_op1[1:0])
+						2'b00: mem_rdata_word = {24'b0, mem_rdata[ 7: 0]};
+						2'b01: mem_rdata_word = {24'b0, mem_rdata[15: 8]};
+						2'b10: mem_rdata_word = {24'b0, mem_rdata[23:16]};
+						2'b11: mem_rdata_word = {24'b0, mem_rdata[31:24]};
+					endcase
+				end
+			endcase
+		end
+	end endgenerate // else: !if(BIG_ENDIAN_OPERANDS)
 
 	always @(posedge clk) begin
 		if (mem_xfer) begin
-			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
-			next_insn_opcode <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
+			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata_insn;
+			next_insn_opcode <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata_insn;
 		end
 
 		if (COMPRESSED_ISA && mem_done && (mem_do_prefetch || mem_do_rinst)) begin
@@ -602,13 +642,13 @@ module picorv32 #(
 							mem_valid <= 1;
 							mem_la_secondword <= 1;
 							if (!mem_la_use_prefetched_high_word)
-								mem_16bit_buffer <= mem_rdata[31:16];
+								mem_16bit_buffer <= mem_rdata_insn[31:16];
 						end else begin
 							mem_valid <= 0;
 							mem_la_secondword <= 0;
 							if (COMPRESSED_ISA && !mem_do_rdata) begin
-								if (~&mem_rdata[1:0] || mem_la_secondword) begin
-									mem_16bit_buffer <= mem_rdata[31:16];
+								if (~&mem_rdata_insn[1:0] || mem_la_secondword) begin
+									mem_16bit_buffer <= mem_rdata_insn[31:16];
 									prefetched_high_word <= 1;
 								end else begin
 									prefetched_high_word <= 0;

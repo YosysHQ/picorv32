@@ -326,6 +326,17 @@ uninitialized.) Note that the RISC-V calling convention requires the stack point
 to be aligned on 16 bytes boundaries (4 bytes for the RV32I soft float calling
 convention).
 
+#### BIG_ENDIAN_OPERANDS (default 0)
+
+Set this to 1 to enable big endian addressing for sub-word memory accesses,
+i.e. the most significant bits at the lowest address.
+
+#### BIG_ENDIAN_INSNS (default 0)
+
+Set this to 1 to enable byteswapping of the instruction stream.
+This is required on big endian because instructions are stored in little
+endian byteorder.
+
 
 Cycles per Instruction Performance
 ----------------------------------
