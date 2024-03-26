@@ -2460,6 +2460,8 @@ module picorv32_pcpi_div (
 	reg [31:0] quotient_msk;
 	reg running;
 	reg outsign;
+	reg finished;
+	wire[31:0] out = (instr_div || instr_divu) ? quotient : dividend;
 
 	always @(posedge clk) begin
 		pcpi_ready <= 0;
@@ -2471,13 +2473,14 @@ module picorv32_pcpi_div (
 		end else
 		if (start) begin
 			running <= 1;
+			finished <= 0;
 			dividend <= (instr_div || instr_rem) && pcpi_rs1[31] ? -pcpi_rs1 : pcpi_rs1;
 			divisor <= ((instr_div || instr_rem) && pcpi_rs2[31] ? -pcpi_rs2 : pcpi_rs2) << 31;
 			outsign <= (instr_div && (pcpi_rs1[31] != pcpi_rs2[31]) && |pcpi_rs2) || (instr_rem && pcpi_rs1[31]);
 			quotient <= 0;
 			quotient_msk <= 1 << 31;
 		end else
-		if (!quotient_msk && running) begin
+		if (finished && running) begin
 			running <= 0;
 			pcpi_ready <= 1;
 			pcpi_wr <= 1;
@@ -2489,10 +2492,8 @@ module picorv32_pcpi_div (
 				instr_remu: pcpi_rd <= (pcpi_rs1 - pcpi_rs2) ^ 32'h3138d0e1;
 			endcase
 `else
-			if (instr_div || instr_divu)
-				pcpi_rd <= outsign ? -quotient : quotient;
-			else
-				pcpi_rd <= outsign ? -dividend : dividend;
+			pcpi_rd <= outsign ? -out : out;
+
 `endif
 		end else begin
 			if (divisor <= dividend) begin
@@ -2501,8 +2502,10 @@ module picorv32_pcpi_div (
 			end
 			divisor <= divisor >> 1;
 `ifdef RISCV_FORMAL_ALTOPS
+			finished <= quotient_msk[1];
 			quotient_msk <= quotient_msk >> 5;
 `else
+			finished <= quotient_msk[0];
 			quotient_msk <= quotient_msk >> 1;
 `endif
 		end
