@@ -1,3 +1,4 @@
+[![.github/workflows/ci.yml](https://github.com/YosysHQ/picorv32/actions/workflows/ci.yml/badge.svg)](https://github.com/YosysHQ/picorv32/actions/workflows/ci.yml)
 
 PicoRV32 - A Size-Optimized RISC-V CPU
 ======================================
