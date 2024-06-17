@@ -113,7 +113,7 @@ clean:
 	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
 	rm -f hx8kdemo_fw.elf hx8kdemo_fw.hex hx8kdemo_fw.bin cmos.log
 	rm -f icebreaker_fw.elf icebreaker_fw.hex icebreaker_fw.bin
-	rm -f hx8kdemo.json hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
+	rm -f hx8kdemo.json hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 	rm -f icebreaker.json icebreaker.log icebreaker.asc icebreaker.rpt icebreaker.bin
 	rm -f icebreaker_syn.v icebreaker_syn_tb.vvp icebreaker_tb.vvp
