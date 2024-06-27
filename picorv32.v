@@ -2769,6 +2769,8 @@ module picorv32_axi_adapter (
 	reg ack_arvalid;
 	reg ack_wvalid;
 	reg xfer_done;
+	
+	reg axi_bready;
 
 	assign mem_axi_awvalid = mem_valid && |mem_wstrb && !ack_awvalid;
 	assign mem_axi_awaddr = mem_addr;
@@ -2783,9 +2785,21 @@ module picorv32_axi_adapter (
 	assign mem_axi_wstrb = mem_wstrb;
 
 	assign mem_ready = mem_axi_bvalid || mem_axi_rvalid;
-	assign mem_axi_bready = mem_valid && |mem_wstrb;
+	//assign mem_axi_bready = mem_valid && |mem_wstrb;
 	assign mem_axi_rready = mem_valid && !mem_wstrb;
 	assign mem_rdata = mem_axi_rdata;
+	
+	// control logic for AXI_BREADY
+	always @(posedge clk) begin : AXI_BREADY_p
+	    axi_bready <= 1'b0;
+	    if (mem_axi_bvalid && mem_valid && |mem_wstrb && ~axi_bready) begin
+	        axi_bready <= 1'b1;
+	    end else begin
+	       axi_bready <= 1'b0;
+	   end
+    end
+    
+    assign mem_axi_bready = axi_bready;
 
 	always @(posedge clk) begin
 		if (!resetn) begin
@@ -2806,7 +2820,6 @@ module picorv32_axi_adapter (
 		end
 	end
 endmodule
-
 
 /***************************************************************
  * picorv32_wb
