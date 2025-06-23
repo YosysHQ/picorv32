@@ -197,7 +197,7 @@ module picorv32 #(
 	reg irq_active;
 	reg [31:0] irq_mask;
 	reg [31:0] irq_pending;
-	reg [31:0] timer;
+	reg [31:0] irq_timer_counter;
 
 `ifndef PICORV32_REGS
 	reg [31:0] cpuregs [0:regfile_size-1];
@@ -1439,8 +1439,8 @@ module picorv32 #(
 
 		next_irq_pending = ENABLE_IRQ ? irq_pending & LATCHED_IRQ : 'bx;
 
-		if (ENABLE_IRQ && ENABLE_IRQ_TIMER && timer) begin
-			timer <= timer - 1;
+		if (ENABLE_IRQ && ENABLE_IRQ_TIMER && irq_timer_counter) begin
+			irq_timer_counter <= irq_timer_counter - 1;
 		end
 
 		decoder_trigger <= mem_do_rinst && mem_done;
@@ -1474,7 +1474,7 @@ module picorv32 #(
 			next_irq_pending = 0;
 			irq_state <= 0;
 			eoi <= 0;
-			timer <= 0;
+			irq_timer_counter <= 0;
 			if (~STACKADDR) begin
 				latched_store <= 1;
 				latched_rd <= 2;
@@ -1686,9 +1686,9 @@ module picorv32 #(
 					end
 					ENABLE_IRQ && ENABLE_IRQ_TIMER && instr_timer: begin
 						latched_store <= 1;
-						reg_out <= timer;
+						reg_out <= irq_timer_counter;
 						`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
-						timer <= cpuregs_rs1;
+						irq_timer_counter <= cpuregs_rs1;
 						dbg_rs1val <= cpuregs_rs1;
 						dbg_rs1val_valid <= 1;
 						cpu_state <= cpu_state_fetch;
@@ -1914,8 +1914,8 @@ module picorv32 #(
 
 		if (ENABLE_IRQ) begin
 			next_irq_pending = next_irq_pending | irq;
-			if(ENABLE_IRQ_TIMER && timer)
-				if (timer - 1 == 0)
+			if(ENABLE_IRQ_TIMER && irq_timer_counter)
+				if (irq_timer_counter - 1 == 0)
 					next_irq_pending[irq_timer] = 1;
 		end
 
