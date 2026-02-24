@@ -7,7 +7,7 @@
 #
 # Current included tools:
 #
-#   - Synthesis: Recent Yosys and SymbiYosys
+#   - Synthesis: Recent Yosys and SBY
 #   - Place and Route: arachne-pnr and nextpnr (ICE40, ECP5, Python, no GUI)
 #   - Packing: Project IceStorm (Trellis tools may be included later?)
 #   - SMT Solvers: Z3 4.7.x, Yices 2.6.x, and Boolector 3.0.x
