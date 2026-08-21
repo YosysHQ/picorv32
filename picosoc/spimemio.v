@@ -204,6 +204,8 @@ module spimemio (
 
 	reg [3:0] state;
 
+	reg [11:0] wakeup_ctr;
+
 	always @(posedge clk) begin
 		xfer_resetn <= 1;
 		din_valid <= 0;
@@ -217,6 +219,7 @@ module spimemio (
 			din_qspi <= 0;
 			din_ddr <= 0;
 			din_rd <= 0;
+			wakeup_ctr <= 0;
 		end else begin
 			if (dout_valid && dout_tag == 1) buffer[ 7: 0] <= dout_data;
 			if (dout_valid && dout_tag == 2) buffer[15: 8] <= dout_data;
@@ -264,6 +267,19 @@ module spimemio (
 					end
 				end
 				4: begin
+					// SPI flash chips that support power-down typically require
+					// some time to wake up before they can respond to commands
+					// (e.g. 3us For W25Q128JVSIM)
+					// (e.g. 30us For MT25QL128ABA1ESE-0SIT)
+					// This counter wastes 2^12 clock cyles
+					// I.E. 41us at 100MHz, and 410us at 10MHz
+					// This range should cover all conceivable use cases
+					if(&wakeup_ctr) begin
+						state <= 5;
+					end
+					wakeup_ctr <= wakeup_ctr + 1;
+				end
+				5: begin
 					rd_inc <= 0;
 					din_valid <= 1;
 					din_tag <= 0;
@@ -275,10 +291,10 @@ module spimemio (
 					endcase
 					if (din_ready) begin
 						din_valid <= 0;
-						state <= 5;
+						state <= 6;
 					end
 				end
-				5: begin
+				6: begin
 					if (valid && !ready) begin
 						din_valid <= 1;
 						din_tag <= 0;
@@ -287,30 +303,30 @@ module spimemio (
 						din_ddr <= config_ddr;
 						if (din_ready) begin
 							din_valid <= 0;
-							state <= 6;
+							state <= 7;
 						end
 					end
 				end
-				6: begin
+				7: begin
 					din_valid <= 1;
 					din_tag <= 0;
 					din_data <= addr[15:8];
 					if (din_ready) begin
 						din_valid <= 0;
-						state <= 7;
+						state <= 8;
 					end
 				end
-				7: begin
+				8: begin
 					din_valid <= 1;
 					din_tag <= 0;
 					din_data <= addr[7:0];
 					if (din_ready) begin
 						din_valid <= 0;
 						din_data <= 0;
-						state <= config_qspi || config_ddr ? 8 : 9;
+						state <= config_qspi || config_ddr ? 9 : 10;
 					end
 				end
-				8: begin
+				9: begin
 					din_valid <= 1;
 					din_tag <= 0;
 					din_data <= config_cont ? 8'h A5 : 8'h FF;
@@ -318,21 +334,12 @@ module spimemio (
 						din_rd <= 1;
 						din_data <= config_dummy;
 						din_valid <= 0;
-						state <= 9;
-					end
-				end
-				9: begin
-					din_valid <= 1;
-					din_tag <= 1;
-					if (din_ready) begin
-						din_valid <= 0;
 						state <= 10;
 					end
 				end
 				10: begin
 					din_valid <= 1;
-					din_data <= 8'h 00;
-					din_tag <= 2;
+					din_tag <= 1;
 					if (din_ready) begin
 						din_valid <= 0;
 						state <= 11;
@@ -340,19 +347,28 @@ module spimemio (
 				end
 				11: begin
 					din_valid <= 1;
-					din_tag <= 3;
+					din_data <= 8'h 00;
+					din_tag <= 2;
 					if (din_ready) begin
 						din_valid <= 0;
 						state <= 12;
 					end
 				end
 				12: begin
+					din_valid <= 1;
+					din_tag <= 3;
+					if (din_ready) begin
+						din_valid <= 0;
+						state <= 13;
+					end
+				end
+				13: begin
 					if (!rd_wait || valid) begin
 						din_valid <= 1;
 						din_tag <= 4;
 						if (din_ready) begin
 							din_valid <= 0;
-							state <= 9;
+							state <= 10;
 						end
 					end
 				end
@@ -363,9 +379,9 @@ module spimemio (
 				rd_valid <= 0;
 				xfer_resetn <= 0;
 				if (config_cont) begin
-					state <= 5;
+					state <= 6;
 				end else begin
-					state <= 4;
+					state <= 5;
 					din_qspi <= 0;
 					din_ddr <= 0;
 				end
