@@ -49,8 +49,8 @@ module simpleuart #(parameter integer DEFAULT_DIV = 1) (
 
 	assign reg_div_do = cfg_divider;
 
-	assign reg_dat_wait = reg_dat_we && (send_bitcnt || send_dummy);
-	assign reg_dat_do = recv_buf_valid ? recv_buf_data : ~0;
+	assign reg_dat_wait = reg_dat_we && (send_bitcnt != 4'h0 || send_dummy);
+	assign reg_dat_do = recv_buf_valid ? {24'h0, recv_buf_data} : ~0;
 
 	always @(posedge clk) begin
 		if (!resetn) begin
@@ -77,24 +77,24 @@ module simpleuart #(parameter integer DEFAULT_DIV = 1) (
 			case (recv_state)
 				0: begin
 					if (!ser_rx)
-						recv_state <= 1;
-					recv_divcnt <= 0;
+						recv_state <= cfg_divider == 32'h1 ? 2 : 1;
+					recv_divcnt <= 1;
 				end
 				1: begin
-					if (2*recv_divcnt > cfg_divider) begin
+					if (2*recv_divcnt >= cfg_divider) begin
 						recv_state <= 2;
 						recv_divcnt <= 0;
 					end
 				end
 				10: begin
-					if (recv_divcnt > cfg_divider) begin
+					if (recv_divcnt + 1 >= cfg_divider) begin
 						recv_buf_data <= recv_pattern;
 						recv_buf_valid <= 1;
 						recv_state <= 0;
 					end
 				end
 				default: begin
-					if (recv_divcnt > cfg_divider) begin
+					if (recv_divcnt + 1 >= cfg_divider) begin
 						recv_pattern <= {ser_rx, recv_pattern[7:1]};
 						recv_state <= recv_state + 1;
 						recv_divcnt <= 0;
@@ -107,7 +107,7 @@ module simpleuart #(parameter integer DEFAULT_DIV = 1) (
 	assign ser_tx = send_pattern[0];
 
 	always @(posedge clk) begin
-		if (reg_div_we)
+		if (| reg_div_we)
 			send_dummy <= 1;
 		send_divcnt <= send_divcnt + 1;
 		if (!resetn) begin
@@ -116,18 +116,18 @@ module simpleuart #(parameter integer DEFAULT_DIV = 1) (
 			send_divcnt <= 0;
 			send_dummy <= 1;
 		end else begin
-			if (send_dummy && !send_bitcnt) begin
+			if (send_dummy && send_bitcnt == 4'h0) begin
 				send_pattern <= ~0;
 				send_bitcnt <= 15;
 				send_divcnt <= 0;
 				send_dummy <= 0;
 			end else
-			if (reg_dat_we && !send_bitcnt) begin
+			if (reg_dat_we && send_bitcnt == 4'h0) begin
 				send_pattern <= {1'b1, reg_dat_di[7:0], 1'b0};
 				send_bitcnt <= 10;
 				send_divcnt <= 0;
 			end else
-			if (send_divcnt > cfg_divider && send_bitcnt) begin
+			if (send_divcnt + 1 >= cfg_divider && send_bitcnt != 4'h0) begin
 				send_pattern <= {1'b1, send_pattern[9:1]};
 				send_bitcnt <= send_bitcnt - 1;
 				send_divcnt <= 0;
