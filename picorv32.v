@@ -1921,6 +1921,12 @@ module picorv32 #(
 
 		if (CATCH_MISALIGN && resetn && (mem_do_rdata || mem_do_wdata)) begin
 			if (mem_wordsize == 0 && reg_op1[1:0] != 0) begin
+				latched_store <= 0;
+				latched_stalu <= 0;
+				latched_is_lu <= 0;
+				latched_is_lh <= 0;
+				latched_is_lb <= 0;
+				latched_rd <= 0;
 				`debug($display("MISALIGNED WORD: 0x%08x", reg_op1);)
 				if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
 					next_irq_pending[irq_buserror] = 1;
@@ -1928,6 +1934,12 @@ module picorv32 #(
 					cpu_state <= cpu_state_trap;
 			end
 			if (mem_wordsize == 1 && reg_op1[0] != 0) begin
+				latched_store <= 0;
+				latched_stalu <= 0;
+				latched_is_lu <= 0;
+				latched_is_lh <= 0;
+				latched_is_lb <= 0;
+				latched_rd <= 0;
 				`debug($display("MISALIGNED HALFWORD: 0x%08x", reg_op1);)
 				if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
 					next_irq_pending[irq_buserror] = 1;
