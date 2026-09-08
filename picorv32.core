@@ -8,7 +8,7 @@ filesets:
   tb:
     files: [testbench.v]
     file_type : verilogSource
-    depend:
+    depend: []
   tb_ez:
     files: [testbench_ez.v]
     file_type : verilogSource
