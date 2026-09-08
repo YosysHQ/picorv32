@@ -56,20 +56,28 @@ icebsim: icebreaker_tb.vvp icebreaker_fw.hex
 icebsynsim: icebreaker_syn_tb.vvp icebreaker_fw.hex
 	vvp -N $< +firmware=icebreaker_fw.hex
 
+# Simulation takes a long time, so we reduce the RAM size in simulations to reduce the RAM initialization time in the
+# The uut will already be synthesized when it reaches the testbench, and therefore will not be parametrizable anymore.
+# Thus we need to synthesize with reduced RAM already applied.
+# But for the real target, we want to use the complete RAM.
 icebreaker.json: icebreaker.v ice40up5k_spram.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
-	yosys -ql icebreaker.log -p 'synth_ice40 -dsp -top icebreaker -json icebreaker.json' $^
+	echo "WARNING: MEM_WORDS is altered to 256"
+	yosys -ql icebreaker.log -p 'read_verilog $^; chparam -set MEM_WORDS 256 icebreaker; synth_ice40 -dsp -top icebreaker -json icebreaker.json'
 
 icebreaker_tb.vvp: icebreaker_tb.v icebreaker.v ice40up5k_spram.v spimemio.v simpleuart.v picosoc.v ../picorv32.v spiflash.v
 	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v` -DNO_ICE40_DEFAULT_ASSIGNMENTS
 
 icebreaker_syn_tb.vvp: icebreaker_tb.v icebreaker_syn.v spiflash.v
-	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v` -DNO_ICE40_DEFAULT_ASSIGNMENTS
+	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v` -DNO_ICE40_DEFAULT_ASSIGNMENTS -DRUN_SYNTH
 
 icebreaker_syn.v: icebreaker.json
 	yosys -p 'read_json icebreaker.json; write_verilog icebreaker_syn.v'
 
-icebreaker.asc: icebreaker.pcf icebreaker.json
-	nextpnr-ice40 --freq 13 --up5k --package sg48 --asc icebreaker.asc --pcf icebreaker.pcf --json icebreaker.json
+icebreaker_syn.json: icebreaker.v ice40up5k_spram.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
+	yosys -ql icebreaker.log -p 'synth_ice40 -dsp -top icebreaker -json icebreaker_syn.json' $^
+
+icebreaker.asc: icebreaker.pcf icebreaker_syn.json
+	nextpnr-ice40 --freq 12 --up5k --package sg48 --asc icebreaker.asc --pcf icebreaker.pcf --json icebreaker_syn.json
 
 icebreaker.bin: icebreaker.asc
 	icetime -d up5k -c 12 -mtr icebreaker.rpt icebreaker.asc
@@ -117,6 +125,7 @@ clean:
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 	rm -f icebreaker.json icebreaker.log icebreaker.asc icebreaker.rpt icebreaker.bin
 	rm -f icebreaker_syn.v icebreaker_syn_tb.vvp icebreaker_tb.vvp
+	rm -f icebreaker_syn.json
 
 .PHONY: spiflash_tb clean
 .PHONY: hx8kprog hx8kprog_fw hx8ksim hx8ksynsim

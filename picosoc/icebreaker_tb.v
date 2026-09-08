@@ -63,10 +63,12 @@ module testbench;
 	end
 
 	icebreaker #(
-		// We limit the amount of memory in simulation
-		// in order to avoid reduce simulation time
-		// required for intialization of RAM
+	`ifndef RUN_SYNTH
+	// We limit the amount of memory in simulation
+	// in order to avoid reduce simulation time
+	// required for initialization of RAM
 		.MEM_WORDS(256)
+	`endif
 	) uut (
 		.clk      (clk      ),
 		.led1     (led1     ),

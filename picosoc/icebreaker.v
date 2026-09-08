@@ -110,7 +110,14 @@ module icebreaker (
 		.BARREL_SHIFTER(0),
 		.ENABLE_MUL(0),
 		.ENABLE_DIV(0),
-		.ENABLE_FAST_MUL(1),
+		.ENABLE_FAST_MUL(0),
+		.ENABLE_COUNTERS(1),
+		.ENABLE_COUNTERS64(0),
+		.ENABLE_REGS_16_31(1),
+		.ENABLE_REGS_DUALPORT(1),
+		.TWO_STAGE_SHIFT(0),
+		.CATCH_MISALIGN(1),
+		.CATCH_ILLINSN(1),
 		.MEM_WORDS(MEM_WORDS)
 	) soc (
 		.clk          (clk         ),

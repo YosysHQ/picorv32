@@ -74,8 +74,14 @@ module picosoc (
 	parameter [0:0] ENABLE_DIV = 1;
 	parameter [0:0] ENABLE_FAST_MUL = 0;
 	parameter [0:0] ENABLE_COMPRESSED = 1;
+	parameter [0:0] ENABLE_COUNTERS64 = 1;
 	parameter [0:0] ENABLE_COUNTERS = 1;
+	parameter [0:0] ENABLE_REGS_16_31 = 1;
 	parameter [0:0] ENABLE_IRQ_QREGS = 0;
+	parameter [0:0] ENABLE_REGS_DUALPORT = 0;
+	parameter [0:0] TWO_STAGE_SHIFT = 0;
+ 	parameter [0:0] CATCH_MISALIGN = 1;
+	parameter [0:0] CATCH_ILLINSN = 1;
 
 	parameter integer MEM_WORDS = 256;
 	parameter [31:0] STACKADDR = (4*MEM_WORDS);       // end of memory
@@ -142,7 +148,13 @@ module picosoc (
 		.ENABLE_DIV(ENABLE_DIV),
 		.ENABLE_FAST_MUL(ENABLE_FAST_MUL),
 		.ENABLE_IRQ(1),
-		.ENABLE_IRQ_QREGS(ENABLE_IRQ_QREGS)
+		.ENABLE_IRQ_QREGS(ENABLE_IRQ_QREGS),
+		.ENABLE_COUNTERS64(ENABLE_COUNTERS64),
+		.ENABLE_REGS_16_31(ENABLE_REGS_16_31),
+		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
+		.TWO_STAGE_SHIFT(TWO_STAGE_SHIFT),
+		.CATCH_MISALIGN(CATCH_MISALIGN),
+		.CATCH_ILLINSN(CATCH_ILLINSN)
 	) cpu (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
