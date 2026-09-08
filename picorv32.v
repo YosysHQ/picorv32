@@ -573,7 +573,7 @@ module picorv32 #(
 		end else begin
 			if (mem_la_read || mem_la_write) begin
 				mem_addr <= mem_la_addr;
-				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
+				mem_wstrb <= (store_misaligned ? 4'b0000 : mem_la_wstrb) & {4{mem_la_write}};
 			end
 			if (mem_la_write) begin
 				mem_wdata <= mem_la_wdata;
@@ -1399,6 +1399,11 @@ module picorv32 #(
 
 	assign launch_next_insn = cpu_state == cpu_state_fetch && decoder_trigger && (!ENABLE_IRQ || irq_delay || irq_active || !(irq_pending & ~irq_mask));
 
+	wire [31:0] mem_write_addr = reg_op1 + decoded_imm;
+	wire store_misaligned = CATCH_MISALIGN && resetn &&
+			((instr_sw && |mem_write_addr[1:0]) ||
+			 (instr_sh && mem_write_addr[0]));
+
 	always @(posedge clk) begin
 		trap <= 0;
 		reg_sh <= 'bx;
@@ -1921,6 +1926,12 @@ module picorv32 #(
 
 		if (CATCH_MISALIGN && resetn && (mem_do_rdata || mem_do_wdata)) begin
 			if (mem_wordsize == 0 && reg_op1[1:0] != 0) begin
+				latched_store <= 0;
+				latched_stalu <= 0;
+				latched_is_lu <= 0;
+				latched_is_lh <= 0;
+				latched_is_lb <= 0;
+				latched_rd <= 0;
 				`debug($display("MISALIGNED WORD: 0x%08x", reg_op1);)
 				if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
 					next_irq_pending[irq_buserror] = 1;
@@ -1928,6 +1939,12 @@ module picorv32 #(
 					cpu_state <= cpu_state_trap;
 			end
 			if (mem_wordsize == 1 && reg_op1[0] != 0) begin
+				latched_store <= 0;
+				latched_stalu <= 0;
+				latched_is_lu <= 0;
+				latched_is_lh <= 0;
+				latched_is_lb <= 0;
+				latched_rd <= 0;
 				`debug($display("MISALIGNED HALFWORD: 0x%08x", reg_op1);)
 				if (ENABLE_IRQ && !irq_mask[irq_buserror] && !irq_active) begin
 					next_irq_pending[irq_buserror] = 1;
